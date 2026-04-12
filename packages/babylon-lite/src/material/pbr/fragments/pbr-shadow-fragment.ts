@@ -25,7 +25,7 @@ export interface PbrShadowLightSlot {
  * Each shadow-casting light gets its own varying, bindings, and sampling code.
  * The shadow factor for each light is stored in shadowFactors[lightIndex].
  */
-export function createPbrShadowFragment(shadowLights: PbrShadowLightSlot[]): ShaderFragment {
+export function createPbrShadowFragment(shadowLights: PbrShadowLightSlot[] = [{ lightIndex: 0, shadowType: "esm" }]): ShaderFragment {
     const varyings: Varying[] = [];
     const bindings: BindingDecl[] = [];
     const vertexLines: string[] = [];
