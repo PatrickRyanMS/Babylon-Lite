@@ -174,7 +174,7 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
                     // Standard applies instance color to final color (BC),
                     // not to baseColor (AT) like PBR. Strip the fragment slot
                     // and let the template handle it.
-                    const { fragmentSlots: _stripped, ...rest } = tiFrag;
+                    const { fragmentSlots: _fragmentSlots, ...rest } = tiFrag;
                     frags.push({
                         ...rest,
                         fragmentSlots: {

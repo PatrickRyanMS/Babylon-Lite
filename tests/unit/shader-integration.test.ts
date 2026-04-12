@@ -11,7 +11,6 @@ import { createEmissiveColorFragment } from "../../packages/babylon-lite/src/mat
 import { createClearcoatFragment } from "../../packages/babylon-lite/src/material/pbr/fragments/clearcoat-fragment";
 import { createSheenFragment } from "../../packages/babylon-lite/src/material/pbr/fragments/sheen-fragment";
 import { createIblFragment } from "../../packages/babylon-lite/src/material/pbr/fragments/ibl-fragment";
-import { createReflectanceFragment } from "../../packages/babylon-lite/src/material/pbr/fragments/reflectance-fragment";
 import { createSkeletonFragment } from "../../packages/babylon-lite/src/material/pbr/fragments/skeleton-fragment";
 import { createMorphFragment } from "../../packages/babylon-lite/src/material/pbr/fragments/morph-fragment";
 import { createThinInstanceFragment } from "../../packages/babylon-lite/src/shader/fragments/thin-instance-fragment";
