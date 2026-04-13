@@ -112,6 +112,8 @@ export async function buildBundleScenes(): Promise<void> {
 
     await Promise.all(Array.from({ length: CONCURRENCY }, () => runWorker()));
 
+    console.log(`Worker pool finished. Completed: ${completed}/${allScenes.length}, Errors: ${errors.length}`);
+
     if (errors.length > 0) {
         for (const e of errors) {
             console.error(e.message);
@@ -120,8 +122,10 @@ export async function buildBundleScenes(): Promise<void> {
     }
 
     // ── 2. Measure real runtime sizes via headless browser ───────────────
+    console.log("\nStarting live size measurement...");
     // Manifest is written incrementally so the UI can refresh mid-build.
     const manifest = await measureLiveSizes();
+    console.log("Measurement complete.");
 
     console.log("\n=== Per-scene bundle sizes (live runtime measurement) ===");
     for (const scene of SCENES) {
@@ -160,6 +164,7 @@ async function measureLiveSizes(): Promise<Record<string, { rawKB: number; gzipK
     }
 
     try {
+        console.log("Launching measurement browser...");
         const browser = await chromium.launch({
             channel: "chrome",
             headless: true,
@@ -172,12 +177,14 @@ async function measureLiveSizes(): Promise<Record<string, { rawKB: number; gzipK
                 "--ignore-gpu-blocklist",
             ],
         });
+        console.log("Browser launched. Measuring Lite scenes...");
 
         // Measure Lite scenes (write after each)
         for (const scene of SCENES) {
             const { rawKB, gzipKB } = await measurePage(browser, port, `bundle-${scene}.html`, "/bundle/");
             manifest[scene] = { ...manifest[scene], rawKB, gzipKB };
             flush();
+            console.log(`  measured ${scene}: ${rawKB} KB`);
         }
 
         // Measure BJS scenes and merge into manifest (write after each)
