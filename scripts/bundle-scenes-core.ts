@@ -348,10 +348,16 @@ export async function buildBundleScenes(): Promise<void> {
 
     // Build sequentially — parallel Vite build() calls within the same process
     // cause race conditions (0-byte chunk files, stale measurements on Windows).
+    const totalScenes = SCENES.length + BJS_SCENES.length;
+    let built = 0;
     for (const scene of SCENES) {
+        built++;
+        console.log(`[${built}/${totalScenes}] Building ${scene}...`);
         await buildScene(scene);
     }
     for (const scene of BJS_SCENES) {
+        built++;
+        console.log(`[${built}/${totalScenes}] Building ${scene}...`);
         await buildScene(scene);
     }
 
