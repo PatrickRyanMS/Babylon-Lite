@@ -1,38 +1,53 @@
 # Contributing to Babylon Lite
 
-## Adding a New Scene to the Manual Lab
+## Adding a New Scene to the Lab
 
 Each scene demonstrates a specific rendering feature and serves as both a visual demo and an automated regression test. Follow these steps to add **Scene N**.
 
 ### 1. Choose an ID and Slug
 
 Pick the next available scene number (e.g., `23`) and a descriptive slug:
+
 - ID: `23`
 - Slug: `scene23-my-feature`
 
 ### 2. Create the Lite Scene
 
 **`lab/sceneN.html`**
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Babylon Lite — Scene N: My Feature</title>
-  <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    canvas { width: 100%; height: 100%; display: block; }
-  </style>
-</head>
-<body>
-  <canvas id="renderCanvas"></canvas>
-  <script src="/loader.js"></script>
-  <script type="module" src="/src/lite/sceneN.ts"></script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Babylon Lite — Scene N: My Feature</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #000;
+            }
+            canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="renderCanvas"></canvas>
+        <script src="/loader.js"></script>
+        <script type="module" src="/src/lite/sceneN.ts"></script>
+    </body>
 </html>
 ```
 
 **`lab/src/lite/sceneN.ts`**
+
 ```typescript
 import { createEngine, createSceneContext, createDefaultCamera, attachControl } from "babylon-lite";
 
@@ -58,21 +73,34 @@ main().catch(console.error);
 ### 3. Create the Babylon.js Reference
 
 **`lab/babylon-ref-sceneN.html`**
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Babylon.js Reference — Scene N: My Feature</title>
-  <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    canvas { width: 100%; height: 100%; display: block; }
-  </style>
-</head>
-<body>
-  <canvas id="renderCanvas"></canvas>
-  <script type="module" src="/src/bjs/sceneN.ts"></script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Babylon.js Reference — Scene N: My Feature</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #000;
+            }
+            canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="renderCanvas"></canvas>
+        <script type="module" src="/src/bjs/sceneN.ts"></script>
+    </body>
 </html>
 ```
 
@@ -95,11 +123,13 @@ npx tsx scripts/capture-golden.ts --scene N
 ```
 
 Or manually screenshot the canvas at `http://localhost:5174/babylon-ref-sceneN.html` and save as:
+
 ```
 reference/sceneN-my-feature/babylon-ref-golden.png
 ```
 
 Also copy as thumbnail:
+
 ```
 lab/public/thumbnails/sceneN.png
 ```
@@ -142,10 +172,7 @@ test("Scene 23 — My Feature matches Babylon.js reference", async ({ page }) =>
     await captureGolden(browser, { sceneId: 23 });
 
     await page.goto("/scene23.html");
-    await page.waitForFunction(
-        () => document.querySelector("canvas")?.dataset.ready === "true",
-        { timeout: 20_000 }
-    );
+    await page.waitForFunction(() => document.querySelector("canvas")?.dataset.ready === "true", { timeout: 20_000 });
     await page.waitForTimeout(500);
 
     const screenshotPath = path.join(REFERENCE_DIR, "test-actual.png");
@@ -154,8 +181,7 @@ test("Scene 23 — My Feature matches Babylon.js reference", async ({ page }) =>
     const full = compareImages(screenshotPath, GOLDEN_REF);
     console.log(`Full image (${full.totalPixels} px): MAD=${full.mad.toFixed(3)}`);
 
-    expect(full.mad, `Full image MAD should be ≤ ${sceneConfig.maxMad}`)
-        .toBeLessThanOrEqual(sceneConfig.maxMad);
+    expect(full.mad, `Full image MAD should be ≤ ${sceneConfig.maxMad}`).toBeLessThanOrEqual(sceneConfig.maxMad);
 });
 ```
 

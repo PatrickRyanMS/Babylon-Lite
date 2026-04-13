@@ -155,7 +155,7 @@ async function main(): Promise<void> {
 - **`scene-config.json`** at the repo root is the single source of truth for all per-scene MAD ceilings.
 - Each entry has: `id`, `slug`, `name`, `maxMad` (full-image ceiling), and optionally `maxRegionMad` (region-only ceiling).
 - **Parity tests** read thresholds via `getSceneConfig(id)` from `tests/parity/compare-utils.ts` — no hardcoded MAD values in test files.
-- **Manual lab parity tab** fetches `/scene-config.json` at runtime and uses per-scene `maxMad` for pass/fail coloring.
+- **Lab parity tab** fetches `/scene-config.json` at runtime and uses per-scene `maxMad` for pass/fail coloring.
 - **When adding a new scene**, add its entry to `scene-config.json` with an appropriate `maxMad`.
 - **Never raise a scene's `maxMad` without explicit user approval.** If a parity test fails, fix the rendering — don't loosen the threshold.
 
