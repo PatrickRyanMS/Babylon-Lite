@@ -261,3 +261,51 @@ await startEngine(engine, scene);
 | **WebGPU only** | No WebGL fallback. `createEngine()` throws if WebGPU is unavailable. |
 | **No `dispose()` on meshes** | Use `removeFromScene(scene, mesh)` to remove a single mesh and destroy its GPU resources. Use `disposeScene(scene)` + `disposeEngine(engine)` to tear down everything. |
 | **Tree-shakable imports** | Import only what you use. Unused features are stripped from the bundle. |
+| **Material property animation** | Mutating material props at runtime requires marking the material dirty. See Material Animation section below. |
+
+---
+
+## Material Animation
+
+Babylon Lite supports animating material properties at runtime (e.g. changing colors, alpha, anisotropy intensity per frame). Two approaches are available:
+
+### Manual (default — zero overhead)
+
+Mutate the property, then call `markMaterialDirty()`:
+
+```typescript
+import { markMaterialDirty } from "babylon-lite";
+
+onBeforeRender(scene, () => {
+    material.alpha = Math.sin(time) * 0.5 + 0.5;
+    markMaterialDirty(material);
+});
+```
+
+This works for both PBR and Standard materials. Zero runtime cost when nothing changes.
+
+### Automatic tracking (opt-in)
+
+Call `enableMaterialTracking()` once on a material to install property setters that auto-detect changes — including in-place array mutations like `material.diffuseColor[0] = 0.5`:
+
+```typescript
+import { enableMaterialTracking } from "babylon-lite";
+
+const mat = createPbrMaterial({ anisotropy: { isEnabled: true, intensity: 1.0 } });
+enableMaterialTracking(mat);
+
+// Now mutations auto-set the dirty flag — no markMaterialDirty() needed:
+onBeforeRender(scene, () => {
+    mat.anisotropy!.intensity = Math.cos(a) * 0.5 + 0.5;  // auto-dirty
+    mat.emissiveColor![0] = 0.5;                            // auto-dirty (index write)
+});
+```
+
+`enableMaterialTracking` is fully tree-shakable — scenes that don't import it pay zero bundle cost.
+
+| Feature | `markMaterialDirty` | `enableMaterialTracking` |
+|---|---|---|
+| Bundle cost | ~50 bytes | ~1.5 KB (only if imported) |
+| Per-frame cost | Zero (manual call) | Zero (setter fires only on change) |
+| Catches `color[0] = x` | ❌ (must call manually) | ✅ |
+| Catches `mat.alpha = x` | ❌ (must call manually) | ✅ |
