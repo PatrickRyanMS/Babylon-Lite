@@ -8,6 +8,11 @@ import type { LightBase } from "../light/types.js";
 import type { LightBaseInternal } from "../light/types.js";
 import { MAX_LIGHTS, LIGHT_ENTRY_FLOATS } from "../light/types.js";
 
+/** Reusable typed-array pair for writing a u32 count as its float32 bit pattern.
+ *  Avoids allocating a Uint32Array view on every fillLightsData call. */
+const _countU32 = new Uint32Array(1);
+const _countF32 = new Float32Array(_countU32.buffer);
+
 /** Total byte size of the lights UBO (header + MAX_LIGHTS entries). */
 export const LIGHTS_UBO_SIZE = 16 + MAX_LIGHTS * LIGHT_ENTRY_FLOATS * 4;
 
@@ -37,8 +42,9 @@ export function fillLightsData(data: Float32Array, lights: readonly LightBase[])
         li._writeStandardLightUbo(data, headerFloats + count * LIGHT_ENTRY_FLOATS);
         count++;
     }
-    // Write count into the first u32 slot
-    new Uint32Array(data.buffer, data.byteOffset, 1)[0] = count;
+    // Write count as u32 bit pattern into the first float slot (zero allocation)
+    _countU32[0] = count;
+    data[0] = _countF32[0]!;
 }
 
 /** Create a new lights UBO from all standard-compatible lights in the scene. */

@@ -55,6 +55,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<EngineCon
 
     const msaaSamples = 4;
 
+    const targets = createRenderTargets(device, canvas.width, canvas.height, format, msaaSamples);
     const engine: EngineContextInternal = {
         device,
         context,
@@ -62,7 +63,7 @@ export async function createEngine(canvas: HTMLCanvasElement): Promise<EngineCon
         canvas,
         msaaSamples,
         drawCallCount: 0,
-        _targets: createRenderTargets(device, canvas.width, canvas.height, format, msaaSamples),
+        _targets: targets,
         _animFrameId: 0,
         _renderFn: null,
         _opaqueBundle: null,

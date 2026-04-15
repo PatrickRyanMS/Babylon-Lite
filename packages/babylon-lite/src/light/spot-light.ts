@@ -28,13 +28,17 @@ export function createSpotLight(position: [number, number, number], direction: [
         localMatrixFromDirection(light.direction.x, light.direction.y, light.direction.z, light.position.x, light.position.y, light.position.z, _localMatrix)
     );
 
+    // Pre-compute cosHalfAngle; updated via Object.defineProperty when angle changes
+    let _angle = angle;
+    let _cosHalfAngle = Math.cos(angle * 0.5);
+
     const light = applyWorldMatrixAccessors<SpotLight>(
         {
             lightType: "spot" as const,
             children: [] as SceneNode[],
             position: new ObservableVec3(position[0], position[1], position[2], onDirty),
             direction: new ObservableVec3(direction[0], direction[1], direction[2], onDirty),
-            angle,
+            angle: 0 as number, // placeholder — overridden by defineProperty below
             exponent,
             diffuse: [1, 1, 1] as [number, number, number],
             specular: [1, 1, 1] as [number, number, number],
@@ -64,11 +68,28 @@ export function createSpotLight(position: [number, number, number], direction: [
                 data[o + 12] = w[8]!;
                 data[o + 13] = w[9]!;
                 data[o + 14] = w[10]!;
-                data[o + 15] = Math.cos(light.angle * 0.5);
+                data[o + 15] = _cosHalfAngle;
             },
         },
         wm,
         lvs
     );
+
+    // Push-based dirty tracking for angle — recompute cosHalfAngle on change
+    Object.defineProperty(light, "angle", {
+        get() {
+            return _angle;
+        },
+        set(v: number) {
+            if (v !== _angle) {
+                _angle = v;
+                _cosHalfAngle = Math.cos(v * 0.5);
+                lvs.bump();
+            }
+        },
+        configurable: true,
+        enumerable: true,
+    });
+
     return light;
 }

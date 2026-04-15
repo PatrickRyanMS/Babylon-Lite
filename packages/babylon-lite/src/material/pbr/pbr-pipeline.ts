@@ -94,24 +94,38 @@ export function computePbrFeatures(
     } else if (hasNormalTexture) {
         f |= PBR_HAS_COTANGENT_NORMAL;
     }
-    // Compact flag accumulation — each pair: [condition, bit]
-    const flags: [boolean, number][] = [
-        [hasEmissive, PBR_HAS_EMISSIVE],
-        [hasEmissiveColor, PBR_HAS_EMISSIVE_COLOR],
-        [hasEnv, PBR_HAS_ENV],
-        [hasSkeleton, PBR_HAS_SKELETON],
-        [hasTonemap, PBR_HAS_TONEMAP],
-        [hasMorphTargets, PBR_HAS_MORPH_TARGETS],
-        [hasAlphaBlend, PBR_HAS_ALPHA_BLEND],
-        [hasSpecGloss, PBR_HAS_SPEC_GLOSS],
-        [hasDoubleSided, PBR_HAS_DOUBLE_SIDED],
-        [hasMetallicReflectanceMap, PBR_HAS_METALLIC_REFLECTANCE_MAP],
-        [hasReflectanceMap, PBR_HAS_REFLECTANCE_MAP],
-    ];
-    for (const [cond, bit] of flags) {
-        if (cond) {
-            f |= bit;
-        }
+    if (hasEmissive) {
+        f |= PBR_HAS_EMISSIVE;
+    }
+    if (hasEmissiveColor) {
+        f |= PBR_HAS_EMISSIVE_COLOR;
+    }
+    if (hasEnv) {
+        f |= PBR_HAS_ENV;
+    }
+    if (hasSkeleton) {
+        f |= PBR_HAS_SKELETON;
+    }
+    if (hasTonemap) {
+        f |= PBR_HAS_TONEMAP;
+    }
+    if (hasMorphTargets) {
+        f |= PBR_HAS_MORPH_TARGETS;
+    }
+    if (hasAlphaBlend) {
+        f |= PBR_HAS_ALPHA_BLEND;
+    }
+    if (hasSpecGloss) {
+        f |= PBR_HAS_SPEC_GLOSS;
+    }
+    if (hasDoubleSided) {
+        f |= PBR_HAS_DOUBLE_SIDED;
+    }
+    if (hasMetallicReflectanceMap) {
+        f |= PBR_HAS_METALLIC_REFLECTANCE_MAP;
+    }
+    if (hasReflectanceMap) {
+        f |= PBR_HAS_REFLECTANCE_MAP;
     }
     return f;
 }

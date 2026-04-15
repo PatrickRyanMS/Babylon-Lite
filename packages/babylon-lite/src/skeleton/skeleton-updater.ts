@@ -99,6 +99,8 @@ export function createAnimationController(animData: GltfAnimationData): Animatio
     // Only write first 16 bytes (weights vec4) — count/texWidth/rowsPerBand are immutable
     const morphUploadF32 = new Float32Array(4);
 
+    let _hasTickedOnce = false;
+
     const ctrl: AnimationController = {
         time: 0,
         playing: true,
@@ -110,6 +112,12 @@ export function createAnimationController(animData: GltfAnimationData): Animatio
             if (clip.duration <= 0) {
                 return;
             }
+
+            // Skip if animation time hasn't changed (paused/static scene)
+            if (deltaMs === 0 && _hasTickedOnce) {
+                return;
+            }
+            _hasTickedOnce = true;
 
             if (ctrl.playing) {
                 ctrl.time += (deltaMs / 1000) * ctrl.speedRatio;

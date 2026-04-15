@@ -1,7 +1,7 @@
 import type { Camera } from "./camera.js";
 import type { Vec3, Mat4 } from "../math/types.js";
 import { Vec3Up } from "../math/vec3.js";
-import { mat4LookAtLH, mat4Identity } from "../math/mat4.js";
+import { mat4LookAtLH } from "../math/mat4.js";
 import type { IWorldMatrixProvider, IParentable } from "../scene/parentable.js";
 import { createWorldMatrixState } from "../scene/world-matrix-state.js";
 import { ObservableVec3 } from "../math/observable-vec3.js";
@@ -40,23 +40,28 @@ export function createFreeCamera(position: Vec3, target: Vec3): FreeCamera {
     const dy = target.y - position.y;
     const dz = target.z - position.z;
 
+    const _localMat = new Float32Array(16) as Mat4;
+
     function cameraLocalWorldMatrix(): Mat4 {
         const view = mat4LookAtLH(cam.position, cam.target, Vec3Up);
         // Camera-to-world = transpose upper 3×3 of view + eye position
-        const m = mat4Identity();
-        m[0] = view[0]!;
-        m[1] = view[4]!;
-        m[2] = view[8]!;
-        m[4] = view[1]!;
-        m[5] = view[5]!;
-        m[6] = view[9]!;
-        m[8] = view[2]!;
-        m[9] = view[6]!;
-        m[10] = view[10]!;
-        m[12] = cam.position.x;
-        m[13] = cam.position.y;
-        m[14] = cam.position.z;
-        return m;
+        _localMat[0] = view[0]!;
+        _localMat[1] = view[4]!;
+        _localMat[2] = view[8]!;
+        _localMat[3] = 0;
+        _localMat[4] = view[1]!;
+        _localMat[5] = view[5]!;
+        _localMat[6] = view[9]!;
+        _localMat[7] = 0;
+        _localMat[8] = view[2]!;
+        _localMat[9] = view[6]!;
+        _localMat[10] = view[10]!;
+        _localMat[11] = 0;
+        _localMat[12] = cam.position.x;
+        _localMat[13] = cam.position.y;
+        _localMat[14] = cam.position.z;
+        _localMat[15] = 1;
+        return _localMat;
     }
 
     const wm = createWorldMatrixState(cameraLocalWorldMatrix);

@@ -20,6 +20,11 @@ export interface ThinInstanceData {
     /** Last version uploaded to GPU. */
     _gpuVersion: number;
 
+    /** Min dirty instance index (inclusive). */
+    _dirtyMin: number;
+    /** Max dirty instance index (exclusive). */
+    _dirtyMax: number;
+
     /** Optional per-instance RGBA colors (4 floats per instance). */
     colors?: Float32Array | null;
     /** Color version counter — independent of matrix version. */
@@ -40,6 +45,8 @@ export function setThinInstances(mesh: Mesh, matrices: Float32Array, count: numb
             _version: 1,
             _gpuBuffer: null,
             _gpuVersion: 0,
+            _dirtyMin: 0,
+            _dirtyMax: count,
             _colorVersion: 0,
             _colorGpuBuffer: null,
             _colorGpuVersion: 0,
@@ -49,6 +56,8 @@ export function setThinInstances(mesh: Mesh, matrices: Float32Array, count: numb
         mesh.thinInstances.count = count;
         mesh.thinInstances._capacity = count;
         mesh.thinInstances._version++;
+        mesh.thinInstances._dirtyMin = 0;
+        mesh.thinInstances._dirtyMax = count;
     }
 }
 
@@ -66,6 +75,8 @@ export function addThinInstance(mesh: Mesh, matrix: Mat4): number {
             _version: 1,
             _gpuBuffer: null,
             _gpuVersion: 0,
+            _dirtyMin: 0,
+            _dirtyMax: 1,
             _colorVersion: 0,
             _colorGpuBuffer: null,
             _colorGpuVersion: 0,
@@ -85,6 +96,8 @@ export function addThinInstance(mesh: Mesh, matrix: Mat4): number {
     ti.matrices.set(matrix, index * 16);
     ti.count++;
     ti._version++;
+    ti._dirtyMin = 0;
+    ti._dirtyMax = ti.count;
     return index;
 }
 
@@ -93,6 +106,8 @@ export function setThinInstanceMatrix(mesh: Mesh, index: number, matrix: Mat4): 
     const ti = mesh.thinInstances!;
     ti.matrices.set(matrix, index * 16);
     ti._version++;
+    ti._dirtyMin = Math.min(ti._dirtyMin, index);
+    ti._dirtyMax = Math.max(ti._dirtyMax, index + 1);
 }
 
 /** Remove instance by index. Swap-removes: last instance fills the gap. */
@@ -104,11 +119,16 @@ export function removeThinInstance(mesh: Mesh, index: number): void {
     }
     ti.count--;
     ti._version++;
+    ti._dirtyMin = 0;
+    ti._dirtyMax = ti.count;
 }
 
 /** Mark thin instance data dirty after direct array manipulation. */
 export function flushThinInstances(mesh: Mesh): void {
-    mesh.thinInstances!._version++;
+    const ti = mesh.thinInstances!;
+    ti._version++;
+    ti._dirtyMin = 0;
+    ti._dirtyMax = ti.count;
 }
 
 /** Set per-instance RGBA colors for a thin-instanced mesh. */

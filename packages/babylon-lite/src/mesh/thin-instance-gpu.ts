@@ -7,14 +7,25 @@ import type { ThinInstanceData } from "./thin-instance.js";
 export function syncThinInstanceBuffers(device: GPUDevice, ti: ThinInstanceData, pass: GPURenderPassEncoder | GPURenderBundleEncoder, slot: number, hasColor: boolean): number {
     if (ti._version !== ti._gpuVersion) {
         const byteSize = ti.count * 64;
+        let bufferRecreated = false;
         if (!ti._gpuBuffer || ti._gpuBuffer.size < byteSize) {
             ti._gpuBuffer?.destroy();
             ti._gpuBuffer = device.createBuffer({
                 size: ti._capacity * 64,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             });
+            bufferRecreated = true;
         }
-        device.queue.writeBuffer(ti._gpuBuffer, 0, ti.matrices.buffer, ti.matrices.byteOffset, byteSize);
+        // Upload only the dirty range (or full range if buffer was just created)
+        const dirtyMin = bufferRecreated ? 0 : ti._dirtyMin;
+        const dirtyMax = bufferRecreated ? ti.count : Math.min(ti._dirtyMax, ti.count);
+        if (dirtyMax > dirtyMin) {
+            const minByte = dirtyMin * 64;
+            const maxByte = dirtyMax * 64;
+            device.queue.writeBuffer(ti._gpuBuffer, minByte, ti.matrices.buffer, ti.matrices.byteOffset + minByte, maxByte - minByte);
+        }
+        ti._dirtyMin = ti.count;
+        ti._dirtyMax = 0;
         ti._gpuVersion = ti._version;
     }
     if (ti._gpuBuffer) {

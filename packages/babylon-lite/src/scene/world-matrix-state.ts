@@ -9,7 +9,7 @@
 
 import type { Mat4 } from "../math/types.js";
 import type { IWorldMatrixProvider } from "./parentable.js";
-import { mat4Multiply, mat4MultiplyInto } from "../math/mat4.js";
+import { mat4MultiplyInto } from "../math/mat4.js";
 
 export interface WorldMatrixAccessors {
     /** Getter — returns lazily computed world matrix. */
@@ -34,6 +34,7 @@ export function createWorldMatrixState(getLocalMatrix: () => Mat4): WorldMatrixA
     let _lastLocalVersion = -1;
     let _lastParentVersion = -1;
     let _cachedWorld: Mat4 | null = null;
+    const _ownedWorld = new Float32Array(16) as Mat4;
     let _parent: IWorldMatrixProvider | null = null;
 
     return {
@@ -70,11 +71,8 @@ export function createWorldMatrixState(getLocalMatrix: () => Mat4): WorldMatrixA
             const local = getLocalMatrix();
             if (_parent !== null) {
                 const pw = _parent.worldMatrix;
-                if (_cachedWorld !== null) {
-                    mat4MultiplyInto(_cachedWorld as Float32Array, 0, pw as Float32Array, 0, local as Float32Array, 0);
-                } else {
-                    _cachedWorld = mat4Multiply(pw, local);
-                }
+                mat4MultiplyInto(_ownedWorld as Float32Array, 0, pw as Float32Array, 0, local as Float32Array, 0);
+                _cachedWorld = _ownedWorld;
             } else {
                 _cachedWorld = local;
             }

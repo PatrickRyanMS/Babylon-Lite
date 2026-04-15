@@ -673,10 +673,15 @@ export async function buildPbrRenderables(
                 data[envRotYOffset] = envRotY;
                 const sh = envTextures?.sphericalHarmonics;
                 if (sh) {
-                    const shCoeffs = [sh.l00, sh.l1_1, sh.l10, sh.l11, sh.l2_2, sh.l2_1, sh.l20, sh.l21, sh.l22];
-                    for (let i = 0; i < 9; i++) {
-                        data.set(shCoeffs[i]!, shBaseOffset + i * 4);
-                    }
+                    data.set(sh.l00, shBaseOffset);
+                    data.set(sh.l1_1, shBaseOffset + 4);
+                    data.set(sh.l10, shBaseOffset + 8);
+                    data.set(sh.l11, shBaseOffset + 12);
+                    data.set(sh.l2_2, shBaseOffset + 16);
+                    data.set(sh.l2_1, shBaseOffset + 20);
+                    data.set(sh.l20, shBaseOffset + 24);
+                    data.set(sh.l21, shBaseOffset + 28);
+                    data.set(sh.l22, shBaseOffset + 32);
                 }
                 data[exposureOffset] = exposure;
                 data[exposureOffset + 1] = contrast;

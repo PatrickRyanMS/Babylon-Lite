@@ -87,23 +87,29 @@ export function attachControl(camera: ArcRotateCamera, canvas: HTMLCanvasElement
     }
 
     function onTouchStart(e: TouchEvent): void {
-        for (const touch of Array.from(e.changedTouches)) {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i]!;
             activeTouches.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
         }
         if (activeTouches.size === 2) {
-            const pts = Array.from(activeTouches.values());
-            pinchStartDist = Math.hypot(pts[1]!.x - pts[0]!.x, pts[1]!.y - pts[0]!.y);
+            const iter = activeTouches.values();
+            const p0 = iter.next().value!;
+            const p1 = iter.next().value!;
+            pinchStartDist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
             pinchStartRadius = camera.radius;
         }
     }
 
     function onTouchMove(e: TouchEvent): void {
-        for (const touch of Array.from(e.changedTouches)) {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i]!;
             activeTouches.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
         }
         if (activeTouches.size === 2) {
-            const pts = Array.from(activeTouches.values());
-            const dist = Math.hypot(pts[1]!.x - pts[0]!.x, pts[1]!.y - pts[0]!.y);
+            const iter = activeTouches.values();
+            const p0 = iter.next().value!;
+            const p1 = iter.next().value!;
+            const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
             if (pinchStartDist > 0) {
                 camera.radius = pinchStartRadius * (pinchStartDist / dist);
                 camera.radius = Math.max(0.01, camera.radius);
@@ -112,8 +118,8 @@ export function attachControl(camera: ArcRotateCamera, canvas: HTMLCanvasElement
     }
 
     function onTouchEnd(e: TouchEvent): void {
-        for (const touch of Array.from(e.changedTouches)) {
-            activeTouches.delete(touch.identifier);
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            activeTouches.delete(e.changedTouches[i]!.identifier);
         }
     }
 
@@ -158,11 +164,11 @@ export function attachControl(camera: ArcRotateCamera, canvas: HTMLCanvasElement
             const rightZ = cosA;
             const panScale = camera.radius * 0.001;
 
-            camera.target = {
-                x: camera.target.x + rightX * camera.inertialPanningX * panScale,
-                y: camera.target.y + camera.inertialPanningY * panScale,
-                z: camera.target.z + rightZ * camera.inertialPanningX * panScale,
-            };
+            // Mutate in-place via ObservableVec3 — avoids object allocation per frame.
+            // Individual setters each call onDirty (just version++), but that's cheaper than reallocating.
+            camera.target.x += rightX * camera.inertialPanningX * panScale;
+            camera.target.y += camera.inertialPanningY * panScale;
+            camera.target.z += rightZ * camera.inertialPanningX * panScale;
 
             camera.inertialPanningX *= camera.panningInertia;
             camera.inertialPanningY *= camera.panningInertia;
