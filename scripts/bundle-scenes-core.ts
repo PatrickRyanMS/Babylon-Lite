@@ -185,8 +185,17 @@ function terserPropertyManglePlugin(): Plugin {
                 if (chunk.type !== "chunk") continue;
 
                 const result = await terserMinify(chunk.code, {
-                    compress: false,
+                    compress: {
+                        passes: 2,
+                        unsafe: true,
+                        unsafe_arrows: true,
+                        unsafe_methods: true,
+                        pure_getters: true,
+                        toplevel: true,
+                        booleans_as_integers: true,
+                    },
                     mangle: {
+                        toplevel: true,
                         properties: {
                             regex: /^_[a-z]/,
                             reserved: ["_pad", "_pad0", "_pad1", "_pad2", "_pad3", "_pad4", "_imgPad0", "_imgPad1"],
