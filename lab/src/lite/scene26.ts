@@ -12,7 +12,7 @@ import {
     createGround,
     createStandardMaterial,
     onBeforeRender,
-    createHavokPhysics,
+    createHavokWorld,
     createPhysicsAggregate,
     PhysicsShapeType,
 } from "babylon-lite";
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
 
     // Havok physics — gravity (0, -9.8, 0)
     const hknp = await HavokPhysics({ locateFile: () => "/HavokPhysics.wasm" });
-    const world = createHavokPhysics(scene, hknp, { x: 0, y: -9.8, z: 0 });
+    const world = createHavokWorld(scene, hknp, { x: 0, y: -9.8, z: 0 });
 
     // Dynamic sphere: mass=1, restitution=0.75
     createPhysicsAggregate(world, sphere, PhysicsShapeType.SPHERE, {

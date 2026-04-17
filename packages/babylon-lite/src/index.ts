@@ -102,7 +102,7 @@ export type { Renderable, PrePassRenderable, SceneUniformUpdater } from "./rende
 
 // ─── Physics ─────────────────────────────────────────────────────────
 export {
-    createHavokPhysics,
+    createHavokWorld,
     createPhysicsBody,
     createPhysicsShape,
     createPhysicsAggregate,
@@ -119,12 +119,4 @@ export {
     PhysicsShapeType,
     PhysicsMotionType,
 } from "./physics/havok.js";
-export type {
-    PhysicsWorld,
-    PhysicsBody,
-    PhysicsShape,
-    PhysicsAggregate,
-    PhysicsShapeOptions,
-    PhysicsShapeParameters,
-    PhysicsAggregateOptions,
-} from "./physics/havok.js";
+export type { PhysicsWorld, PhysicsBody, PhysicsShape, PhysicsAggregate, PhysicsShapeOptions, PhysicsShapeParameters, PhysicsAggregateOptions } from "./physics/havok.js";

@@ -2,7 +2,7 @@
  * Havok Physics V2 integration for Babylon Lite.
  *
  * Standalone-function API consistent with Lite conventions:
- *   const world = await createHavokPhysics(scene);
+ *   const world = await createHavokWorld(scene);
  *   setPhysicsGravity(world, { x: 0, y: -9.81, z: 0 });
  *   const agg = createPhysicsAggregate(world, sphere, PhysicsShapeType.SPHERE, { mass: 1 });
  *
@@ -98,9 +98,9 @@ export interface PhysicsWorld {
  * The caller is responsible for loading the WASM binary externally:
  *   import HavokPhysics from "@babylonjs/havok";
  *   const hknp = await HavokPhysics({ locateFile: () => "/HavokPhysics.wasm" });
- *   const world = createHavokPhysics(scene, hknp);
+ *   const world = createHavokWorld(scene, hknp);
  */
-export function createHavokPhysics(scene: SceneContext, hknp: any, gravity?: Vec3): PhysicsWorld {
+export function createHavokWorld(scene: SceneContext, hknp: any, gravity?: Vec3): PhysicsWorld {
     const hkWorld = hknp.HP_World_Create()[1];
 
     const g = gravity ?? { x: 0, y: -9.81, z: 0 };
@@ -126,12 +126,14 @@ export function createHavokPhysics(scene: SceneContext, hknp: any, gravity?: Vec
 function _stepWorld(world: PhysicsWorld, deltaMs: number): void {
     const { _hknp: hknp, _hkWorld: hkWorld, _bodies: bodies } = world;
     const dt = Math.min(deltaMs / 1000, 0.1);
-    if (dt <= 0) return;
+    if (dt <= 0) {
+        return;
+    }
 
     // Pre-step: sync ANIMATED bodies from node → Havok
     for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i]!;
-        if (b.motionType === PhysicsMotionType.ANIMATED as number) {
+        if (b.motionType === (PhysicsMotionType.ANIMATED as number)) {
             _syncNodeToBody(hknp, b);
         }
     }
@@ -141,7 +143,7 @@ function _stepWorld(world: PhysicsWorld, deltaMs: number): void {
     // Post-step: sync DYNAMIC bodies from Havok → node
     for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i]!;
-        if (b.motionType === PhysicsMotionType.DYNAMIC as number) {
+        if (b.motionType === (PhysicsMotionType.DYNAMIC as number)) {
             _syncBodyToNode(hknp, b);
         }
     }
@@ -206,11 +208,8 @@ export function createPhysicsBody(world: PhysicsWorld, node: SceneNode, motionTy
     const hkBody = hknp.HP_Body_Create()[1];
 
     // Set motion type
-    const hkMotion = motionType === PhysicsMotionType.STATIC
-        ? hknp.MotionType.STATIC
-        : motionType === PhysicsMotionType.ANIMATED
-            ? hknp.MotionType.KINEMATIC
-            : hknp.MotionType.DYNAMIC;
+    const hkMotion =
+        motionType === PhysicsMotionType.STATIC ? hknp.MotionType.STATIC : motionType === PhysicsMotionType.ANIMATED ? hknp.MotionType.KINEMATIC : hknp.MotionType.DYNAMIC;
     hknp.HP_Body_SetMotionType(hkBody, hkMotion);
 
     // Add to world first, then set transform (Havok resets transform on add)
@@ -302,12 +301,7 @@ export function setPhysicsBodyMass(world: PhysicsWorld, body: PhysicsBody, mass:
  * `mass === 0` → STATIC, `mass > 0` → DYNAMIC.
  * Shape geometry is auto-sized from the mesh bounding box when not specified.
  */
-export function createPhysicsAggregate(
-    world: PhysicsWorld,
-    node: Mesh,
-    type: PhysicsShapeType,
-    options: PhysicsAggregateOptions,
-): PhysicsAggregate {
+export function createPhysicsAggregate(world: PhysicsWorld, node: Mesh, type: PhysicsShapeType, options: PhysicsAggregateOptions): PhysicsAggregate {
     const motionType = options.mass === 0 ? PhysicsMotionType.STATIC : PhysicsMotionType.DYNAMIC;
 
     // Build shape parameters, auto-sizing from bounding box if needed
@@ -334,8 +328,12 @@ export function createPhysicsAggregate(
 function _buildShapeParams(node: Mesh, type: PhysicsShapeType, options: PhysicsAggregateOptions): PhysicsShapeParameters {
     const params: PhysicsShapeParameters = {};
 
-    if (options.center) params.center = options.center;
-    if (options.rotation) params.rotation = options.rotation;
+    if (options.center) {
+        params.center = options.center;
+    }
+    if (options.rotation) {
+        params.rotation = options.rotation;
+    }
 
     switch (type) {
         case PhysicsShapeType.SPHERE: {
