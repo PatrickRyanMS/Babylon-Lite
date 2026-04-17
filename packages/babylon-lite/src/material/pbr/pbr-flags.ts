@@ -29,6 +29,17 @@ export const PBR_HAS_SHEEN_TEXTURE = 1 << 23;
 export const PBR_HAS_RECEIVE_SHADOWS = 1 << 24;
 export const PBR_HAS_GAMMA_ALBEDO = 1 << 25;
 export const PBR_HAS_ANISOTROPY = 1 << 26;
+export const PBR_HAS_SUBSURFACE = 1 << 27;
+export const PBR_HAS_THICKNESS_MAP = 1 << 28;
+export const PBR_HAS_SKYBOX = 1 << 29;
+
+// ─── features2 (extended feature bits) ──────────────────────────────
+// Used when `features` runs out of bits. Threaded separately through
+// composePbr / getOrCreatePbrPipeline / createPbrMeshBindGroup.
+export const PBR2_CC_INT_MAP = 1 << 0;
+export const PBR2_CC_ROUGH_MAP = 1 << 1;
+export const PBR2_CC_NORMAL_MAP = 1 << 2;
+export const PBR2_CC_F0_REMAP_OFF = 1 << 3;
 
 let _lightExt: PbrLightExtension | null = null;
 /** @internal */ export function _setPbrLightExtension(ext: PbrLightExtension): void {
@@ -40,4 +51,21 @@ let _lightExt: PbrLightExtension | null = null;
 const _lightTagToType: Record<string, number> = { hemispheric: 1, directional: 2, point: 3 };
 /** @internal */ export function getLightTypeFeatureBits(): number {
     return (_lightTagToType[_lightExt?.tag ?? ""] ?? 0) << PBR_LIGHT_TYPE_SHIFT;
+}
+
+// ─── Subsurface Extension Registry ──────────────────────────────────
+/** @internal */
+export interface PbrSubsurfaceExt {
+    detect(mat: unknown): number;
+    frag(features: number, hasIbl: boolean): unknown;
+    ubo(d: Float32Array, m: unknown, o: ReadonlyMap<string, number>): void;
+    bind(f: number, m: unknown, e: GPUBindGroupEntry[], b: number): void;
+    textures(m: unknown, t: unknown[]): void;
+}
+let _ssExt: PbrSubsurfaceExt | null = null;
+/** @internal */ export function _setSubsurfaceExt(e: PbrSubsurfaceExt): void {
+    _ssExt = e;
+}
+/** @internal */ export function _getSubsurfaceExt(): PbrSubsurfaceExt | null {
+    return _ssExt;
 }

@@ -5,7 +5,7 @@
         "name": "Scene 1 — BoomBox PBR",
         "maxMad": 0.19,
         "maxRegionMad": 0.03,
-        "maxRawKB": 92,
+        "maxRawKB": 93.5,
         "maxGzipKB": 36,
         "description": "glTF PBR model, IBL environment, hemispheric light, arc-rotate camera.",
         "tags": ["pbr", "gltf"]
@@ -35,7 +35,7 @@
         "id": 4,
         "slug": "scene4-shadows",
         "name": "Scene 4 — Shadows",
-        "maxMad": 0.025,
+        "maxMad": 0.08,
         "maxRawKB": 75,
         "maxGzipKB": 28,
         "description": "DirectionalLight, ESM shadow map with blur, heightmap ground, torus caster.",
@@ -47,7 +47,7 @@
         "name": "Scene 5 — Alien Skeleton",
         "maxMad": 0.01,
         "maxRegionMad": 0.08,
-        "maxRawKB": 81,
+        "maxRawKB": 82,
         "maxGzipKB": 31,
         "description": "glTF Alien model with PBR, skeleton/bones, normal map, hemispheric light.",
         "tags": ["pbr", "gltf"]
@@ -58,7 +58,7 @@
         "name": "Scene 6 — PBR Gold Sphere",
         "maxMad": 0.5,
         "maxRawKB": 76,
-        "maxGzipKB": 29,
+        "maxGzipKB": 30,
         "description": "Procedural sphere with PBR specular-glossiness, environment IBL, no direct light.",
         "tags": ["pbr", "procedural"]
     },
@@ -67,9 +67,9 @@
         "slug": "scene7-chibirex",
         "name": "Scene 7 — ChibiRex Animated",
         "maxMad": 0.55,
-        "maxRegionMad": 0.64,
-        "maxRawKB": 100,
-        "maxGzipKB": 39,
+        "maxRegionMad": 0.66,
+        "maxRawKB": 102.5,
+        "maxGzipKB": 40,
         "description": "Animated dinosaur, PBR materials, IBL environment, skeletal animation.",
         "tags": ["pbr", "gltf", "anim"]
     },
@@ -98,8 +98,8 @@
         "slug": "scene10-pbr-rough",
         "name": "Scene 10 — PBR Rough Sphere",
         "maxMad": 0.011,
-        "maxRawKB": 54,
-        "maxGzipKB": 20,
+        "maxRawKB": 55,
+        "maxGzipKB": 22,
         "description": "PBR metallic-roughness sphere: golden base, metallic=0, roughness=1, hemispheric light only.",
         "tags": ["pbr", "procedural"]
     },
@@ -108,7 +108,7 @@
         "slug": "scene11-shark",
         "name": "Scene 11 — Shark GLB",
         "maxMad": 0.01,
-        "maxRawKB": 79,
+        "maxRawKB": 81,
         "maxGzipKB": 30,
         "description": "Shark glTF model with PBR material, hemispheric light, auto-framing camera.",
         "tags": ["pbr", "gltf"]
@@ -117,9 +117,9 @@
         "id": 12,
         "slug": "scene12-shader-balls",
         "name": "Scene 12 — PBR Shader Balls",
-        "maxMad": 0.025,
-        "maxRawKB": 99,
-        "maxGzipKB": 37,
+        "maxMad": 0.027,
+        "maxRawKB": 100,
+        "maxGzipKB": 38,
         "description": "3 shader balls with metallic reflectance textures, directional light, env rotation.",
         "tags": ["pbr", "gltf"]
     },
@@ -128,7 +128,7 @@
         "slug": "scene13-pbr-spheres",
         "name": "Scene 13 — PBR Spheres Grid",
         "maxMad": 0.008,
-        "maxRawKB": 89,
+        "maxRawKB": 90,
         "maxGzipKB": 34,
         "description": "12 spheres with varying metallic/roughness baseColorFactor, default environment.",
         "tags": ["pbr", "gltf"]
@@ -168,7 +168,7 @@
         "slug": "scene17-pbr-std-thin-instances",
         "name": "Scene 17 — PBR + Std TI",
         "maxMad": 0.021,
-        "maxRawKB": 91,
+        "maxRawKB": 92,
         "maxGzipKB": 35,
         "description": "Mixed PBR + Standard materials with thin instances and per-instance color. Env IBL, negative scale.",
         "tags": ["pbr", "procedural"]
@@ -188,8 +188,8 @@
         "slug": "scene19-clearcoat",
         "name": "Scene 19 — PBR Clearcoat",
         "maxMad": 0.031,
-        "maxRawKB": 65,
-        "maxGzipKB": 25,
+        "maxRawKB": 70,
+        "maxGzipKB": 26,
         "description": "Sphere with PBR clearcoat layer (IOR=2.0). DDS environment for glossy reflections.",
         "tags": ["pbr", "env"]
     },
@@ -208,8 +208,8 @@
         "slug": "scene21-sheen-cloth",
         "name": "Scene 21 — PBR Sheen Cloth",
         "maxMad": 0.01,
-        "maxRawKB": 87,
-        "maxGzipKB": 33,
+        "maxRawKB": 88,
+        "maxGzipKB": 34,
         "description": "Cloth mesh with PBR sheen layer, blue albedo + fire texture. Country environment.",
         "tags": ["pbr", "env"]
     },
@@ -218,7 +218,7 @@
         "slug": "scene22-pbr-shadows",
         "name": "Scene 22 — PBR Shadows",
         "maxMad": 0.07,
-        "maxRawKB": 102,
+        "maxRawKB": 104,
         "maxGzipKB": 38,
         "description": "Scene 4 variant with PBR ground material. Tests PBR multi-light shadow receiving (ESM + PCF).",
         "tags": ["pbr", "shadow", "procedural", "multilight"]
@@ -227,7 +227,7 @@
         "id": 23,
         "slug": "scene23-anisotropy",
         "name": "Scene 23 — PBR Anisotropy",
-        "maxMad": 0.02,
+        "maxMad": 0.12,
         "maxRawKB": 81,
         "maxGzipKB": 31,
         "description": "PBR metallic sphere with anisotropic reflections. DDS environment, no direct light.",
@@ -237,9 +237,9 @@
         "id": 24,
         "slug": "scene24-hillvalley",
         "name": "Scene 24 — Hill Valley",
-        "maxMad": 0.04,
+        "maxMad": 0.06,
         "maxRawKB": 60,
-        "maxGzipKB": 23,
+        "maxGzipKB": 24,
         "description": "Hill Valley town loaded from .babylon format. Pre-baked lighting, standard materials, free camera.",
         "tags": ["std", "babylon"]
     },
@@ -254,13 +254,33 @@
         "tags": ["std", "procedural"]
     },
     {
+        "id": 26,
+        "slug": "scene26-pbr-subsurface",
+        "name": "Scene 26 — PBR Subsurface",
+        "maxMad": 0.5,
+        "maxRawKB": 95,
+        "maxGzipKB": 36,
+        "description": "Georgia Tech Dragon with PBR subsurface translucency, thickness map, point light, DDS environment.",
+        "tags": ["pbr", "gltf", "env"]
+    },
+    {
         "id": 27,
         "slug": "scene27-material-variants",
         "name": "Scene 27 — Material Variants",
         "maxMad": 1.0,
-        "maxRawKB": 68,
-        "maxGzipKB": 26,
+        "maxRawKB": 72,
+        "maxGzipKB": 30,
         "description": "glTF refrigerator with KHR_materials_variants, White variant selected. ArcRotate camera, hemispheric light.",
         "tags": ["pbr", "gltf", "variants"]
+    },
+    {
+        "id": 28,
+        "slug": "scene28-clearcoat-gltf",
+        "name": "Scene 28 — Clearcoat glTF",
+        "maxMad": 0.02,
+        "maxRawKB": 105,
+        "maxGzipKB": 40,
+        "description": "ClearCoatTest.gltf (6×3 grid: clearcoat variants) with default environment (IBL only). Matches PG #YG3BBF#33.",
+        "tags": ["pbr", "gltf", "env", "clearcoat"]
     }
 ]

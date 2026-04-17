@@ -68,6 +68,10 @@ export interface PbrTemplateConfig {
     readonly hasDoubleSided?: boolean;
     /** Has tonemap */
     readonly hasTonemap?: boolean;
+    /** ACES WGSL: tonemap helper functions (dynamically imported). Empty string = standard exponential tonemap. */
+    readonly acesHelpers?: string;
+    /** ACES WGSL: tonemap call block replacing the default exponential one. */
+    readonly acesTonemapCall?: string;
     /** Has alpha blending */
     readonly hasAlphaBlend?: boolean;
     /** Has specular AA */
@@ -88,6 +92,12 @@ export interface PbrTemplateConfig {
     readonly hasIbl?: boolean;
     /** Has clearcoat layer */
     readonly hasClearcoat?: boolean;
+    /** Has clearcoat intensity texture (R channel, multiplies intensity factor). */
+    readonly hasCcIntensityMap?: boolean;
+    /** Has clearcoat roughness texture (G channel, multiplies roughness factor). */
+    readonly hasCcRoughnessMap?: boolean;
+    /** Has clearcoat normal map (tangent-space, perturbs coat normal). */
+    readonly hasCcNormalMap?: boolean;
     /** Has sheen layer */
     readonly hasSheen?: boolean;
     /** Has anisotropy layer */
@@ -115,6 +125,8 @@ export function createPbrTemplate(config: PbrTemplateConfig): ShaderTemplate {
         hasSpecGloss = false,
         hasDoubleSided = false,
         hasTonemap = false,
+        acesHelpers = "",
+        acesTonemapCall = "",
         hasAlphaBlend = false,
         hasSpecularAA = false,
         hasGammaAlbedo = false,
@@ -125,6 +137,9 @@ export function createPbrTemplate(config: PbrTemplateConfig): ShaderTemplate {
         hasReflectanceExt = false,
         hasIbl = false,
         hasClearcoat = false,
+        hasCcIntensityMap = false,
+        hasCcRoughnessMap = false,
+        hasCcNormalMap = false,
         hasSheen = false,
         hasAnisotropy = false,
         anisoBrdfFunctions = "",
@@ -164,6 +179,11 @@ export function createPbrTemplate(config: PbrTemplateConfig): ShaderTemplate {
         { name: "directIntensity", type: "f32" },
         { name: "reflectance", type: "f32" },
         { name: "materialAlpha", type: "f32" },
+        // glTF metallicFactor / roughnessFactor (default 1.0) — applied over MR texture channels.
+        { name: "metallicFactor", type: "f32" },
+        { name: "roughnessFactor", type: "f32" },
+        { name: "_mrfPad0", type: "f32" },
+        { name: "_mrfPad1", type: "f32" },
         // Extension UBO fields in old-system order for byte-layout compat
         ...(hasReflectanceExt
             ? [
@@ -253,6 +273,16 @@ export function createPbrTemplate(config: PbrTemplateConfig): ShaderTemplate {
     }
     if (hasSheenTexture) {
         baseBindings.push(...tex2d("sheenTexture_", "sheenSampler_"));
+    }
+    // Clearcoat textures — must match order in createPbrMeshBindGroup
+    if (hasCcIntensityMap) {
+        baseBindings.push(...tex2d("ccIntensityTexture", "ccIntensitySampler_"));
+    }
+    if (hasCcRoughnessMap) {
+        baseBindings.push(...tex2d("ccRoughnessTexture", "ccRoughnessSampler_"));
+    }
+    if (hasCcNormalMap) {
+        baseBindings.push(...tex2d("ccNormalTexture", "ccNormalSampler_"));
     }
     if (hasMultiLight) {
         baseBindings.push({ name: "lights", type: { kind: "uniform-buffer" }, visibility: STAGE_FRAGMENT });
@@ -344,8 +374,8 @@ var alpha = baseColorSample.a;`;
         ? `let specGloss = textureSample(specGlossTexture, specGlossSampler, input.uv);
 let roughness = clamp(1.0 - specGloss.a, 0.0, 1.0);
 let metallic = 0.0;`
-        : `let roughness = clamp(orm.g, 0.0, 1.0);
-let metallic = orm.b;`;
+        : `let roughness = clamp(orm.g * material.roughnessFactor, 0.0, 1.0);
+let metallic = orm.b * material.metallicFactor;`;
 
     // Emissive default (overridden by emissive-color fragment's AT slot)
     const emissiveDefault = hasEmissiveColor
@@ -407,9 +437,14 @@ var directSpecular = vec3<f32>(0.0);
 /*BL*/`;
     }
 
-    // Tonemap
+    // Tonemap: BJS TONEMAPPING_STANDARD (exponential) by default; caller-supplied
+    // ACES WGSL (from pbr-aces-wgsl.ts) is used when provided.
+    const useAces = hasTonemap && acesTonemapCall !== "";
+    const acesBlock = useAces ? acesHelpers : "";
     const tonemapBlock = hasTonemap
-        ? `color *= scene.exposureLinear;
+        ? useAces
+            ? acesTonemapCall
+            : `color *= scene.exposureLinear;
 color = 1.0 - exp2(-1.590579 * color);`
         : `color *= scene.exposureLinear;`;
 
@@ -440,6 +475,7 @@ return vec4<f32>(color, finalAlpha);`
 /*FB*/
 /*FI*/
 ${BRDF_FUNCTIONS}
+${acesBlock}
 ${anisoBrdfBlock}
 ${multiLightDecls}
 ${doubleSidedEntry}

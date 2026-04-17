@@ -10,6 +10,7 @@ import type { ComposedShader } from "../../shader/fragment-types.js";
 import type { EngineContextInternal } from "../../engine/engine.js";
 import { createPipelineCache, releaseVariant } from "../pipeline-cache.js";
 import type { PipelineCache } from "../pipeline-cache.js";
+import { _getSubsurfaceExt, _getPbrLightExtension, getLightTypeFeatureBits } from "./pbr-flags.js";
 import {
     PBR_HAS_NORMAL_MAP,
     PBR_HAS_EMISSIVE,
@@ -24,52 +25,15 @@ import {
     PBR_HAS_COTANGENT_NORMAL,
     PBR_HAS_METALLIC_REFLECTANCE_MAP,
     PBR_HAS_REFLECTANCE_MAP,
-    PBR_HAS_SKELETON_8,
     PBR_HAS_SPECULAR_AA,
-    PBR_HAS_THIN_INSTANCES,
-    PBR_HAS_INSTANCE_COLOR,
     PBR_HAS_SHEEN_TEXTURE,
-    PBR_HAS_RECEIVE_SHADOWS,
-    PBR_HAS_GAMMA_ALBEDO,
     PBR_HAS_OCCLUSION,
-    PBR_HAS_CLEARCOAT,
-    PBR_HAS_SHEEN,
     PBR_HAS_USE_ALPHA_ONLY_MR,
-    PBR_HAS_ANISOTROPY,
-    _setPbrLightExtension,
-    _getPbrLightExtension,
-    getLightTypeFeatureBits,
+    PBR2_CC_INT_MAP,
+    PBR2_CC_ROUGH_MAP,
+    PBR2_CC_NORMAL_MAP,
 } from "./pbr-flags.js";
-export {
-    PBR_HAS_NORMAL_MAP,
-    PBR_HAS_EMISSIVE,
-    PBR_HAS_EMISSIVE_COLOR,
-    PBR_HAS_ENV,
-    PBR_HAS_SKELETON,
-    PBR_HAS_TONEMAP,
-    PBR_HAS_MORPH_TARGETS,
-    PBR_HAS_ALPHA_BLEND,
-    PBR_HAS_SPEC_GLOSS,
-    PBR_HAS_DOUBLE_SIDED,
-    PBR_HAS_COTANGENT_NORMAL,
-    PBR_HAS_METALLIC_REFLECTANCE_MAP,
-    PBR_HAS_REFLECTANCE_MAP,
-    PBR_HAS_SKELETON_8,
-    PBR_HAS_SPECULAR_AA,
-    PBR_HAS_THIN_INSTANCES,
-    PBR_HAS_INSTANCE_COLOR,
-    PBR_HAS_SHEEN_TEXTURE,
-    PBR_HAS_RECEIVE_SHADOWS,
-    PBR_HAS_GAMMA_ALBEDO,
-    PBR_HAS_OCCLUSION,
-    PBR_HAS_CLEARCOAT,
-    PBR_HAS_SHEEN,
-    PBR_HAS_USE_ALPHA_ONLY_MR,
-    PBR_HAS_ANISOTROPY,
-    _setPbrLightExtension,
-    _getPbrLightExtension,
-    getLightTypeFeatureBits,
-};
+export * from "./pbr-flags.js";
 
 // ─── Feature detection ──────────────────────────────────────────────
 
@@ -89,52 +53,27 @@ export function computePbrFeatures(
     hasReflectanceMap: boolean = false,
     hasEmissiveColor: boolean = false
 ): number {
-    let f = 0;
-    if (hasTangents && hasNormalTexture) {
-        f |= PBR_HAS_NORMAL_MAP;
-    } else if (hasNormalTexture) {
-        f |= PBR_HAS_COTANGENT_NORMAL;
-    }
-    if (hasEmissive) {
-        f |= PBR_HAS_EMISSIVE;
-    }
-    if (hasEmissiveColor) {
-        f |= PBR_HAS_EMISSIVE_COLOR;
-    }
-    if (hasEnv) {
-        f |= PBR_HAS_ENV;
-    }
-    if (hasSkeleton) {
-        f |= PBR_HAS_SKELETON;
-    }
-    if (hasTonemap) {
-        f |= PBR_HAS_TONEMAP;
-    }
-    if (hasMorphTargets) {
-        f |= PBR_HAS_MORPH_TARGETS;
-    }
-    if (hasAlphaBlend) {
-        f |= PBR_HAS_ALPHA_BLEND;
-    }
-    if (hasSpecGloss) {
-        f |= PBR_HAS_SPEC_GLOSS;
-    }
-    if (hasDoubleSided) {
-        f |= PBR_HAS_DOUBLE_SIDED;
-    }
-    if (hasMetallicReflectanceMap) {
-        f |= PBR_HAS_METALLIC_REFLECTANCE_MAP;
-    }
-    if (hasReflectanceMap) {
-        f |= PBR_HAS_REFLECTANCE_MAP;
-    }
-    return f;
+    return (
+        (hasNormalTexture ? (hasTangents ? PBR_HAS_NORMAL_MAP : PBR_HAS_COTANGENT_NORMAL) : 0) |
+        (hasEmissive ? PBR_HAS_EMISSIVE : 0) |
+        (hasEmissiveColor ? PBR_HAS_EMISSIVE_COLOR : 0) |
+        (hasEnv ? PBR_HAS_ENV : 0) |
+        (hasSkeleton ? PBR_HAS_SKELETON : 0) |
+        (hasTonemap ? PBR_HAS_TONEMAP : 0) |
+        (hasMorphTargets ? PBR_HAS_MORPH_TARGETS : 0) |
+        (hasAlphaBlend ? PBR_HAS_ALPHA_BLEND : 0) |
+        (hasSpecGloss ? PBR_HAS_SPEC_GLOSS : 0) |
+        (hasDoubleSided ? PBR_HAS_DOUBLE_SIDED : 0) |
+        (hasMetallicReflectanceMap ? PBR_HAS_METALLIC_REFLECTANCE_MAP : 0) |
+        (hasReflectanceMap ? PBR_HAS_REFLECTANCE_MAP : 0)
+    );
 }
 
 // ─── Pipeline Variant ───────────────────────────────────────────────
 
 export interface PbrPipelineVariant {
     features: number;
+    features2: number;
     pipeline: GPURenderPipeline;
     sceneBGL: GPUBindGroupLayout;
     meshBGL: GPUBindGroupLayout;
@@ -161,8 +100,8 @@ export function releasePbrPipelineVariant(variant: PbrPipelineVariant): void {
     cache.evictUnused();
 }
 
-function cacheKey(features: number, format: GPUTextureFormat, msaa: number): string {
-    return `pbr:${features}:${format}:${msaa}`;
+function cacheKey(features: number, features2: number, format: GPUTextureFormat, msaa: number): string {
+    return `pbr:${features}:${features2}:${format}:${msaa}`;
 }
 
 export function getOrCreatePbrPipeline(
@@ -170,12 +109,13 @@ export function getOrCreatePbrPipeline(
     format: GPUTextureFormat,
     msaaSamples: number,
     features: number,
+    features2: number,
     sceneBGL: GPUBindGroupLayout,
     composed: ComposedShader
 ): PbrPipelineVariant {
     const device = engine.device;
     cache.ensureDevice(engine);
-    const key = cacheKey(features, format, msaaSamples);
+    const key = cacheKey(features, features2, format, msaaSamples);
     const cached = cache.getOrIncRef(key);
     if (cached) {
         return cached;
@@ -216,7 +156,7 @@ export function getOrCreatePbrPipeline(
         primitive: { topology: "triangle-list", cullMode: hasDoubleSided ? ("none" as GPUCullMode) : "back", frontFace: "ccw" },
     });
 
-    const variant: PbrPipelineVariant = { features, pipeline, sceneBGL, meshBGL, shadowBGL, refCount: 1 };
+    const variant: PbrPipelineVariant = { features, features2, pipeline, sceneBGL, meshBGL, shadowBGL, refCount: 1 };
     cache.set(key, variant);
     return variant;
 }
@@ -280,6 +220,20 @@ export function createPbrMeshBindGroup(
     if ((features & PBR_HAS_SHEEN_TEXTURE) !== 0) {
         addTex((material.sheen as SheenProps).texture!);
     }
+    // Clearcoat textures (after sheenTexture; matches template baseBindings order)
+    const features2 = variant.features2;
+    const cc = material.clearCoat as import("./pbr-material.js").ClearCoatProps | undefined;
+    if (cc) {
+        if ((features2 & PBR2_CC_INT_MAP) !== 0 && cc.texture) {
+            addTex(cc.texture);
+        }
+        if ((features2 & PBR2_CC_ROUGH_MAP) !== 0 && cc.roughnessTexture) {
+            addTex(cc.roughnessTexture);
+        }
+        if ((features2 & PBR2_CC_NORMAL_MAP) !== 0 && cc.bumpTexture) {
+            addTex(cc.bumpTexture);
+        }
+    }
     // Lights UBO (after base texture bindings, before fragment bindings — matches composer order)
     if (lightsUBO) {
         entries.push({ binding: b++, resource: { buffer: lightsUBO } });
@@ -300,6 +254,8 @@ export function createPbrMeshBindGroup(
             addTex(material.reflectanceTexture);
         }
     }
+    // Fragment bindings: subsurface thickness map (after reflectance, "subsurface" sorts last)
+    _getSubsurfaceExt()?.bind(features, material, entries, b);
 
     return device.createBindGroup({ layout: variant.meshBGL, entries });
 }
