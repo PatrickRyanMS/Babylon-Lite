@@ -8,10 +8,7 @@
         "maxRawKB": 92.4,
         "maxGzipKB": 35.6,
         "description": "glTF PBR model, IBL environment, hemispheric light, arc-rotate camera.",
-        "tags": [
-            "pbr",
-            "gltf"
-        ]
+        "tags": ["pbr", "gltf"]
     },
     {
         "id": 2,
@@ -22,10 +19,7 @@
         "maxRawKB": 47.2,
         "maxGzipKB": 17.7,
         "description": "StandardMaterial sphere with Blinn-Phong, directional light, ground plane.",
-        "tags": [
-            "std",
-            "procedural"
-        ]
+        "tags": ["std", "procedural"]
     },
     {
         "id": 3,
@@ -35,11 +29,7 @@
         "maxRawKB": 54.8,
         "maxGzipKB": 20.7,
         "description": "Exponential² fog, multiple colored boxes, skybox, ground plane.",
-        "tags": [
-            "fog",
-            "procedural",
-            "std"
-        ]
+        "tags": ["fog", "procedural", "std"]
     },
     {
         "id": 4,
@@ -49,11 +39,7 @@
         "maxRawKB": 73.6,
         "maxGzipKB": 26.3,
         "description": "DirectionalLight, ESM shadow map with blur, heightmap ground, torus caster.",
-        "tags": [
-            "shadow",
-            "procedural",
-            "std"
-        ]
+        "tags": ["shadow", "procedural", "std"]
     },
     {
         "id": 5,
@@ -64,10 +50,7 @@
         "maxRawKB": 81.9,
         "maxGzipKB": 31,
         "description": "glTF Alien model with PBR, skeleton/bones, normal map, hemispheric light.",
-        "tags": [
-            "pbr",
-            "gltf"
-        ]
+        "tags": ["pbr", "gltf"]
     },
     {
         "id": 6,
@@ -77,10 +60,7 @@
         "maxRawKB": 74.7,
         "maxGzipKB": 29.1,
         "description": "Procedural sphere with PBR specular-glossiness, environment IBL, no direct light.",
-        "tags": [
-            "pbr",
-            "procedural"
-        ]
+        "tags": ["pbr", "procedural"]
     },
     {
         "id": 7,
@@ -91,11 +71,7 @@
         "maxRawKB": 101.8,
         "maxGzipKB": 39.4,
         "description": "Animated dinosaur, PBR materials, IBL environment, skeletal animation.",
-        "tags": [
-            "pbr",
-            "gltf",
-            "anim"
-        ]
+        "tags": ["pbr", "gltf", "anim"]
     },
     {
         "id": 8,
@@ -105,11 +81,7 @@
         "maxRawKB": 74.8,
         "maxGzipKB": 27.9,
         "description": "Glass sphere with HDR environment, alpha transparency, and custom exposure.",
-        "tags": [
-            "pbr",
-            "procedural",
-            "env"
-        ]
+        "tags": ["pbr", "procedural", "env"]
     },
     {
         "id": 9,
@@ -119,10 +91,7 @@
         "maxRawKB": 59.6,
         "maxGzipKB": 22.5,
         "description": "Sponza palace loaded from .babylon format. Standard materials with diffuse textures, point lights.",
-        "tags": [
-            "std",
-            "babylon"
-        ]
+        "tags": ["std", "babylon"]
     },
     {
         "id": 10,
@@ -132,10 +101,7 @@
         "maxRawKB": 54.4,
         "maxGzipKB": 20,
         "description": "PBR metallic-roughness sphere: golden base, metallic=0, roughness=1, hemispheric light only.",
-        "tags": [
-            "pbr",
-            "procedural"
-        ]
+        "tags": ["pbr", "procedural"]
     },
     {
         "id": 11,
@@ -145,10 +111,7 @@
         "maxRawKB": 79.9,
         "maxGzipKB": 29.9,
         "description": "Shark glTF model with PBR material, hemispheric light, auto-framing camera.",
-        "tags": [
-            "pbr",
-            "gltf"
-        ]
+        "tags": ["pbr", "gltf"]
     },
     {
         "id": 12,
@@ -158,10 +121,7 @@
         "maxRawKB": 93.9,
         "maxGzipKB": 35,
         "description": "3 shader balls with metallic reflectance textures, directional light, env rotation.",
-        "tags": [
-            "pbr",
-            "gltf"
-        ]
+        "tags": ["pbr", "gltf"]
     },
     {
         "id": 13,
@@ -171,10 +131,7 @@
         "maxRawKB": 88.2,
         "maxGzipKB": 33.5,
         "description": "12 spheres with varying metallic/roughness baseColorFactor, default environment.",
-        "tags": [
-            "pbr",
-            "gltf"
-        ]
+        "tags": ["pbr", "gltf"]
     },
     {
         "id": 14,
@@ -184,10 +141,7 @@
         "maxRawKB": 92.7,
         "maxGzipKB": 35.6,
         "description": "glTF Flight Helmet with PBR materials, DDS cube skybox, default environment.",
-        "tags": [
-            "pbr",
-            "gltf"
-        ]
+        "tags": ["pbr", "gltf"]
     },
     {
         "id": 15,
@@ -197,10 +151,7 @@
         "maxRawKB": 47.4,
         "maxGzipKB": 17.8,
         "description": "Two SpotLights (red + green) with different exponents on a ground plane. Multi-light support.",
-        "tags": [
-            "std",
-            "procedural"
-        ]
+        "tags": ["std", "procedural"]
     },
     {
         "id": 16,
@@ -210,10 +161,7 @@
         "maxRawKB": 48.3,
         "maxGzipKB": 18.2,
         "description": "64,000 colored cubes via thin instances. Per-instance color, disableLighting, emissive-only rendering.",
-        "tags": [
-            "std",
-            "procedural"
-        ]
+        "tags": ["std", "procedural"]
     },
     {
         "id": 17,
@@ -223,10 +171,7 @@
         "maxRawKB": 91.2,
         "maxGzipKB": 35,
         "description": "Mixed PBR + Standard materials with thin instances and per-instance color. Env IBL, negative scale.",
-        "tags": [
-            "pbr",
-            "procedural"
-        ]
+        "tags": ["pbr", "procedural"]
     },
     {
         "id": 18,
@@ -236,11 +181,7 @@
         "maxRawKB": 60.5,
         "maxGzipKB": 22.6,
         "description": "FreeCamera + SpotLight PCF shadow generator. Ground receives hard shadows from box.",
-        "tags": [
-            "std",
-            "procedural",
-            "shadow"
-        ]
+        "tags": ["std", "procedural", "shadow"]
     },
     {
         "id": 19,
@@ -250,10 +191,7 @@
         "maxRawKB": 68.7,
         "maxGzipKB": 25.5,
         "description": "Sphere with PBR clearcoat layer (IOR=2.0). DDS environment for glossy reflections.",
-        "tags": [
-            "pbr",
-            "env"
-        ]
+        "tags": ["pbr", "env"]
     },
     {
         "id": 20,
@@ -263,23 +201,17 @@
         "maxRawKB": 80.4,
         "maxGzipKB": 31.6,
         "description": "2500 PBR spheres with random emissive colors, parent hierarchy, per-frame rotation.",
-        "tags": [
-            "pbr",
-            "env"
-        ]
+        "tags": ["pbr", "env"]
     },
     {
         "id": 21,
         "slug": "scene21-sheen-cloth",
         "name": "Scene 21 — PBR Sheen Cloth",
         "maxMad": 0.01,
-        "maxRawKB": 86.4,
+        "maxRawKB": 88,
         "maxGzipKB": 32.8,
         "description": "Cloth mesh with PBR sheen layer, blue albedo + fire texture. Country environment.",
-        "tags": [
-            "pbr",
-            "env"
-        ]
+        "tags": ["pbr", "env"]
     },
     {
         "id": 22,
@@ -289,12 +221,7 @@
         "maxRawKB": 103.3,
         "maxGzipKB": 37.8,
         "description": "Scene 4 variant with PBR ground material. Tests PBR multi-light shadow receiving (ESM + PCF).",
-        "tags": [
-            "pbr",
-            "shadow",
-            "procedural",
-            "multilight"
-        ]
+        "tags": ["pbr", "shadow", "procedural", "multilight"]
     },
     {
         "id": 23,
@@ -304,10 +231,7 @@
         "maxRawKB": 78.9,
         "maxGzipKB": 30.5,
         "description": "PBR metallic sphere with anisotropic reflections. DDS environment, no direct light.",
-        "tags": [
-            "pbr",
-            "env"
-        ]
+        "tags": ["pbr", "env"]
     },
     {
         "id": 24,
@@ -317,10 +241,7 @@
         "maxRawKB": 59.4,
         "maxGzipKB": 23.2,
         "description": "Hill Valley town loaded from .babylon format. Pre-baked lighting, standard materials, free camera.",
-        "tags": [
-            "std",
-            "babylon"
-        ]
+        "tags": ["std", "babylon"]
     },
     {
         "id": 25,
@@ -330,10 +251,7 @@
         "maxRawKB": 52.4,
         "maxGzipKB": 19.7,
         "description": "Ground plane with KTX compressed texture (auto-format selection), UV tiling, FreeCamera, hemispheric light.",
-        "tags": [
-            "std",
-            "procedural"
-        ]
+        "tags": ["std", "procedural"]
     },
     {
         "id": 26,
@@ -343,11 +261,7 @@
         "maxRawKB": 88.7,
         "maxGzipKB": 33.1,
         "description": "Georgia Tech Dragon with PBR subsurface translucency, thickness map, point light, DDS environment.",
-        "tags": [
-            "pbr",
-            "gltf",
-            "env"
-        ]
+        "tags": ["pbr", "gltf", "env"]
     },
     {
         "id": 27,
@@ -357,11 +271,7 @@
         "maxRawKB": 71.3,
         "maxGzipKB": 26.6,
         "description": "glTF refrigerator with KHR_materials_variants, White variant selected. ArcRotate camera, hemispheric light.",
-        "tags": [
-            "pbr",
-            "gltf",
-            "variants"
-        ]
+        "tags": ["pbr", "gltf", "variants"]
     },
     {
         "id": 28,
@@ -371,12 +281,7 @@
         "maxRawKB": 81.9,
         "maxGzipKB": 30.3,
         "description": "ClearCoatTest.gltf (6×3 grid: clearcoat variants) with default environment (IBL only). Matches PG #YG3BBF#33.",
-        "tags": [
-            "pbr",
-            "gltf",
-            "env",
-            "clearcoat"
-        ]
+        "tags": ["pbr", "gltf", "env", "clearcoat"]
     },
     {
         "id": 29,
@@ -386,12 +291,6 @@
         "maxRawKB": 81.0,
         "maxGzipKB": 30.5,
         "description": "SheenCloth.gltf (KHR_materials_sheen + KHR_texture_transform 30× tiling) with default environment (IBL only). Matches PG #YG3BBF#2.",
-        "tags": [
-            "pbr",
-            "gltf",
-            "env",
-            "sheen",
-            "texture-transform"
-        ]
+        "tags": ["pbr", "gltf", "env", "sheen", "texture-transform"]
     }
 ]

@@ -19,7 +19,6 @@
 
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import type { PbrMaterialProps, ClearCoatProps } from "../pbr-material.js";
-import { _registerPbrMaterialUboWriter } from "../pbr-flags.js";
 
 const CC_HELPERS = `
 fn visibility_Kelemen(VdotH_kl: f32) -> f32 {
@@ -240,5 +239,3 @@ export function writeClearcoatUBO(data: Float32Array, material: PbrMaterialProps
     data[off + 6] = a;
     data[off + 7] = b;
 }
-
-_registerPbrMaterialUboWriter("clearcoat", (d, m, o) => writeClearcoatUBO(d, m as PbrMaterialProps, o));

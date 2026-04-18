@@ -13,7 +13,6 @@
 
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import type { PbrMaterialProps, SheenProps } from "../pbr-material.js";
-import { _registerPbrMaterialUboWriter } from "../pbr-flags.js";
 
 const SHEEN_HELPERS = `
 fn normalDistributionFunction_CharlieSheen(NdotH_sh: f32, alphaG_sh: f32) -> f32 {
@@ -31,8 +30,8 @@ const SHEEN_DIRECT_MOD_NEW = `
 {
 let shIntensity = material.sheenParams.a;
 let shColorScaled = sheenColorFinal * shIntensity;
-let shRoughness = sheenRoughnessAdjusted;
-let shAlphaG = max(shRoughness * shRoughness, 0.0005);
+let shRoughness_clamped = max(sheenRoughnessAdjusted, AA_factor_x);
+let shAlphaG = shRoughness_clamped * shRoughness_clamped + 0.0005;
 let shD = normalDistributionFunction_CharlieSheen(NdotH, shAlphaG);
 let shV = visibility_Ashikhmin(NdotL, NdotV);
 sheenDirectTerm = shColorScaled * shD * shV * NdotL * lightColor * lightAtten * material.directIntensity;
@@ -44,7 +43,7 @@ const SHEEN_IBL_MOD_NEW = `
 let shIntensity_ibl = material.sheenParams.a;
 let shColorScaled = sheenColorFinal * shIntensity_ibl;
 let shRoughness_ibl = sheenRoughnessAdjusted;
-let shAlphaG_ibl = max(shRoughness_ibl * shRoughness_ibl, 0.0005);
+let shAlphaG_ibl = shRoughness_ibl * shRoughness_ibl + 0.0005 + AA_factor_y;
 var shSpecLod = log2(cubemapDim * shAlphaG_ibl) * scene.lodGenerationScale;
 let shEnvRadiance = textureSampleLevel(iblTexture, iblSampler, R, clamp(shSpecLod, 0.0, maxLod)).rgb * material.environmentIntensity;
 let shBrdf = textureSampleLevel(brdfLUT, brdfSampler_, vec2<f32>(NdotV, shRoughness_ibl), 0.0);
@@ -71,9 +70,9 @@ const SHEEN_DIRECT_MOD_LEGACY = `
 {
 let shColor = sheenColorFinal;
 let shIntensity = material.sheenParams.a * (1.0 - dielectricF0);
-let shRoughness = sheenRoughnessAdjusted;
+let shRoughness_clamped = max(sheenRoughnessAdjusted, AA_factor_x);
 let shColorScaled = shColor * shIntensity;
-let shAlphaG = max(shRoughness * shRoughness, 0.0005);
+let shAlphaG = shRoughness_clamped * shRoughness_clamped + 0.0005;
 let shD = normalDistributionFunction_CharlieSheen(NdotH, shAlphaG);
 let shV = visibility_Ashikhmin(NdotL, NdotV);
 sheenDirectTerm = shColorScaled * shD * shV * NdotL * lightColor * lightAtten * material.directIntensity;
@@ -85,7 +84,7 @@ const SHEEN_IBL_MOD_LEGACY = `
 let shColor_ibl = sheenColorFinal;
 let shIntensity_ibl = material.sheenParams.a * (1.0 - dielectricF0);
 let shRoughness_ibl = sheenRoughnessAdjusted;
-let shAlphaG_ibl = max(shRoughness_ibl * shRoughness_ibl, 0.0005);
+let shAlphaG_ibl = shRoughness_ibl * shRoughness_ibl + 0.0005 + AA_factor_y;
 var shSpecLod = log2(cubemapDim * shAlphaG_ibl) * scene.lodGenerationScale;
 let shEnvRadiance = textureSampleLevel(iblTexture, iblSampler, R, clamp(shSpecLod, 0.0, maxLod)).rgb * material.environmentIntensity;
 let shBrdf = textureSampleLevel(brdfLUT, brdfSampler_, vec2<f32>(NdotV, shRoughness_ibl), 0.0);
@@ -176,5 +175,3 @@ export function writeSheenUBO(data: Float32Array, material: PbrMaterialProps, of
     data[off + 4] = sh.roughness ?? 0.0;
     data[off + 5] = sh.texture ? 1.0 : 0.0;
 }
-
-_registerPbrMaterialUboWriter("sheen", (d, m, o) => writeSheenUBO(d, m as PbrMaterialProps, o));

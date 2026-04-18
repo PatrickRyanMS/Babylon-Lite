@@ -9,7 +9,6 @@
 
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import type { PbrMaterialProps } from "../pbr-material.js";
-import { _registerPbrMaterialUboWriter } from "../pbr-flags.js";
 
 /**
  * Create an emissive-color fragment.
@@ -39,5 +38,3 @@ export function writeEmissiveUBO(data: Float32Array, material: PbrMaterialProps,
     data[off + 1] = material.emissiveColor[1]!;
     data[off + 2] = material.emissiveColor[2]!;
 }
-
-_registerPbrMaterialUboWriter("emissive-color", (d, m, o) => writeEmissiveUBO(d, m as PbrMaterialProps, o));

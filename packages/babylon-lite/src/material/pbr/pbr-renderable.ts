@@ -52,6 +52,7 @@ import {
     _getPbrLightExtension,
     _getSubsurfaceExt,
     _getPbrMaterialUboWriters,
+    _registerPbrMaterialUboWriter,
     PBR_HAS_EMISSIVE,
     PBR_HAS_ENV,
     PBR_HAS_SKELETON,
@@ -188,6 +189,7 @@ export async function buildPbrRenderables(
     if (hasMetallicReflectance) {
         const mod = await import("./fragments/reflectance-fragment.js");
         _createReflectanceFragment = mod.createReflectanceFragment;
+        _registerPbrMaterialUboWriter("reflectance", (d, m, o) => mod.writeReflectanceUBO(d, m as PbrMaterialProps, o));
     }
 
     const hasClearcoat = meshes.some((m) => !!(m.material as PbrMaterialProps).clearCoat?.isEnabled);
@@ -206,6 +208,7 @@ export async function buildPbrRenderables(
     if (hasClearcoat) {
         const mod = await import("./fragments/clearcoat-fragment.js");
         _createClearcoatFragment = mod.createClearcoatFragment;
+        _registerPbrMaterialUboWriter("clearcoat", (d, m, o) => mod.writeClearcoatUBO(d, m as PbrMaterialProps, o));
     }
 
     const hasSheen = meshes.some((m) => !!(m.material as PbrMaterialProps).sheen?.isEnabled);
@@ -213,12 +216,15 @@ export async function buildPbrRenderables(
     if (hasSheen) {
         const mod = await import("./fragments/sheen-fragment.js");
         _createSheenFragment = mod.createSheenFragment;
+        _registerPbrMaterialUboWriter("sheen", (d, m, o) => mod.writeSheenUBO(d, m as PbrMaterialProps, o));
     }
 
     const hasAnyAnisotropy = meshes.some((m) => !!(m.material as PbrMaterialProps).anisotropy?.isEnabled);
     let _anisoExt: typeof import("./fragments/anisotropy-fragment.js") | null = null;
     if (hasAnyAnisotropy) {
         _anisoExt = await import("./fragments/anisotropy-fragment.js");
+        const anisoMod = _anisoExt;
+        _registerPbrMaterialUboWriter("anisotropy", (d, m, o) => anisoMod.writeAnisotropyUBO(d, m as PbrMaterialProps, o));
     }
 
     const hasAnySubsurface = meshes.some((m) => !!(m.material as PbrMaterialProps).subsurface?.translucency);
@@ -232,6 +238,7 @@ export async function buildPbrRenderables(
     if (needsEmissiveColor) {
         const mod = await import("./fragments/emissive-fragment.js");
         _createEmissiveColorFragment = mod.createEmissiveColorFragment;
+        _registerPbrMaterialUboWriter("emissive-color", (d, m, o) => mod.writeEmissiveUBO(d, m as PbrMaterialProps, o));
     }
 
     const hasSomeSkeletons = meshes.some((m) => !!m.skeleton);
@@ -632,9 +639,9 @@ function createMeshUBO(engine: EngineContextInternal, world: Mat4, composed: Com
 
 /** Write material properties into a pre-allocated Float32Array.
  *  Core fields only; per-extension slices are contributed by registered
- *  writers (see `_registerPbrMaterialUboWriter` — each PBR fragment module
- *  registers its own writer when dynamically imported, keeping this
- *  function neutral and tree-shake-friendly. */
+ *  writers — each PBR fragment module's writer is registered by
+ *  buildPbrRenderables right after the dynamic import, avoiding
+ *  module-level side effects. */
 function writeMaterialData(data: Float32Array, material: PbrMaterialProps, spec: import("../../shader/fragment-types.js").UboSpec): void {
     data[0] = material.environmentIntensity ?? 1.0;
     data[1] = material.directIntensity ?? 1.0;

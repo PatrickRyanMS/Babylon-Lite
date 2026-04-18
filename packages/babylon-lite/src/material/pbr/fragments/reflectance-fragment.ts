@@ -10,7 +10,6 @@
 
 import type { ShaderFragment, BindingDecl } from "../../../shader/fragment-types.js";
 import type { PbrMaterialProps } from "../pbr-material.js";
-import { _registerPbrMaterialUboWriter } from "../pbr-flags.js";
 
 // WebGPU shader stage constants
 const STAGE_FRAGMENT = 0x2;
@@ -35,8 +34,6 @@ export function writeReflectanceUBO(data: Float32Array, material: PbrMaterialPro
     data[off + 5] = mrc ? mrc[1]! : 1.0;
     data[off + 6] = mrc ? mrc[2]! : 1.0;
 }
-
-_registerPbrMaterialUboWriter("reflectance", (d, m, o) => writeReflectanceUBO(d, m as PbrMaterialProps, o));
 
 /**
  * Create a metallic reflectance fragment.

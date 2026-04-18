@@ -7,7 +7,6 @@
  */
 
 import type { PbrMaterialProps } from "../pbr-material.js";
-import { _registerPbrMaterialUboWriter } from "../pbr-flags.js";
 
 export const ANISO_BRDF_FUNCTIONS = `
 const RECIPROCAL_PI: f32 = 0.3183098861837907;
@@ -96,5 +95,3 @@ export function writeAnisotropyUBO(data: Float32Array, material: PbrMaterialProp
     data[off + 1] = dir[0]!;
     data[off + 2] = dir[1]!;
 }
-
-_registerPbrMaterialUboWriter("anisotropy", (d, m, o) => writeAnisotropyUBO(d, m as PbrMaterialProps, o));
