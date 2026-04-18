@@ -265,6 +265,12 @@ export function playSprite2DClip(layer: Sprite2DLayer, index: number, clip: stri
 export function stopSprite2DClip(layer: Sprite2DLayer, index: number): void;
 ```
 
+**Conventions shared by every family's `*Init`** (apply to `Sprite2DInit`, `AnchoredSpriteInit`, `BillboardSpriteInit` alike):
+
+- **Per-sprite opacity is `color.a`.** There is no separate `opacity` field on a sprite. Final pixel alpha is `textureSampleAlpha × color.a × layer.opacity`. Callers that animate “tint” and “opacity” as logically separate values (e.g. a Lottie player) pre-multiply them on the CPU into `color`. The per-layer `opacity` UBO field stays free for whole-layer fades.
+- **`visible: false` keeps the slot but emits a degenerate quad.** When a sprite is invisible, `pack` writes `sizePx = [0, 0]` (or `sizeWorld = [0, 0]`) into its slot, so the vertex shader collapses all six vertices to a single point and the GPU rasterizes nothing. The slot is not removed, indices are stable, no resort is triggered. Cost: same upload bandwidth as a visible sprite, no fragment work. For dense visibility churn, split into two layers (one always-visible, one never-visible) instead.
+- **Transforms are flat world-space.** Sprites have no parent/child relationship. Hierarchy (character rigs, UI panel trees, Lottie parented layers) is the responsibility of the caller — a future skeleton, GUI, or Lottie module computes flattened world transforms and feeds them to `update*({ position, rotation, sizePx, … })`. This matches how thin-instances work in Lite.
+
 ### Family 2 — Anchored Sprite Layer (3D scene, fixed pixel size)
 
 ```typescript
@@ -324,7 +330,7 @@ export function stopAnchoredSpriteClip(layer: AnchoredSpriteLayer, index: number
 There is no public `BillboardMode` enum. The user picks a factory.
 
 ```typescript
-// src/sprite/sprite-billboard.ts
+// src/sprite/sprite-billboard-{shared,facing,yaw,axis}.ts (one file per variant + one shared)
 
 export interface BillboardSpriteSystemOptions {
     capacity?: number;
@@ -384,7 +390,7 @@ export function stopBillboardSpriteClip(system: BillboardSpriteSystem, index: nu
 ### Picking
 
 ```typescript
-// src/sprite/sprite-pick.ts
+// src/sprite/picking/pick-2d.ts, pick-anchored.ts, pick-billboard.ts (one file per family)
 export interface SpritePickInfo {
     layerOrSystem: Sprite2DLayer | AnchoredSpriteLayer | BillboardSpriteSystem;
     spriteIndex: number;
@@ -480,9 +486,9 @@ This module is **dynamically imported** by every family renderable, so a 2D-only
 1. **Bundle**: a scene with no sprites ships zero sprite bytes (tree-shaking + dynamic imports). Independent of any runtime behavior.
 2. **GPU memory**: proportional to sprite count (`N × stride`). No global sprite manager pre-allocates anything.
 3. **Per-frame CPU/GPU sync**: scales with two things — the _number_ of changed sprites (CPU pack work) and the _span_ between the lowest and highest changed indices (GPU upload bytes). They are not the same. For changes at adjacent indices, both costs are proportional to "what changed": a HUD whose 5 digits live at adjacent slots in a 1000-sprite layer walks 5 pack records and uploads ~400 B. A particle-like layer where every sprite moves every frame costs `N × stride` bytes uploaded once per frame in a single coalesced `writeBuffer`, identical to `mesh/thin-instance.ts`.
-4. **Static layers**: the `_version === _gpuVersion` check makes them approach zero CPU work after frame 1 — a bonus, not the headline.
+4. **Static layers**: the `_version === _gpuVersion` check makes per-frame _CPU sync_ work near-zero after frame 1 — a bonus, not the headline. The renderable's `draw()` (bind groups + `pass.draw(6, count)`) still runs every frame.
 
-Caveat: the GPU upload uses a single contiguous `[min, max]` range, not a sparse list. If sprites at indices 5 and 9995 both change in a 10000-sprite layer, the CPU pack work is still tiny (2 records) but the upload covers the full 9990-slot range. To keep the upload size proportional to the change count, callers should keep frequently-changing sprites at adjacent indices (which happens naturally if you `add` them together) or split into smaller layers.
+Caveat: the GPU upload uses a single contiguous `[min, max]` range, not a sparse list. If sprites at indices 5 and 9990 both change in a 10000-sprite layer, the CPU pack work is still tiny (2 records) but the upload covers the full ~9986-slot range. To keep the upload size proportional to the change count, callers should keep frequently-changing sprites at adjacent indices (which happens naturally if you `add` them together) or split into smaller layers.
 
 ### Dirty / Version Tracking
 
@@ -491,6 +497,10 @@ Caveat: the GPU upload uses a single contiguous `[min, max]` range, not a sparse
 | `_version`     | All `add*`/`update*`/`remove*`/`set*Frame`/clip-advance helpers and `flush*` | GPU sync           |
 | `_gpuVersion`  | GPU sync after upload                                                        | —                  |
 | `_sortVersion` | Camera change (3D families) or any 3D-position change                        | Sort recomputation |
+
+### Visibility (`visible: false`)
+
+Toggling `visible: false` on a sprite does **not** compact the array or shift indices. The pack step writes `sizePx = [0, 0]` (or `sizeWorld = [0, 0]`) into the slot; the vertex shader collapses all six vertices to a single point and the rasterizer emits zero fragments. Indices stay stable, sort order is unaffected, and toggling visibility is just a regular `update*({ visible })` call that bumps `_version`. Trade-off: invisible sprites still cost their stride bytes in the per-frame upload range. For layers with dense visibility churn (rare in practice), split into two layers instead.
 
 ---
 
@@ -529,7 +539,7 @@ Per-batch only. Per-sprite blend mode would require splitting a layer into multi
 | Depth write      | n/a                                       | `false`                                                                | `false` for blended, `true` for `cutout` (or per `depthWrite`)         |
 | Bind group 0     | `Sprite2DSceneUBO`                        | `SceneUBO` (existing 3D, unchanged)                                    | `SceneUBO` (existing 3D, unchanged)                                    |
 | Bind group 1     | atlas + sampler + layer UBO               | atlas + sampler + layer UBO + `Sprite3DSceneUBO`                       | atlas + sampler + system UBO + `Sprite3DSceneUBO`                      |
-| Sort key         | `(layer.order, sprite.layerZ, insertion)` | `(layer.order, anchor view-Z back-to-front)`                           | back-to-front view-Z when blended; insertion when `cutout`             |
+| Sort key         | `(layer.order, sprite.layerZ, insertion)` | `(layer.order, anchor view-Z back-to-front)`                           | back-to-front view-Z when blended; front-to-back view-Z when `cutout`  |
 | Render queue     | dedicated overlay pass (final)            | transparent (210 + order) for blended, opaque (110 + order) for cutout | transparent (210 + order) for blended, opaque (110 + order) for cutout |
 
 ### Bind Group Layouts
@@ -546,7 +556,7 @@ struct Sprite2DSceneUBO {
 };
 ```
 
-**Sprite3D scene UBO** (separate UBO, **only allocated and bound when an Anchored or Billboard family is present in the scene**):
+**Sprite3D scene UBO** (separate UBO, **only allocated and bound when an Anchored or Billboard family is present in the scene**; `@internal` — not exported from the public barrel):
 
 ```wgsl
 // Lives in its own bind-group binding, in its own module (sprite-3d-scene-ubo.ts).
@@ -789,11 +799,11 @@ The composer emits exactly the right fragment shader for the family + blend mode
 
 ## Picking
 
-| Family              | Strategy                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sprite2DLayer       | CPU. Walk layers in reverse `order`, then walk sprites in reverse `(layerZ, insertion)`, transform the screen point into sprite-local space (inverse pan/zoom/rotation, then inverse sprite rotation around pivot), test against `[0, sizePx.x] × [0, sizePx.y]`.                                                                                                   |
-| AnchoredSpriteLayer | CPU. For each visible sprite, project anchor through `viewProjection`, NDC → pixels, apply `offsetPx`, then transform the screen point into sprite-local space (inverse rotation around the projected pivot) and test against `[-sizePx.x/2, sizePx.x/2] × [-sizePx.y/2, sizePx.y/2]` — exact, rotation-aware. Walk reverse-order.                                  |
-| Billboard           | **GPU ID pass.** Reuses the existing `picking-pipeline.ts` infrastructure. Each billboard system contributes a per-instance ID via the same WGSL composer that powers the main pass (so the picked silhouette matches the rendered silhouette, including alpha-cutout discard). The picker resolves IDs to `(system, spriteIndex)` via a per-renderable side table. |
+| Family              | Strategy                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sprite2DLayer       | CPU. Walk layers in reverse `order`, then walk sprites in reverse `(layerZ, insertion)`, transform the screen point into sprite-local space (inverse pan/zoom/rotation, then inverse sprite rotation around pivot), and test against the pivot-aware local rectangle `[-pivot.x · sizePx.x, (1 - pivot.x) · sizePx.x] × [-pivot.y · sizePx.y, (1 - pivot.y) · sizePx.y]` (the same `(corner - pivot) * sizePx` convention used in the WGSL). |
+| AnchoredSpriteLayer | CPU. For each visible sprite, project anchor through `viewProjection`, NDC → pixels, apply `offsetPx`, then transform the screen point into sprite-local space (inverse rotation around the projected pivot) and test against the same pivot-aware rectangle as Sprite2D — exact, rotation-aware. Walk reverse-order.                                                                                                                        |
+| Billboard           | **GPU ID pass.** Reuses the existing `picking-pipeline.ts` infrastructure. Each billboard system contributes a per-instance ID via the same WGSL composer that powers the main pass (so the picked silhouette matches the rendered silhouette, including alpha-cutout discard). The picker resolves IDs to `(system, spriteIndex)` via a per-renderable side table.                                                                          |
 
 Each picker lives in its own file (`pick-2d.ts`, `pick-anchored.ts`, `pick-billboard.ts`) and is imported only when the corresponding `pick*` function is called. Apps that never pick a sprite pay zero bytes.
 
@@ -835,8 +845,9 @@ addToScene(scene, billboardSystem)  // routes by _entityType to family-specific 
 _deferredBuild(scene):
   ├─> dynamic import('./sprite-<family>-renderable.js')
   ├─> create pipeline (cache lookup by family/blend/format/msaa/cutoff)
-  ├─> create scene UBO bind group
-  ├─> create atlas + system UBO bind group
+  ├─> create scene UBO bind group (group 0)
+  ├─> create atlas + sampler + per-layer UBO bind group (group 1; also includes Sprite3DSceneUBO for 3D families)
+  ├─> create system UBO bind group (group 2; axis-locked billboard variant only)
   ├─> allocate instance GPU buffer (capacity × stride, VERTEX | COPY_DST)
   └─> push Renderable + SceneUniformUpdater into scene
 ```
@@ -856,8 +867,8 @@ _deferredBuild(scene):
 
 Two independent version counters drive the two independent costs:
 
-- `_version` — bumped by _any_ data change (frame index, position, color, opacity, size, …). Drives the dirty-range upload in step 5c.b.
-- `_sortVersion` — bumped _only_ when sprite Z-order can change (add, remove, position change for 3D blended families). Drives the back-to-front re-sort in step 5c.a. Cutout/opaque sprites never bump it; pure-2D layers use insertion order and never sort.
+- `_version` — bumped by _any_ data change (frame index, position, color, opacity, size, …). Drives the dirty-range upload in step 3.b.
+- `_sortVersion` — bumped _only_ when sprite Z-order can change (add, remove, position change for 3D blended families). Drives the back-to-front re-sort in step 3.a. Cutout/opaque sprites never bump it; pure-2D layers use insertion order and never sort.
 
 ### Disposal
 
@@ -867,27 +878,27 @@ Two independent version counters drive the two independent costs:
 
 ## Babylon.js Equivalence Map
 
-| Babylon.js                                        | Babylon Lite                                                  | Notes                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `SpriteManager` (2D usage)                        | `Sprite2DLayer` (in `Scene2DContext`)                         | Lite carves out 2D as a first-class scene type                              |
-| `SpriteManager` (3D usage)                        | `*BillboardSpriteSystem`                                      | Always world-space, perspective-correct                                     |
-| `SpritePackedManager`                             | `createNamedSpriteAtlas` + family factory                     | Atlas is a separate, reusable type                                          |
-| `Sprite`                                          | `*Init` interfaces + per-family helpers                       | Functional, returns index                                                   |
-| `sprite.cellIndex` / `cellRef`                    | `setSprite*Frame(layer, idx, frame)`                          | `frame` is `number \| string` (named-frame lookup via atlas)                |
-| `sprite.playAnimation(from, to, loop, delay, cb)` | `playSprite*Clip(layer, idx, clipName, loop)`                 | Named clips defined on the atlas                                            |
-| `sprite.invertU` / `invertV`                      | `init.flipX` / `init.flipY`                                   |                                                                             |
-| `sprite.angle`                                    | `init.rotation`                                               | Both radians                                                                |
-| `sprite.position`                                 | `init.positionPx` (2D) / `init.position` (3D)                 |                                                                             |
-| `sprite.size` / `sprite.width` / `sprite.height`  | `init.sizePx` (2D/anchored) / `init.sizeWorld` (billboard)    | Type encodes pixel-space vs. world-space                                    |
-| `sprite.color`                                    | `init.color` / `setSpriteColor(layer, idx, [r,g,b,a])`        | Per-sprite tint, packed in instance attributes                              |
-| `mesh.billboardMode = BILLBOARDMODE_ALL`          | `createFacingBillboardSystem`                                 | Explicit factory                                                            |
-| `mesh.billboardMode = BILLBOARDMODE_Y`            | `createYawLockedBillboardSystem`                              | Explicit factory                                                            |
-| `mesh.billboardMode = BILLBOARDMODE_X/Z`          | `createAxisLockedBillboardSystem(atlas, [1,0,0])`             | One factory covers all axes                                                 |
-| `SpriteManager.disableDepthWrite`                 | Implied by `SpriteBlendMode`                                  | `cutout`/`opaque` write depth; `blend` does not — no separate flag          |
-| `AdvancedDynamicTexture` + `Image`                | `Sprite2DLayer` overlay on a 3D `SceneContext`                | Different scope — no GUI tree; for retained-mode UI use a future GUI module |
-| `scene.pickSprite(x, y)`                          | `pickSprite2D` / `pickAnchoredSprite` / `pickBillboardSprite` | Three pickers, one per family                                               |
-| `SpriteMap` (tile maps)                           | Out of scope                                                  | Separate future module                                                      |
-| Quad VBO                                          | Vertexless (`vertex_index`)                                   | Eliminates the static quad buffer                                           |
+| Babylon.js                                        | Babylon Lite                                                  | Notes                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `SpriteManager` (2D usage)                        | `Sprite2DLayer` (in `Scene2DContext`)                         | Lite carves out 2D as a first-class scene type                                            |
+| `SpriteManager` (3D usage)                        | `*BillboardSpriteSystem`                                      | Always world-space, perspective-correct                                                   |
+| `SpritePackedManager`                             | `createNamedSpriteAtlas` + family factory                     | Atlas is a separate, reusable type                                                        |
+| `Sprite`                                          | `*Init` interfaces + per-family helpers                       | Functional, returns index                                                                 |
+| `sprite.cellIndex` / `cellRef`                    | `setSprite*Frame(layer, idx, frame)`                          | `frame` is `number \| string` (named-frame lookup via atlas)                              |
+| `sprite.playAnimation(from, to, loop, delay, cb)` | `playSprite*Clip(layer, idx, clipName, loop)`                 | Named clips defined on the atlas                                                          |
+| `sprite.invertU` / `invertV`                      | `init.flipX` / `init.flipY`                                   |                                                                                           |
+| `sprite.angle`                                    | `init.rotation`                                               | Both radians                                                                              |
+| `sprite.position`                                 | `init.positionPx` (2D) / `init.position` (3D)                 |                                                                                           |
+| `sprite.size` / `sprite.width` / `sprite.height`  | `init.sizePx` (2D/anchored) / `init.sizeWorld` (billboard)    | Type encodes pixel-space vs. world-space                                                  |
+| `sprite.color`                                    | `init.color` / `update*({ color: [r,g,b,a] })`                | Per-sprite tint, packed in instance attributes; mutated via the family's `update*` helper |
+| `mesh.billboardMode = BILLBOARDMODE_ALL`          | `createFacingBillboardSystem`                                 | Explicit factory                                                                          |
+| `mesh.billboardMode = BILLBOARDMODE_Y`            | `createYawLockedBillboardSystem`                              | Explicit factory                                                                          |
+| `mesh.billboardMode = BILLBOARDMODE_X/Z`          | `createAxisLockedBillboardSystem(atlas, [1,0,0])`             | One factory covers all axes                                                               |
+| `SpriteManager.disableDepthWrite`                 | Implied by `SpriteBlendMode`                                  | `cutout`/`opaque` write depth; `blend` does not — no separate flag                        |
+| `AdvancedDynamicTexture` + `Image`                | `Sprite2DLayer` overlay on a 3D `SceneContext`                | Different scope — no GUI tree; for retained-mode UI use a future GUI module               |
+| `scene.pickSprite(x, y)`                          | `pickSprite2D` / `pickAnchoredSprite` / `pickBillboardSprite` | Three pickers, one per family                                                             |
+| `SpriteMap` (tile maps)                           | Out of scope                                                  | Separate future module                                                                    |
+| Quad VBO                                          | Vertexless (`vertex_index`)                                   | Eliminates the static quad buffer                                                         |
 
 ---
 
@@ -1015,7 +1026,7 @@ tests/parity/scenes/                            # Playwright parity specs refere
 
 tests/parity/bundle-size.spec.ts                # § 14 bundle ratchets added here
 
-lab/                                            # reference scenes (NN = next free index)
+lab/                                            # reference scenes (NN, NN+1, … are placeholders for the next free indices in lab/)
   sceneNN.html              + src/lite/sceneNN.ts             # NN-sprites-2d
   sceneNN+1.html            + src/lite/sceneNN+1.ts           # NN-sprites-overlay
   sceneNN+2.html            + src/lite/sceneNN+2.ts           # NN-sprites-anchored
