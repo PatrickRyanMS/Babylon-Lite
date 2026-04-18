@@ -14,7 +14,6 @@ export interface SceneConfig {
     maxMad: number;
     maxRegionMad?: number;
     maxRawKB?: number;
-    maxGzipKB?: number;
 }
 
 let _sceneConfigCache: SceneConfig[] | null = null;
@@ -280,6 +279,9 @@ export async function captureGolden(browser: Browser, opts: CaptureGoldenOptions
 
     // GPU queue flush — extra time for heavy scenes with many textures
     await bjsPage.waitForTimeout(settleMs);
+
+    // Hide any interactive UI buttons so they don't leak into the canvas screenshot.
+    await bjsPage.addStyleTag({ content: "button { display: none !important; }" });
 
     // Screenshot canvas and save as golden
     fs.mkdirSync(refDir, { recursive: true });

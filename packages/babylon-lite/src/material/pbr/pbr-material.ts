@@ -6,7 +6,7 @@
 import type { Texture2D } from "../../texture/texture-2d.js";
 import type { MeshGroupBuilder } from "../../render/renderable.js";
 import type { SceneContextInternal } from "../../scene/scene.js";
-import { _getSubsurfaceExt } from "./pbr-flags.js";
+import { _getPbrExts } from "./pbr-flags.js";
 
 /** Lazy-imports the PBR renderable builder and builds the pipeline.
  *  Thin instances are handled by the fragment composer automatically. */
@@ -230,27 +230,8 @@ export function collectPbrBoundTextures(mat: PbrMaterialProps): Texture2D[] {
     if (mat.specGlossTexture) {
         t.push(mat.specGlossTexture);
     }
-    if (mat.metallicReflectanceTexture) {
-        t.push(mat.metallicReflectanceTexture);
+    for (const ext of _getPbrExts().values()) {
+        ext.textures?.(mat, t);
     }
-    if (mat.reflectanceTexture) {
-        t.push(mat.reflectanceTexture);
-    }
-    if (mat.sheen?.texture) {
-        t.push(mat.sheen.texture);
-    }
-    const cc = mat.clearCoat;
-    if (cc) {
-        if (cc.texture) {
-            t.push(cc.texture);
-        }
-        if (cc.roughnessTexture) {
-            t.push(cc.roughnessTexture);
-        }
-        if (cc.bumpTexture) {
-            t.push(cc.bumpTexture);
-        }
-    }
-    _getSubsurfaceExt()?.textures(mat, t);
     return t;
 }
