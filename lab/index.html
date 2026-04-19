@@ -211,11 +211,6 @@
             .card-image {
                 position: relative;
             }
-            /* Source (parity) cards wrap the <img> directly in .card; anchor the note absolutely to the card instead. */
-            .card > .card-note {
-                top: 0.5rem;
-                bottom: auto;
-            }
             .badge {
                 display: inline-block;
                 font-size: 0.7rem;
@@ -2934,14 +2929,16 @@
                 var grid = document.getElementById("source-grid");
                 grid.innerHTML = config.map(function(s) {
                     return '<a class="card" href="/scene' + s.id + '.html" data-tags="' + s.tags.join(" ") + '">' +
+                        '<div class="card-image">' +
                         '<img src="/reference/' + s.slug + '/test-actual.png" alt="' + s.name + '" />' +
+                        renderNote(s) +
+                        '</div>' +
                         '<div class="card-body">' +
                         '<h2>' + s.name +
                         ' <span class="pg-link" onclick="event.preventDefault();event.stopPropagation();window.open(\'/babylon-ref-scene' + s.id + '.html\',\'_blank\');">\u25b6 BJS Ref</span>' +
                         '</h2>' +
                         '<p>' + s.description + '</p>' +
                         renderBadges(s.tags) +
-                        renderNote(s) +
                         '</div></a>';
                 }).join("");
                 renderFilterPills("source-filter-pills", "toggleSourceTag");
