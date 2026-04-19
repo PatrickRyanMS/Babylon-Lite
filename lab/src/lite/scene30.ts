@@ -1,8 +1,9 @@
 // Scene 30 — KHR_materials_volume_testing — matches Babylon #YG3BBF#16
 // Loads the Khronos volume/transmission testing glb and displays it against the
-// default IBL environment (environmentSpecular.env). NOTE: PR 1 wires the glTF
-// loader extensions only — the PBR refraction path is not yet implemented, so
-// transmissive materials currently render as opaque. Full parity lands in PR 2.
+// default IBL environment (environmentSpecular.env). PR 2 wires the env-only
+// refraction path: Snell refraction samples the IBL specular cube + Beer-Lambert
+// absorption from KHR_materials_volume attenuation. Opaque-scene RTT refraction
+// is follow-up work.
 
 import { addToScene, startEngine, createEngine, createSceneContext, createArcRotateCamera, loadEnvironment, loadGltf, attachControl } from "babylon-lite";
 

@@ -15,7 +15,7 @@ import type { PbrExt } from "../pbr-flags.js";
 import { PBR2_HAS_REFRACTION, PBR2_HAS_VOLUME } from "../pbr-flags.js";
 
 // AI: applied inside the IBL-modification slot, after subsurface had its chance.
-// Reuses scene.specularCube + scene.cubeSampler (already bound for IBL).
+// Reuses iblTexture + iblSampler (already bound for IBL).
 // `color` at this point contains the pre-refraction shaded output. Mix the refraction
 // contribution in by `transmissionFactor` and modulate by Beer-Lambert absorption
 // when KHR_materials_volume is present.
@@ -23,16 +23,15 @@ function makeRefractionMod(hasVolume: boolean): string {
     // Beer-Lambert: exp(-sigma_a * d) where sigma_a = -log(color) / dist.
     // BJS formulation: absorption = exp(ln(attenuationColor) * thickness / attenuationDistance)
     // We pre-bake ln(attenuationColor)/attenuationDistance into volumeParams.rgb on the CPU side.
-    const absorption = hasVolume
-        ? `let absorption = exp(material.volumeParams.rgb * material.refractionParams.z);`
-        : `let absorption = vec3<f32>(1.0);`;
+    const absorption = hasVolume ? `let absorption = exp(material.volumeParams.rgb * material.refractionParams.z);` : `let absorption = vec3<f32>(1.0);`;
 
     return `{
 let etaRatio = 1.0 / max(material.refractionParams.y, 1.001);
 let refrDir_raw = refract(-V, N, etaRatio);
 let refrDir = rotateY(refrDir_raw, scene.envRotationY);
-let refrLod = roughness * f32(textureNumLevels(specularCube));
-let refrSample = textureSampleLevel(specularCube, cubeSampler, refrDir, refrLod).rgb * material.environmentIntensity;
+let refrMaxLod = f32(textureNumLevels(iblTexture) - 1);
+let refrLod = clamp(roughness * refrMaxLod, 0.0, refrMaxLod);
+let refrSample = textureSampleLevel(iblTexture, iblSampler, refrDir, refrLod).rgb * material.environmentIntensity;
 ${absorption}
 let refractionColor = refrSample * absorption;
 let transmission = material.refractionParams.x;
@@ -45,9 +44,7 @@ color = mix(color, refractionColor, transmission);
  * @param hasVolume Whether KHR_materials_volume data is present (Beer-Lambert absorption).
  */
 export function createRefractionFragment(hasVolume: boolean): ShaderFragment {
-    const uboFields: { name: string; type: "vec4<f32>" }[] = [
-        { name: "refractionParams", type: "vec4<f32>" as const },
-    ];
+    const uboFields: { name: string; type: "vec4<f32>" }[] = [{ name: "refractionParams", type: "vec4<f32>" as const }];
     if (hasVolume) {
         uboFields.push({ name: "volumeParams", type: "vec4<f32>" as const });
     }
