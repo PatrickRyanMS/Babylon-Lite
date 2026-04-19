@@ -924,6 +924,17 @@ _deferredBuild(scene):
    d. pass.draw(6, count).
 ```
 
+**Hook registration order — clip ticks must run BEFORE user callbacks.** Each
+family registers its per-frame clip ticker into `scene._beforeRender` via
+`unshift` (not `push`), so it executes _before_ any `onBeforeRender` callback
+the application has registered. This is required by the freeze-flag contract:
+applications that drive deterministic capture (e.g. `seekTime` reference
+scenes) advance N frames and then set a freeze flag in their own
+`onBeforeRender`; that callback must observe the fully-advanced clip state
+on the freeze frame, otherwise the layer loses one tick of animation in the
+captured image. All sprite families (Sprite2D, Anchored, Billboard) share
+this convention.
+
 Two independent version counters drive the two independent costs:
 
 - `_version` — bumped by _any_ data change (frame index, position, color, opacity, size, …). Drives the dirty-range upload in step 3.b.
@@ -957,7 +968,33 @@ Two independent version counters drive the two independent costs:
 | `AdvancedDynamicTexture` + `Image`                | `Sprite2DLayer` overlay on a 3D `SceneContext`                | Different scope — no GUI tree; for retained-mode UI use a future GUI module               |
 | `scene.pickSprite(x, y)`                          | `pickSprite2D` / `pickAnchoredSprite` / `pickBillboardSprite` | Three pickers, one per family                                                             |
 | `SpriteMap` (tile maps)                           | Out of scope                                                  | Separate future module                                                                    |
+| `SpriteManager` `epsilon` arg                     | _no equivalent_                                               | BJS insets each quad corner by `epsilon` × size (default 0.01) for atlas-bleed defense. Lite never insets — atlases are expected to have a 1-px transparent border, NPOT cells, or padded sub-rects when bleed is a concern. Porting a BJS scene 1:1 typically requires `epsilon=0` on the BJS side to match Lite's geometry. |
 | Quad VBO                                          | Vertexless (`vertex_index`)                                   | Eliminates the static quad buffer                                                         |
+
+### Anchored sizing — common porting pitfalls
+
+Anchored sprites maintain a fixed pixel size by adding a clip-space pixel offset
+to the projected anchor. When porting "constant pixel size" code from a
+hand-written BJS scene that recomputes `sprite.size` per frame, two BJS-side
+mistakes look correct in isolation but disagree with Lite's exact projection:
+
+- **Use camera-space depth `cz`, not 3D distance.** The BJS sprite shader uses
+  `clipPos.w = cz` for perspective divide, so the world-per-pixel scale at any
+  anchor is `(2 · cz · tan(fov/2)) / viewportHeight`. Computing
+  `Vector3.Distance(anchor, camPos)` over-scales off-axis sprites because
+  distance includes the lateral component the projection does not. Extract `cz`
+  from the view matrix as `|forward · anchor + tz|` (BJS view matrix per
+  `Matrix.LookAtLHToRef`: forward axis `(m[2], m[6], m[10])`, translation
+  `(m[12], m[13], m[14])`).
+- **Apply screen-space offsets along the camera's up axis, not world-Y.** A
+  "−32 px in screen space" offset on a tilted camera is along screen-up (which
+  maps to the world-up axis of the view matrix: `(m[1], m[5], m[9])`), not
+  world-Y. World-Y only equals screen-up when the camera is not tilted.
+
+Lite's anchored layer does the equivalent in clip space directly (anchor
+projected through VP, then `offsetPx` added as `(2 · offsetPx / viewport) · w`),
+so neither pitfall applies on the Lite side — they show up only when porting or
+authoring a parity reference.
 
 ---
 

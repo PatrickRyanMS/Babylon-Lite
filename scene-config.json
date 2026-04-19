@@ -447,5 +447,47 @@
             "animated",
             "cutout"
         ]
+    },
+    {
+        "id": 34,
+        "slug": "scene34-billboard-facing",
+        "name": "Scene 34 — Billboard Facing",
+        "maxMad": 0.005,
+        "maxRawKB": 64,
+        "maxGzipKB": 25,
+        "description": "Spherical billboards via createFacingBillboardSystem; reference is a BJS textured-plane oriented with cameraRight/cameraUp from the camera world matrix (same basis as Lite's composeFacingBillboard WGSL).",
+        "tags": [
+            "sprites",
+            "billboard",
+            "facing"
+        ]
+    },
+    {
+        "id": 35,
+        "slug": "scene35-billboard-yaw",
+        "name": "Scene 35 — Billboard Yaw-Locked",
+        "maxMad": 0.005,
+        "maxRawKB": 64,
+        "maxGzipKB": 25,
+        "description": "Cylindrical (yaw-locked) billboards via createYawLockedBillboardSystem; reference is BJS textured planes oriented with the same yaw-lock basis.",
+        "tags": [
+            "sprites",
+            "billboard",
+            "yaw-locked"
+        ]
+    },
+    {
+        "id": 36,
+        "slug": "scene36-billboard-axis",
+        "name": "Scene 36 — Billboard Axis-Locked [1,0,0]",
+        "maxMad": 0.005,
+        "maxRawKB": 65,
+        "maxGzipKB": 25,
+        "description": "Axis-locked billboards (lock axis = world-X) via createAxisLockedBillboardSystem; reference is BJS textured planes oriented with the same axis-lock basis.",
+        "tags": [
+            "sprites",
+            "billboard",
+            "axis-locked"
+        ]
     }
 ]

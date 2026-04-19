@@ -174,7 +174,15 @@ export function onBeforeRender(scene: SceneContext, cb: (deltaMs: number) => voi
 /** Add an entity (mesh, light, camera, transform node, shadow generator, or asset container) to the scene. */
 export function addToScene(
     scene: SceneContext,
-    entity: Mesh | LightBase | Camera | ShadowGenerator | TransformNode | AssetContainer | { readonly _entityType: "anchored-sprite-layer" }
+    entity:
+        | Mesh
+        | LightBase
+        | Camera
+        | ShadowGenerator
+        | TransformNode
+        | AssetContainer
+        | { readonly _entityType: "anchored-sprite-layer" }
+        | { readonly _entityType: "billboard-sprite-system" }
 ): void {
     const ctx = scene as SceneContextInternal;
     // AssetContainer from loadGltf / loadBabylon — process each field present
@@ -233,6 +241,18 @@ export function addToScene(
         (ctx as unknown as { _anchoredLayers: unknown[] })._anchoredLayers = reg;
         if (layer._deferredBuild) {
             ctx._deferredBuilders.push(() => layer._deferredBuild!(scene));
+        }
+        return;
+    } else if ((entity as { _entityType?: string })._entityType === "billboard-sprite-system") {
+        // Each billboard variant has its own factory and its own _deferredBuild
+        // hook that dynamic-imports its variant-specific renderable. The scene
+        // routes by the discriminator and never branches per-frame on variant.
+        const system = entity as unknown as { _deferredBuild?: (scene: SceneContext) => void | Promise<void> };
+        const reg = (ctx as unknown as { _billboardSystems?: unknown[] })._billboardSystems ?? [];
+        reg.push(entity);
+        (ctx as unknown as { _billboardSystems: unknown[] })._billboardSystems = reg;
+        if (system._deferredBuild) {
+            ctx._deferredBuilders.push(() => system._deferredBuild!(scene));
         }
         return;
     }

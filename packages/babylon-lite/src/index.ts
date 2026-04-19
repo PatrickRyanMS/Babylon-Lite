@@ -134,6 +134,21 @@ export {
 export type { AnchoredSpriteLayer, AnchoredSpriteLayerOptions, AnchoredSpriteInit } from "./sprite/sprite-anchored.js";
 export { pickAnchoredSprite } from "./sprite/picking/pick-anchored.js";
 
+// ─── Sprites — Family 3 (Billboard, 3D scene with world-unit size) ──
+export { createFacingBillboardSystem } from "./sprite/sprite-billboard-facing.js";
+export { createYawLockedBillboardSystem } from "./sprite/sprite-billboard-yaw.js";
+export { createAxisLockedBillboardSystem } from "./sprite/sprite-billboard-axis.js";
+export {
+    addBillboardSprite,
+    updateBillboardSprite,
+    removeBillboardSprite,
+    setBillboardSpriteFrame,
+    playBillboardSpriteClip,
+    stopBillboardSpriteClip,
+} from "./sprite/sprite-billboard-shared.js";
+export type { BillboardSpriteSystem, BillboardSpriteSystemOptions, BillboardSpriteInit } from "./sprite/sprite-billboard-shared.js";
+export { pickBillboardSprite } from "./sprite/picking/pick-billboard.js";
+
 // ─── Low-level (for advanced/custom rendering) ──────────────────────
 export type { EnvironmentTextures } from "./loader-env/load-env.js";
 export type { Renderable, PrePassRenderable, SceneUniformUpdater } from "./render/renderable.js";

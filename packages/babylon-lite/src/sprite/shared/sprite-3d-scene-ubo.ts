@@ -3,9 +3,9 @@
  *
  * Layout (128 B):
  *   offset   0..63   viewProjection: mat4x4<f32>
- *   offset  64..79   cameraRight:    vec4<f32>   (camera basis vectors pre-extracted from invView)
- *   offset  80..95   cameraUp:       vec4<f32>
- *   offset  96..111  cameraForward:  vec4<f32>
+ *   offset  64..79   cameraRight:    vec4<f32>   (xyz = camera right basis from world matrix; .w = cameraPosition.x)
+ *   offset  80..95   cameraUp:       vec4<f32>   (xyz = camera up basis;                      .w = cameraPosition.y)
+ *   offset  96..111  cameraForward:  vec4<f32>   (xyz = camera forward basis;                 .w = cameraPosition.z)
  *   offset 112..119  viewportPx:     vec2<f32>
  *   offset 120..127  invViewportPx:  vec2<f32>
  *
@@ -71,19 +71,24 @@ export function ensureSprite3DSceneUBO(scene: SceneContext): GPUBuffer {
             const vp = getViewProjectionMatrix(cam, aspect);
             scratch.set(vp as unknown as Float32Array, 0);
             // Camera basis from world matrix columns (right, up, forward).
+            // Camera world position is packed into the .w slots so billboard
+            // variants can read it without growing the UBO.
             const wm = cam.worldMatrix;
+            const px = wm[12]!;
+            const py = wm[13]!;
+            const pz = wm[14]!;
             scratch[16] = wm[0]!;
             scratch[17] = wm[1]!;
             scratch[18] = wm[2]!;
-            scratch[19] = 0;
+            scratch[19] = px;
             scratch[20] = wm[4]!;
             scratch[21] = wm[5]!;
             scratch[22] = wm[6]!;
-            scratch[23] = 0;
+            scratch[23] = py;
             scratch[24] = wm[8]!;
             scratch[25] = wm[9]!;
             scratch[26] = wm[10]!;
-            scratch[27] = 0;
+            scratch[27] = pz;
             scratch[28] = w;
             scratch[29] = h;
             scratch[30] = w > 0 ? 1 / w : 0;
