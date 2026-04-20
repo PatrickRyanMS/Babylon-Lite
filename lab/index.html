@@ -1482,7 +1482,7 @@
                         </div>
                         <div class="arch-mod arch-mod-loader">
                             <div class="arch-mod-name">Loaders</div>
-                            <div class="arch-mod-sub">glTF / GLB · .babylon · .env · .hdr panorama · cube skybox · KTX1 · KHR_materials_variants · _clearcoat · _sheen · _anisotropy · _texture_transform</div>
+                            <div class="arch-mod-sub">glTF / GLB · .babylon · .env · .hdr panorama · cube skybox · KTX1 · Draco · KHR_materials_variants · _clearcoat · _sheen · _anisotropy · _ior · _specular · _volume · _transmission · _texture_transform</div>
                         </div>
                         <div class="arch-mod arch-mod-anim">
                             <div class="arch-mod-name">Animation</div>
@@ -2342,27 +2342,27 @@
                         </tr>
                         <tr>
                             <td>KHR_materials_volume</td>
-                            <td>⚡</td>
                             <td>✅</td>
-                            <td>Subsurface translucency + thickness via manual API (Scene 26); glTF loader wiring pending</td>
+                            <td>✅</td>
+                            <td>glTF loader auto-wires attenuation + thickness (Scene 30); manual API Scene 26</td>
                         </tr>
                         <tr>
                             <td>KHR_materials_transmission</td>
-                            <td>—</td>
+                            <td>⚡</td>
                             <td>✅</td>
-                            <td>Refraction through thin surfaces</td>
+                            <td>V1 env-only refraction (Scene 30); full opaque-scene RTT refraction pending frame-graph</td>
                         </tr>
                         <tr>
                             <td>KHR_materials_ior</td>
-                            <td>—</td>
                             <td>✅</td>
-                            <td>Index of refraction override</td>
+                            <td>✅</td>
+                            <td>Index of refraction override (Scene 30)</td>
                         </tr>
                         <tr>
                             <td>KHR_materials_specular</td>
-                            <td>—</td>
                             <td>✅</td>
-                            <td>Dielectric specular intensity/color</td>
+                            <td>✅</td>
+                            <td>Dielectric specular intensity/color (Scene 30)</td>
                         </tr>
                         <tr>
                             <td>KHR_materials_iridescence</td>
@@ -2402,9 +2402,9 @@
                         </tr>
                         <tr>
                             <td>KHR_draco_mesh_compression</td>
-                            <td>—</td>
                             <td>✅</td>
-                            <td>Draco-compressed mesh geometry</td>
+                            <td>✅</td>
+                            <td>Draco-compressed mesh geometry (Scene 30)</td>
                         </tr>
                         <tr>
                             <td>KHR_mesh_quantization</td>
