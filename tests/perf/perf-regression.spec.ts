@@ -209,9 +209,27 @@ if (!hasBaseline) {
                 const currentUrl = `/bundle-scene${scene.id}.html`;
                 const baselineUrl = `/bundle-baseline-scene${scene.id}.html`;
 
-                // Measure baseline first (conservative: gives baseline more warm-up)
-                const baseline = await measurePage(context, baselineUrl, RUNS_PER_SCENE);
-                const current = await measurePage(context, currentUrl, RUNS_PER_SCENE);
+                let baseline: PerfResult;
+                let current: PerfResult;
+
+                try {
+                    // Measure baseline first (conservative: gives baseline more warm-up)
+                    baseline = await measurePage(context, baselineUrl, RUNS_PER_SCENE);
+                } catch (e) {
+                    await context.close();
+                    throw new Error(
+                        `[NOT A PERFORMANCE ISSUE] Baseline scene failed to load/render: ${(e as Error).message}`
+                    );
+                }
+
+                try {
+                    current = await measurePage(context, currentUrl, RUNS_PER_SCENE);
+                } catch (e) {
+                    await context.close();
+                    throw new Error(
+                        `[NOT A PERFORMANCE ISSUE] Current scene failed to load/render: ${(e as Error).message}`
+                    );
+                }
 
                 await context.close();
 
