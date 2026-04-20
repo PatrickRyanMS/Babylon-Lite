@@ -217,18 +217,14 @@ if (!hasBaseline) {
                     baseline = await measurePage(context, baselineUrl, RUNS_PER_SCENE);
                 } catch (e) {
                     await context.close();
-                    throw new Error(
-                        `[NOT A PERFORMANCE ISSUE] Baseline scene failed to load/render: ${(e as Error).message}`
-                    );
+                    throw new Error(`[NOT A PERFORMANCE ISSUE] Baseline scene failed to load/render: ${(e as Error).message}`, { cause: e });
                 }
 
                 try {
                     current = await measurePage(context, currentUrl, RUNS_PER_SCENE);
                 } catch (e) {
                     await context.close();
-                    throw new Error(
-                        `[NOT A PERFORMANCE ISSUE] Current scene failed to load/render: ${(e as Error).message}`
-                    );
+                    throw new Error(`[NOT A PERFORMANCE ISSUE] Current scene failed to load/render: ${(e as Error).message}`, { cause: e });
                 }
 
                 await context.close();
