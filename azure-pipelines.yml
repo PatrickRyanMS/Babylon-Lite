@@ -156,9 +156,39 @@ stages:
                       SKIP_BJS: "true"
                       SKIP_MEASURE: "true"
 
+                # Resolve baseline ref SHA for cache key
+                - script: |
+                      BASELINE_SHA=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null | xargs git rev-parse 2>/dev/null || git rev-parse origin/master 2>/dev/null || git rev-parse HEAD~1)
+                      echo "##vso[task.setvariable variable=BASELINE_SHA]$BASELINE_SHA"
+                      echo "Baseline SHA: $BASELINE_SHA"
+                  displayName: "Resolve baseline ref"
+
+                - task: Cache@2
+                  inputs:
+                      key: perf-baseline | $(BASELINE_SHA)
+                      path: $(System.DefaultWorkingDirectory)/lab/public/bundle-baseline
+                      cacheHitVar: BASELINE_CACHE_HIT
+                  displayName: "Cache baseline bundles"
+
                 # Build baseline bundle scenes from last release tag (or master)
                 - script: pnpm build:perf-baseline
                   displayName: "Build baseline bundle scenes"
+                  condition: ne(variables.BASELINE_CACHE_HIT, 'true')
+
+                # Generate baseline HTML loader pages (needed even on cache hit)
+                - script: |
+                      node -e "
+                      const fs = require('fs');
+                      const path = require('path');
+                      const scenes = JSON.parse(fs.readFileSync('scene-config.json','utf8'));
+                      for (const s of scenes) {
+                        const html = '<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000}canvas{width:100%;height:100%;display:block}</style></head><body><canvas id=\"renderCanvas\"></canvas><script src=\"/loader.js\"></script><script type=\"module\" src=\"/bundle-baseline/scene'+s.id+'.js\"></script></body></html>';
+                        fs.writeFileSync(path.join('lab','bundle-baseline-scene'+s.id+'.html'), html);
+                      }
+                      console.log('Generated ' + scenes.length + ' baseline HTML pages');
+                      "
+                  displayName: "Generate baseline HTML pages"
+                  condition: eq(variables.BASELINE_CACHE_HIT, 'true')
 
                 # Runs current vs baseline on same BrowserStack macOS Chrome instance
                 - script: pnpm test:perf-cloud
