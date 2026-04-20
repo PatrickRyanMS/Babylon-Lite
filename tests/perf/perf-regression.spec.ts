@@ -20,7 +20,7 @@
  *
  * Env:  PERF_REGRESSION_PCT=5   — allowed % regression (default: 5)
  *       PERF_FRAMES=300          — frames to render per measurement run (default: 300)
- *       PERF_RUNS=5              — measurement runs per version, takes median (default: 5)
+ *       PERF_RUNS=5              — measurement runs per version, takes median (default: 6)
  *       PERF_WARMUP=60            — warmup frames per run before measurement (default: 60)
  *       PERF_SCENES=1,5,9        — run only specific scenes (default: all)
  *
@@ -61,7 +61,7 @@ const SCENES = (SELECTED ? allScenes.filter((s) => SELECTED.includes(s.id)) : al
 const BASELINE_DIR = resolve(__dirname, "../../lab/public/bundle-baseline");
 const hasBaseline = existsSync(BASELINE_DIR);
 
-const RUNS_PER_SCENE = Number(process.env.PERF_RUNS) || 5;
+const RUNS_PER_SCENE = Number(process.env.PERF_RUNS) || 6;
 
 // ── Runtime injection script ──────────────────────────────────────
 // Injected before any page JS runs. Captures the engine's render
