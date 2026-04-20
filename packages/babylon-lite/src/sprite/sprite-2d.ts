@@ -18,6 +18,23 @@ import type { Renderable, SceneUniformUpdater } from "../render/renderable.js";
 /** Floats per sprite for Sprite2DLayer (80 B). */
 export const SPRITE_2D_STRIDE = 20;
 
+/**
+ * Bridge interface implemented by `Sprite2DHandle` for the renderable walker.
+ *
+ * Lets `sprite-2d-handle-walk.ts` read CPU-side local state (size/pivot/visible)
+ * without statically importing `sprite-2d-handle.ts` — keeps the renderable's
+ * static graph free of handle code.
+ *
+ * @internal
+ */
+export interface IParentedSprite2DHandle {
+    readonly id: number;
+    readonly worldMatrix2D: import("../math/mat3.js").Mat3;
+    readonly _localSizePx: [number, number];
+    readonly _localPivot: [number, number];
+    readonly _localVisible: boolean;
+}
+
 /** Per-layer pan/zoom/rotation in pixel space. */
 export interface Sprite2DView {
     positionPx: [number, number];
@@ -80,6 +97,16 @@ export interface Sprite2DLayer {
     readonly _meta: Sprite2DSlotMeta[];
     /** @internal sparse: index → animation state. */
     readonly _clips: Map<number, SpriteClipState>;
+    /** @internal monotonically increasing handle id source (0 means "never used"). */
+    _nextHandleId: number;
+    /** @internal lazily allocated when the first handle is created. */
+    _idToIndex: Map<number, number> | null;
+    /** @internal lazily allocated parallel to storage capacity; index → handle id. */
+    _indexToId: Uint32Array | null;
+    /** @internal lazily allocated set of currently-parented handles (subset of all handles). */
+    _parentedHandles: Set<IParentedSprite2DHandle> | null;
+    /** @internal function-pointer hook installed by sprite-2d-handle.ts on first parenting. */
+    _parentedHandlesWalker: ((layer: Sprite2DLayer) => void) | null;
     /** @internal deferred renderable build (set by addToScene2D / addToScene). */
     _deferredBuild?: (engine: EngineContextInternal) => Promise<{ renderable: Renderable; updater: SceneUniformUpdater | null; dispose: () => void }>;
 }
@@ -103,6 +130,11 @@ export function createSprite2DLayer(atlas: SpriteAtlas, opts: Sprite2DLayerOptio
         _storage: createSpriteStorage(opts.capacity ?? 64, SPRITE_2D_STRIDE),
         _meta: [],
         _clips: new Map(),
+        _nextHandleId: 1,
+        _idToIndex: null,
+        _indexToId: null,
+        _parentedHandles: null,
+        _parentedHandlesWalker: null,
     };
     return layer;
 }
@@ -117,7 +149,7 @@ function packSlot(layer: Sprite2DLayer, index: number, init: Sprite2DInit, frame
     const sin = Math.sin(rotation);
     const cos = Math.cos(rotation);
     const color = init.color ?? [1, 1, 1, 1];
-    const layerZ = Math.max(0, Math.min(1, init.layer ?? 0));
+    const layerZ = (init.layer ?? 0) >= 0 && (init.layer ?? 0) <= 1 ? (init.layer ?? 0) : Math.max(0, Math.min(1, init.layer ?? 0));
     const flipX = init.flipX === true ? 1 : 0;
     const flipY = init.flipY === true ? 1 : 0;
     const out = visible ? sizePx : [0, 0];
@@ -154,7 +186,7 @@ function packSlot(layer: Sprite2DLayer, index: number, init: Sprite2DInit, frame
     };
 }
 
-export function addSprite2D(layer: Sprite2DLayer, sprite: Sprite2DInit): number {
+export function addSprite2DIndex(layer: Sprite2DLayer, sprite: Sprite2DInit): number {
     const index = layer._storage.count;
     ensureCapacity(layer._storage, index + 1);
     layer._storage.count = index + 1;
@@ -168,7 +200,7 @@ export function addSprite2D(layer: Sprite2DLayer, sprite: Sprite2DInit): number 
     return index;
 }
 
-export function updateSprite2D(layer: Sprite2DLayer, index: number, patch: Partial<Sprite2DInit>): void {
+export function updateSprite2DIndex(layer: Sprite2DLayer, index: number, patch: Partial<Sprite2DInit>): void {
     const meta = layer._meta[index]!;
     const off = index * SPRITE_2D_STRIDE;
     const d = layer._storage.data;
@@ -198,7 +230,7 @@ export function updateSprite2D(layer: Sprite2DLayer, index: number, patch: Parti
     markDirty(layer._storage, index, index + 1);
 }
 
-export function removeSprite2D(layer: Sprite2DLayer, index: number): void {
+export function removeSprite2DIndex(layer: Sprite2DLayer, index: number): void {
     const last = layer._storage.count - 1;
     if (index !== last) {
         layer._meta[index] = layer._meta[last]!;
@@ -208,19 +240,45 @@ export function removeSprite2D(layer: Sprite2DLayer, index: number): void {
             layer._clips.delete(last);
             layer._clips.set(index, lastClip);
         }
+        // Patch handle id mapping for the moved-into slot.
+        if (layer._indexToId !== null && layer._idToIndex !== null) {
+            const movedId = layer._indexToId[last]!;
+            if (movedId !== 0) {
+                layer._idToIndex.set(movedId, index);
+                layer._indexToId[index] = movedId;
+            } else {
+                layer._indexToId[index] = 0;
+            }
+            layer._indexToId[last] = 0;
+        }
     } else {
         layer._clips.delete(index);
+        if (layer._indexToId !== null) {
+            layer._indexToId[index] = 0;
+        }
     }
     layer._meta.length = last;
     swapRemove(layer._storage, index);
     layer.count = layer._storage.count;
-    // Only the swapped slot needs re-upload; the popped tail is past `count`.
-    if (index !== last) {
-        markDirty(layer._storage, index, index + 1);
+    markDirty(layer._storage, Math.min(index, last), last + 1);
+}
+
+/**
+ * @internal Called by `removeSprite2D(handle)` BEFORE `removeSprite2DIndex` to
+ * clear the handle's id from `_idToIndex` (so the swap-remove that follows
+ * does not re-bind the moved-into slot's id to a stale handle).
+ */
+export function _removeSprite2DHandleId(layer: Sprite2DLayer, index: number): void {
+    if (layer._indexToId === null || layer._idToIndex === null) {
+        return;
+    }
+    const id = layer._indexToId[index]!;
+    if (id !== 0) {
+        layer._idToIndex.delete(id);
     }
 }
 
-export function setSprite2DFrame(layer: Sprite2DLayer, index: number, frame: SpriteFrameRef): void {
+export function setSprite2DFrameIndex(layer: Sprite2DLayer, index: number, frame: SpriteFrameRef): void {
     const frameIndex = resolveSpriteFrame(layer.atlas, frame);
     const meta = layer._meta[index]!;
     if (meta.frameIndex === frameIndex) {
@@ -237,7 +295,7 @@ export function setSprite2DFrame(layer: Sprite2DLayer, index: number, frame: Spr
     markDirty(layer._storage, index, index + 1);
 }
 
-export function playSprite2DClip(layer: Sprite2DLayer, index: number, clip: string, loop?: boolean): void {
+export function playSprite2DClipIndex(layer: Sprite2DLayer, index: number, clip: string, loop?: boolean): void {
     const clipIndex = layer.atlas._clipByName.get(clip);
     if (clipIndex === undefined) {
         throw new Error(`Sprite clip '${clip}' not found in atlas`);
@@ -246,7 +304,7 @@ export function playSprite2DClip(layer: Sprite2DLayer, index: number, clip: stri
     layer._clips.set(index, state);
 }
 
-export function stopSprite2DClip(layer: Sprite2DLayer, index: number): void {
+export function stopSprite2DClipIndex(layer: Sprite2DLayer, index: number): void {
     const s = layer._clips.get(index);
     if (s) {
         s.playing = false;
@@ -260,6 +318,6 @@ export function _tickSprite2DClips(layer: Sprite2DLayer, deltaMs: number): void 
     }
     for (const [index, state] of layer._clips) {
         const newFrame = advanceSpriteClip(layer.atlas, state, deltaMs);
-        setSprite2DFrame(layer, index, newFrame);
+        setSprite2DFrameIndex(layer, index, newFrame);
     }
 }

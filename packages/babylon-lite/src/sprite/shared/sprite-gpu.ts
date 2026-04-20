@@ -115,12 +115,7 @@ export function syncSpriteStorage(engine: EngineContextInternal, storage: Sprite
         storage.gpuBuffer = device.createBuffer({
             label,
             size: requiredBytes,
-            // STORAGE: 3D sprite renderables (anchored + billboards) read this buffer
-            //   as `var<storage, read>` at @group(1) @binding(3) (per docs/architecture/26-sprites.md
-            //   blocker 4 — sort indirection lives in a separate per-instance Uint32 buffer).
-            // VERTEX: Sprite2DLayer still binds it as a per-instance vertex attribute (no
-            //   sort indirection needed for screen-space layers).
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
         recreated = true;
         // Force full upload after reallocation.

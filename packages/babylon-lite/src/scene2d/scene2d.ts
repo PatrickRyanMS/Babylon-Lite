@@ -32,11 +32,6 @@ export interface Scene2DContextInternal extends Scene2DContext {
     _animFrameId: number;
     _renderFn: ((now: number) => void) | null;
     _disposed: boolean;
-    /** Per-scene Sprite2DSceneUBO (viewport + view), shared by every Sprite2DLayer renderable.
-     *  Created lazily by `ensureSprite2DSceneUBO`. */
-    _sprite2dSceneUBO?: GPUBuffer;
-    /** Reusable sorted-renderables scratch (refilled in place each frame to avoid per-frame allocations). */
-    _sortedRenderables: Renderable[];
 }
 
 export function createScene2DContext(engine: EngineContext, opts: Scene2DOptions = {}): Scene2DContext {
@@ -52,7 +47,6 @@ export function createScene2DContext(engine: EngineContext, opts: Scene2DOptions
         _animFrameId: 0,
         _renderFn: null,
         _disposed: false,
-        _sortedRenderables: [],
     };
     return ctx;
 }
@@ -87,7 +81,6 @@ export function disposeScene2D(scene: Scene2DContext): void {
     ctx._renderables.length = 0;
     ctx._updaters.length = 0;
     ctx._beforeRender.length = 0;
-    ctx._sortedRenderables.length = 0;
     ctx.layers.length = 0;
 }
 

@@ -14,7 +14,7 @@
 // has nothing to do with the math we're validating.
 
 import {
-    addBillboardSprite,
+    addBillboardSpriteIndex,
     addToScene,
     createArcRotateCamera,
     createGround,
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
 
     const layer = createYawLockedBillboardSystem(atlas, { capacity: 8, blendMode: "alpha" });
     for (const s of BILLBOARD_SCENE_LAYOUT.sprites) {
-        addBillboardSprite(layer, {
+        addBillboardSpriteIndex(layer, {
             position: s.position,
             sizeWorld: s.sizeWorld,
             frame: BILLBOARD_ATLAS_INFO.frames.tree,

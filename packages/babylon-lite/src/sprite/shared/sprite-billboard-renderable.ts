@@ -15,11 +15,10 @@ import type { SceneContext, SceneContextInternal } from "../../scene/scene.js";
 import type { EngineContextInternal } from "../../engine/engine.js";
 import type { Renderable } from "../../render/renderable.js";
 import type { BillboardSpriteSystem } from "../sprite-billboard-shared.js";
-import { _tickBillboardSpriteClips } from "../sprite-billboard-shared.js";
+import { SPRITE_BILLBOARD_STRIDE, _tickBillboardSpriteClips } from "../sprite-billboard-shared.js";
 import type { SpriteBlendMode } from "./sprite-atlas.js";
 import { syncSpriteStorage, disposeSpriteStorage } from "./sprite-gpu.js";
 import { ensureSprite3DSceneUBO } from "./sprite-3d-scene-ubo.js";
-import { computeSpriteCentroid, createSpriteSortState, disposeSpriteSortState, syncSpriteSortIndices } from "./sprite-sort.js";
 import { createPipelineCache, type PipelineCache, type PipelineCacheEntry } from "../../material/pipeline-cache.js";
 
 interface BillboardPipelineVariant extends PipelineCacheEntry {
@@ -31,14 +30,13 @@ interface BillboardPipelineVariant extends PipelineCacheEntry {
 /** Per-variant pipeline cache key prefix (unique per WGSL composer). */
 export type BillboardCacheKey = "facing" | "yaw" | "axis";
 
-// Lazy: avoid module-level object allocation so unused billboard variants are
-// fully tree-shaken (per GUIDANCE rule "zero module-level side effects").
-let _caches: Record<BillboardCacheKey, PipelineCache<BillboardPipelineVariant> | null> | null = null;
+const _caches: Record<BillboardCacheKey, PipelineCache<BillboardPipelineVariant> | null> = {
+    facing: null,
+    yaw: null,
+    axis: null,
+};
 
 function getCache(key: BillboardCacheKey): PipelineCache<BillboardPipelineVariant> {
-    if (!_caches) {
-        _caches = { facing: null, yaw: null, axis: null };
-    }
     let cache = _caches[key];
     if (!cache) {
         cache = createPipelineCache<BillboardPipelineVariant>();
@@ -122,25 +120,29 @@ export async function buildBillboardRenderable(system: BillboardSpriteSystem, sc
                     visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
                     buffer: { type: "uniform" },
                 },
-                {
-                    // Per blocker 4: packed sprite data lives in a storage buffer
-                    // (the renderer's per-instance vertex buffer is just the Uint32 sort indirection).
-                    binding: 3,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: "read-only-storage" },
-                },
             ],
         });
 
         const vertModule = device.createShaderModule({ code: spec.vertexWGSL, label: `${spec.label}-vert` });
         const fragModule = device.createShaderModule({ code: spec.fragmentWGSL, label: `${spec.label}-frag` });
 
-        // Per-instance buffer = Uint32 sort indirection (4 B per instance).
-        // The packed sprite data lives in the storage buffer at @group(1) @binding(3).
+        // Per-instance attribute layout (stride 96 B = 24 floats):
+        //   worldPos3 (12) | reserved0 (4) | reserved1 (8) | sizeWorld2 (8) | pivot2 (8) |
+        //   sinCos2 (8) | uvRect4 (16) | color4 (16) | flagsAndPad4 (16)
         const instanceLayout: GPUVertexBufferLayout = {
-            arrayStride: 4,
+            arrayStride: SPRITE_BILLBOARD_STRIDE * 4,
             stepMode: "instance",
-            attributes: [{ shaderLocation: 0, offset: 0, format: "uint32" }],
+            attributes: [
+                { shaderLocation: 0, offset: 0, format: "float32x3" },
+                { shaderLocation: 1, offset: 12, format: "float32" },
+                { shaderLocation: 2, offset: 16, format: "float32x2" },
+                { shaderLocation: 3, offset: 24, format: "float32x2" },
+                { shaderLocation: 4, offset: 32, format: "float32x2" },
+                { shaderLocation: 5, offset: 40, format: "float32x2" },
+                { shaderLocation: 6, offset: 48, format: "float32x4" },
+                { shaderLocation: 7, offset: 64, format: "float32x4" },
+                { shaderLocation: 8, offset: 80, format: "float32x4" },
+            ],
         };
 
         const colorTarget: GPUColorTargetState = { format: engine.format, blend: blendState(system.blendMode) };
@@ -177,26 +179,15 @@ export async function buildBillboardRenderable(system: BillboardSpriteSystem, sc
         layout: variant.sceneBGL,
         entries: [{ binding: 0, resource: { buffer: sceneUBO } }],
     });
-
-    // Per blocker 4: the sort indirection lives in its own per-instance Uint32
-    // buffer; the packed sprite data is bound as a storage buffer so the shader
-    // can index it via `sprites[in.sortIndex]`. Both buffers can be reallocated
-    // independently when the sprite count grows past the current capacity, so
-    // the layer bind group is rebuilt lazily on storage replacement.
-    const sortState = createSpriteSortState(!isCutout);
-    let layerBG: GPUBindGroup | null = null;
-    function rebuildLayerBG(storageBuffer: GPUBuffer): void {
-        layerBG = device.createBindGroup({
-            label: `${spec.label}-layer-bg`,
-            layout: variant!.layerBGL,
-            entries: [
-                { binding: 0, resource: system.atlas.texture.view },
-                { binding: 1, resource: system.atlas.texture.sampler },
-                { binding: 2, resource: { buffer: layerUBO } },
-                { binding: 3, resource: { buffer: storageBuffer } },
-            ],
-        });
-    }
+    const layerBG = device.createBindGroup({
+        label: `${spec.label}-layer-bg`,
+        layout: variant.layerBGL,
+        entries: [
+            { binding: 0, resource: system.atlas.texture.view },
+            { binding: 1, resource: system.atlas.texture.sampler },
+            { binding: 2, resource: { buffer: layerUBO } },
+        ],
+    });
 
     const renderable: Renderable = {
         // Cutout = opaque queue (110 + order); blended = transparent queue (210 + order).
@@ -208,29 +199,15 @@ export async function buildBillboardRenderable(system: BillboardSpriteSystem, sc
         updateUBOs(): void {
             spec.writeSystemUbo(layerScratch);
             device.queue.writeBuffer(layerUBO, 0, layerScratch.buffer, layerScratch.byteOffset, spec.systemUboBytes);
-            syncSpriteStorage(engine, system._storage, `${spec.label}-instances`, rebuildLayerBG);
-            // Camera position drives the back-to-front re-sort for blended
-            // billboards. For cutout systems the sort state still emits a
-            // sequential indirection (cheap) so the shader path is uniform.
-            const cam = ctx.camera;
-            const wm = cam ? cam.worldMatrix : null;
-            const cx = wm ? wm[12]! : 0;
-            const cy = wm ? wm[13]! : 0;
-            const cz = wm ? wm[14]! : 0;
-            syncSpriteSortIndices(engine, sortState, system._storage, system._sortVersion, cx, cy, cz, `${spec.label}-sort`);
-            // Centroid drives the engine-wide transparent sort against other
-            // transparent meshes. Recompute when sort version changes.
-            const c = computeSpriteCentroid(sortState, system._storage);
-            this._worldCenter![0] = c[0];
-            this._worldCenter![1] = c[1];
-            this._worldCenter![2] = c[2];
+            system._parentedHandlesWalker?.(system);
+            syncSpriteStorage(engine, system._storage, `${spec.label}-instances`);
         },
         draw(pass): number {
-            if (!system.visible || system._storage.count === 0 || !system._storage.gpuBuffer || !layerBG || !sortState.indexBuffer) {
+            if (!system.visible || system._storage.count === 0 || !system._storage.gpuBuffer) {
                 return 0;
             }
             pass.setBindGroup(1, layerBG);
-            pass.setVertexBuffer(0, sortState.indexBuffer);
+            pass.setVertexBuffer(0, system._storage.gpuBuffer);
             pass.draw(6, system._storage.count);
             return 1;
         },
@@ -239,13 +216,6 @@ export async function buildBillboardRenderable(system: BillboardSpriteSystem, sc
     ctx._renderables.push(renderable);
     ctx._disposables.push(() => {
         layerUBO.destroy();
-        disposeSpriteSortState(sortState);
         disposeSpriteStorage(system._storage);
     });
-
-    // Lazy: register the per-system GPU pick contributor so billboards
-    // participate in the engine-wide pick pass. Pulled in only when any
-    // billboard system is added to a scene; mesh-only scenes pay nothing.
-    const pickMod = await import("../picking/billboard-pick-contributor.js");
-    pickMod.registerBillboardPickContributor(scene, system);
 }

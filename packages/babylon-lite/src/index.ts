@@ -40,6 +40,7 @@ export type { MaterialVariantData } from "./loader-gltf/material-variants.js";
 // ─── Hierarchy ───────────────────────────────────────────────────────
 export type { IWorldMatrixProvider, IParentable } from "./scene/parentable.js";
 export { setParent } from "./scene/set-parent.js";
+export { setParentSprite } from "./scene/set-parent-sprite.js";
 export { createTransformNode, cloneTransformNode } from "./scene/transform-node.js";
 export type { TransformNode } from "./scene/transform-node.js";
 export type { SceneNode } from "./scene/scene-node.js";
@@ -75,16 +76,7 @@ export type { Mesh, MeshGPU } from "./mesh/mesh.js";
 export { ObservableVec3 } from "./math/observable-vec3.js";
 export { ObservableQuat } from "./math/observable-quat.js";
 export type { StandardMaterialProps, FogConfig } from "./material/standard/standard-material.js";
-export type {
-    PbrMaterialProps,
-    ClearCoatProps,
-    AnisotropyProps,
-    SubSurfaceProps,
-    TranslucencyProps,
-    ThicknessProps,
-    TintProps,
-    RefractionProps,
-} from "./material/pbr/pbr-material.js";
+export type { PbrMaterialProps, ClearCoatProps, AnisotropyProps, SubSurfaceProps, TranslucencyProps, ThicknessProps, TintProps } from "./material/pbr/pbr-material.js";
 export type { PointLight } from "./light/point-light.js";
 export type { DirectionalLight } from "./light/directional-light.js";
 export type { SpotLight } from "./light/spot-light.js";
@@ -125,22 +117,34 @@ export type {
 } from "./sprite/shared/sprite-atlas.js";
 export { createSpriteClipState, evaluateSpriteClip, advanceSpriteClip } from "./sprite/shared/sprite-animation.js";
 export type { SpriteClipState } from "./sprite/shared/sprite-animation.js";
-export { createSprite2DLayer, addSprite2D, updateSprite2D, removeSprite2D, setSprite2DFrame, playSprite2DClip, stopSprite2DClip } from "./sprite/sprite-2d.js";
+export {
+    createSprite2DLayer,
+    addSprite2DIndex,
+    updateSprite2DIndex,
+    removeSprite2DIndex,
+    setSprite2DFrameIndex,
+    playSprite2DClipIndex,
+    stopSprite2DClipIndex,
+} from "./sprite/sprite-2d.js";
 export type { Sprite2DLayer, Sprite2DLayerOptions, Sprite2DInit, Sprite2DView } from "./sprite/sprite-2d.js";
+export { addSprite2D, removeSprite2D } from "./sprite/sprite-2d-handle.js";
+export type { Sprite2DHandle } from "./sprite/sprite-2d-handle.js";
 export { pickSprite2D } from "./sprite/picking/pick-2d.js";
 export type { SpritePickInfo } from "./sprite/picking/pick-2d.js";
 
 // ─── Sprites — Family 2 (Anchored, 3D scene with fixed pixel size) ──
 export {
     createAnchoredSpriteLayer,
-    addAnchoredSprite,
-    updateAnchoredSprite,
-    removeAnchoredSprite,
-    setAnchoredSpriteFrame,
-    playAnchoredSpriteClip,
-    stopAnchoredSpriteClip,
+    addAnchoredSpriteIndex,
+    updateAnchoredSpriteIndex,
+    removeAnchoredSpriteIndex,
+    setAnchoredSpriteFrameIndex,
+    playAnchoredSpriteClipIndex,
+    stopAnchoredSpriteClipIndex,
 } from "./sprite/sprite-anchored.js";
 export type { AnchoredSpriteLayer, AnchoredSpriteLayerOptions, AnchoredSpriteInit } from "./sprite/sprite-anchored.js";
+export { addAnchoredSprite, removeAnchoredSprite } from "./sprite/sprite-anchored-handle.js";
+export type { AnchoredSpriteHandle } from "./sprite/sprite-anchored-handle.js";
 export { pickAnchoredSprite } from "./sprite/picking/pick-anchored.js";
 
 // ─── Sprites — Family 3 (Billboard, 3D scene with world-unit size) ──
@@ -148,14 +152,16 @@ export { createFacingBillboardSystem } from "./sprite/sprite-billboard-facing.js
 export { createYawLockedBillboardSystem } from "./sprite/sprite-billboard-yaw.js";
 export { createAxisLockedBillboardSystem } from "./sprite/sprite-billboard-axis.js";
 export {
-    addBillboardSprite,
-    updateBillboardSprite,
-    removeBillboardSprite,
-    setBillboardSpriteFrame,
-    playBillboardSpriteClip,
-    stopBillboardSpriteClip,
+    addBillboardSpriteIndex,
+    updateBillboardSpriteIndex,
+    removeBillboardSpriteIndex,
+    setBillboardSpriteFrameIndex,
+    playBillboardSpriteClipIndex,
+    stopBillboardSpriteClipIndex,
 } from "./sprite/sprite-billboard-shared.js";
 export type { BillboardSpriteSystem, BillboardSpriteSystemOptions, BillboardSpriteInit } from "./sprite/sprite-billboard-shared.js";
+export { addBillboardSprite, removeBillboardSprite } from "./sprite/sprite-billboard-handle.js";
+export type { BillboardSpriteHandle } from "./sprite/sprite-billboard-handle.js";
 export { pickBillboardSprite } from "./sprite/picking/pick-billboard.js";
 
 // ─── Low-level (for advanced/custom rendering) ──────────────────────

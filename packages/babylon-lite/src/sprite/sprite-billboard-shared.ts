@@ -32,19 +32,17 @@ import { createSpriteStorage, ensureCapacity, markDirty, swapRemove } from "./sh
 /** Floats per sprite for BillboardSpriteSystem (96 B). */
 export const SPRITE_BILLBOARD_STRIDE = 24;
 
+/**
+ * Bridge interface implemented by `BillboardSpriteHandle` for the renderable walker.
+ * @internal
+ */
+export interface IParentedBillboardHandle {
+    readonly id: number;
+    readonly worldMatrix: import("../math/types.js").Mat4;
+}
+
 /** Internal tag identifying which billboard variant a system was built from. */
 export type BillboardVariant = "facing" | "yaw" | "axis";
-
-/** @internal CPU-side basis computer used by picking to inverse-project a
- *  world-space hit point back into the sprite's local 2D plane. Each variant
- *  attaches its own closure at factory time, so callers never branch on the
- *  variant tag (per GUIDANCE rule "no runtime mode/family `if` branches"). */
-export type BillboardBasisFn = (
-    worldPos: readonly [number, number, number],
-    camRight: readonly [number, number, number],
-    camUp: readonly [number, number, number],
-    camPos: readonly [number, number, number]
-) => { right: [number, number, number]; up: [number, number, number] };
 
 export interface BillboardSpriteSystemOptions {
     capacity?: number;
@@ -97,10 +95,6 @@ export interface BillboardSpriteSystem {
     readonly _variant: BillboardVariant;
     /** @internal lock axis (axis-locked variant only). Normalized. */
     readonly _lockAxis: [number, number, number] | null;
-    /** @internal Per-variant basis computer used by CPU helpers (e.g. pick UV
-     *  inverse-projection). Attached by each variant factory; callers never
-     *  branch on `_variant` to compute a basis. Null until factory wires it. */
-    _basisFn: BillboardBasisFn | null;
     /** @internal flat instance storage. */
     readonly _storage: SpriteStorage;
     /** @internal per-slot CPU metadata. */
@@ -109,6 +103,16 @@ export interface BillboardSpriteSystem {
     readonly _clips: Map<number, SpriteClipState>;
     /** @internal monotonic counter bumped on add/remove/position change. */
     _sortVersion: number;
+    /** @internal monotonically increasing handle id source. */
+    _nextHandleId: number;
+    /** @internal lazily allocated when the first handle is created. */
+    _idToIndex: Map<number, number> | null;
+    /** @internal lazily allocated parallel to storage capacity. */
+    _indexToId: Uint32Array | null;
+    /** @internal lazily allocated set of currently-parented handles. */
+    _parentedHandles: Set<IParentedBillboardHandle> | null;
+    /** @internal function-pointer hook installed by sprite-billboard-handle.ts on first parenting. */
+    _parentedHandlesWalker: ((system: BillboardSpriteSystem) => void) | null;
     /** @internal deferred renderable build (set by factory). */
     _deferredBuild?: (scene: SceneContext) => Promise<void>;
 }
@@ -135,11 +139,15 @@ export function _createBillboardSystem(
         count: 0,
         _variant: variant,
         _lockAxis: lockAxis,
-        _basisFn: null,
         _storage: createSpriteStorage(opts.capacity ?? 64, SPRITE_BILLBOARD_STRIDE),
         _meta: [],
         _clips: new Map(),
         _sortVersion: 0,
+        _nextHandleId: 1,
+        _idToIndex: null,
+        _indexToId: null,
+        _parentedHandles: null,
+        _parentedHandlesWalker: null,
     };
 }
 
@@ -155,7 +163,6 @@ function packSlot(system: BillboardSpriteSystem, index: number, init: BillboardS
     const color = init.color ?? [1, 1, 1, 1];
     const flipX = init.flipX === true ? 1 : 0;
     const flipY = init.flipY === true ? 1 : 0;
-    const pickable = init.pickable !== false ? 1 : 0;
     const out: [number, number] = visible ? [sizeWorld[0], sizeWorld[1]] : [0, 0];
     const off = index * SPRITE_BILLBOARD_STRIDE;
     const d = system._storage.data;
@@ -182,9 +189,7 @@ function packSlot(system: BillboardSpriteSystem, index: number, init: BillboardS
     d[off + 19] = color[3]!;
     d[off + 20] = flipX;
     d[off + 21] = flipY;
-    // flagsAndPad.z carries the pickable bit (read by the GPU pick fragment
-    // shader to discard non-pickable sprites). See pick-billboard pipeline.
-    d[off + 22] = pickable;
+    d[off + 22] = 0;
     d[off + 23] = 0;
 
     system._meta[index] = {
@@ -197,7 +202,7 @@ function packSlot(system: BillboardSpriteSystem, index: number, init: BillboardS
     };
 }
 
-export function addBillboardSprite(system: BillboardSpriteSystem, sprite: BillboardSpriteInit): number {
+export function addBillboardSpriteIndex(system: BillboardSpriteSystem, sprite: BillboardSpriteInit): number {
     const index = system._storage.count;
     ensureCapacity(system._storage, index + 1);
     system._storage.count = index + 1;
@@ -212,7 +217,7 @@ export function addBillboardSprite(system: BillboardSpriteSystem, sprite: Billbo
     return index;
 }
 
-export function updateBillboardSprite(system: BillboardSpriteSystem, index: number, patch: Partial<BillboardSpriteInit>): void {
+export function updateBillboardSpriteIndex(system: BillboardSpriteSystem, index: number, patch: Partial<BillboardSpriteInit>): void {
     const meta = system._meta[index]!;
     const off = index * SPRITE_BILLBOARD_STRIDE;
     const d = system._storage.data;
@@ -243,7 +248,7 @@ export function updateBillboardSprite(system: BillboardSpriteSystem, index: numb
     }
 }
 
-export function removeBillboardSprite(system: BillboardSpriteSystem, index: number): void {
+export function removeBillboardSpriteIndex(system: BillboardSpriteSystem, index: number): void {
     const last = system._storage.count - 1;
     if (index !== last) {
         system._meta[index] = system._meta[last]!;
@@ -253,20 +258,42 @@ export function removeBillboardSprite(system: BillboardSpriteSystem, index: numb
             system._clips.delete(last);
             system._clips.set(index, lastClip);
         }
+        if (system._indexToId !== null && system._idToIndex !== null) {
+            const movedId = system._indexToId[last]!;
+            if (movedId !== 0) {
+                system._idToIndex.set(movedId, index);
+                system._indexToId[index] = movedId;
+            } else {
+                system._indexToId[index] = 0;
+            }
+            system._indexToId[last] = 0;
+        }
     } else {
         system._clips.delete(index);
+        if (system._indexToId !== null) {
+            system._indexToId[index] = 0;
+        }
     }
     system._meta.length = last;
     swapRemove(system._storage, index);
     system.count = system._storage.count;
-    // Only the swapped slot needs re-upload; the popped tail is past `count`.
-    if (index !== last) {
-        markDirty(system._storage, index, index + 1);
-    }
+    markDirty(system._storage, Math.min(index, last), last + 1);
     system._sortVersion++;
 }
 
-export function setBillboardSpriteFrame(system: BillboardSpriteSystem, index: number, frame: SpriteFrameRef): void {
+/** @internal Clears the handle id at `index` so the following swap-remove
+ * does not rebind it to the moved-in slot. */
+export function _removeBillboardHandleId(system: BillboardSpriteSystem, index: number): void {
+    if (system._indexToId === null || system._idToIndex === null) {
+        return;
+    }
+    const id = system._indexToId[index]!;
+    if (id !== 0) {
+        system._idToIndex.delete(id);
+    }
+}
+
+export function setBillboardSpriteFrameIndex(system: BillboardSpriteSystem, index: number, frame: SpriteFrameRef): void {
     const frameIndex = resolveSpriteFrame(system.atlas, frame);
     const meta = system._meta[index]!;
     if (meta.frameIndex === frameIndex) {
@@ -283,7 +310,7 @@ export function setBillboardSpriteFrame(system: BillboardSpriteSystem, index: nu
     markDirty(system._storage, index, index + 1);
 }
 
-export function playBillboardSpriteClip(system: BillboardSpriteSystem, index: number, clip: string, loop?: boolean): void {
+export function playBillboardSpriteClipIndex(system: BillboardSpriteSystem, index: number, clip: string, loop?: boolean): void {
     const clipIndex = system.atlas._clipByName.get(clip);
     if (clipIndex === undefined) {
         throw new Error(`Sprite clip '${clip}' not found in atlas`);
@@ -292,7 +319,7 @@ export function playBillboardSpriteClip(system: BillboardSpriteSystem, index: nu
     system._clips.set(index, state);
 }
 
-export function stopBillboardSpriteClip(system: BillboardSpriteSystem, index: number): void {
+export function stopBillboardSpriteClipIndex(system: BillboardSpriteSystem, index: number): void {
     const s = system._clips.get(index);
     if (s) {
         s.playing = false;
@@ -306,6 +333,6 @@ export function _tickBillboardSpriteClips(system: BillboardSpriteSystem, deltaMs
     }
     for (const [index, state] of system._clips) {
         const newFrame = advanceSpriteClip(system.atlas, state, deltaMs);
-        setBillboardSpriteFrame(system, index, newFrame);
+        setBillboardSpriteFrameIndex(system, index, newFrame);
     }
 }

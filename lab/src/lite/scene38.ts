@@ -10,7 +10,7 @@
 // `bjs/scene38.ts`).
 
 import {
-    addBillboardSprite,
+    addBillboardSpriteIndex,
     addToScene,
     createArcRotateCamera,
     createAxisLockedBillboardSystem,
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
 
     const layer = createAxisLockedBillboardSystem(atlas, [1, 0, 0], { capacity: 8, blendMode: "alpha" });
     for (const s of BILLBOARD_SCENE_LAYOUT.sprites) {
-        addBillboardSprite(layer, {
+        addBillboardSpriteIndex(layer, {
             position: s.position,
             sizeWorld: s.sizeWorld,
             frame: BILLBOARD_ATLAS_INFO.frames.flag,

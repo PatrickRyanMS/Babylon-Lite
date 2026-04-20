@@ -28,6 +28,20 @@ import { createSpriteStorage, ensureCapacity, markDirty, swapRemove } from "./sh
 /** Floats per sprite for AnchoredSpriteLayer (96 B). */
 export const SPRITE_ANCHORED_STRIDE = 24;
 
+/**
+ * Bridge interface implemented by `AnchoredSpriteHandle` for the renderable walker.
+ *
+ * Lets `sprite-anchored-handle-walk.ts` iterate parented handles without statically
+ * importing the handle module — keeps the renderable's static graph free of
+ * handle/walker code.
+ *
+ * @internal
+ */
+export interface IParentedAnchoredHandle {
+    readonly id: number;
+    readonly worldMatrix: import("../math/types.js").Mat4;
+}
+
 export interface AnchoredSpriteLayerOptions {
     capacity?: number;
     blendMode?: SpriteBlendMode;
@@ -88,6 +102,16 @@ export interface AnchoredSpriteLayer {
     readonly _clips: Map<number, SpriteClipState>;
     /** @internal monotonic counter bumped on add/remove/position change — drives transparent re-sort. */
     _sortVersion: number;
+    /** @internal monotonically increasing handle id source. */
+    _nextHandleId: number;
+    /** @internal lazily allocated when the first handle is created. */
+    _idToIndex: Map<number, number> | null;
+    /** @internal lazily allocated parallel to storage capacity. */
+    _indexToId: Uint32Array | null;
+    /** @internal lazily allocated set of currently-parented handles. */
+    _parentedHandles: Set<IParentedAnchoredHandle> | null;
+    /** @internal function-pointer hook installed by sprite-anchored-handle.ts on first parenting. */
+    _parentedHandlesWalker: ((layer: AnchoredSpriteLayer) => void) | null;
     /** @internal deferred renderable build (set by addToScene). */
     _deferredBuild?: (scene: SceneContext) => Promise<void>;
 }
@@ -108,6 +132,11 @@ export function createAnchoredSpriteLayer(atlas: SpriteAtlas, opts: AnchoredSpri
         _meta: [],
         _clips: new Map(),
         _sortVersion: 0,
+        _nextHandleId: 1,
+        _idToIndex: null,
+        _indexToId: null,
+        _parentedHandles: null,
+        _parentedHandlesWalker: null,
     };
     // Dynamic-import the renderable + picking-aware deferred build hook so
     // sprite-free scenes never load anchored bytes.
@@ -132,7 +161,6 @@ function packSlot(layer: AnchoredSpriteLayer, index: number, init: AnchoredSprit
     const color = init.color ?? [1, 1, 1, 1];
     const flipX = init.flipX === true ? 1 : 0;
     const flipY = init.flipY === true ? 1 : 0;
-    const pickable = init.pickable !== false ? 1 : 0;
     const out: [number, number] = visible ? [sizePx[0]!, sizePx[1]!] : [0, 0];
     const off = index * SPRITE_ANCHORED_STRIDE;
     const d = layer._storage.data;
@@ -158,8 +186,7 @@ function packSlot(layer: AnchoredSpriteLayer, index: number, init: AnchoredSprit
     d[off + 19] = color[3]!;
     d[off + 20] = flipX;
     d[off + 21] = flipY;
-    // flagsAndPad.z reserved for picking parity with billboards (anchored uses CPU pick).
-    d[off + 22] = pickable;
+    d[off + 22] = 0;
     d[off + 23] = 0;
 
     layer._meta[index] = {
@@ -173,7 +200,7 @@ function packSlot(layer: AnchoredSpriteLayer, index: number, init: AnchoredSprit
     };
 }
 
-export function addAnchoredSprite(layer: AnchoredSpriteLayer, sprite: AnchoredSpriteInit): number {
+export function addAnchoredSpriteIndex(layer: AnchoredSpriteLayer, sprite: AnchoredSpriteInit): number {
     const index = layer._storage.count;
     ensureCapacity(layer._storage, index + 1);
     layer._storage.count = index + 1;
@@ -188,7 +215,7 @@ export function addAnchoredSprite(layer: AnchoredSpriteLayer, sprite: AnchoredSp
     return index;
 }
 
-export function updateAnchoredSprite(layer: AnchoredSpriteLayer, index: number, patch: Partial<AnchoredSpriteInit>): void {
+export function updateAnchoredSpriteIndex(layer: AnchoredSpriteLayer, index: number, patch: Partial<AnchoredSpriteInit>): void {
     const meta = layer._meta[index]!;
     const off = index * SPRITE_ANCHORED_STRIDE;
     const d = layer._storage.data;
@@ -221,7 +248,7 @@ export function updateAnchoredSprite(layer: AnchoredSpriteLayer, index: number, 
     }
 }
 
-export function removeAnchoredSprite(layer: AnchoredSpriteLayer, index: number): void {
+export function removeAnchoredSpriteIndex(layer: AnchoredSpriteLayer, index: number): void {
     const last = layer._storage.count - 1;
     if (index !== last) {
         layer._meta[index] = layer._meta[last]!;
@@ -231,20 +258,42 @@ export function removeAnchoredSprite(layer: AnchoredSpriteLayer, index: number):
             layer._clips.delete(last);
             layer._clips.set(index, lastClip);
         }
+        if (layer._indexToId !== null && layer._idToIndex !== null) {
+            const movedId = layer._indexToId[last]!;
+            if (movedId !== 0) {
+                layer._idToIndex.set(movedId, index);
+                layer._indexToId[index] = movedId;
+            } else {
+                layer._indexToId[index] = 0;
+            }
+            layer._indexToId[last] = 0;
+        }
     } else {
         layer._clips.delete(index);
+        if (layer._indexToId !== null) {
+            layer._indexToId[index] = 0;
+        }
     }
     layer._meta.length = last;
     swapRemove(layer._storage, index);
     layer.count = layer._storage.count;
-    // Only the swapped slot needs re-upload; the popped tail is past `count`.
-    if (index !== last) {
-        markDirty(layer._storage, index, index + 1);
-    }
+    markDirty(layer._storage, Math.min(index, last), last + 1);
     layer._sortVersion++;
 }
 
-export function setAnchoredSpriteFrame(layer: AnchoredSpriteLayer, index: number, frame: SpriteFrameRef): void {
+/** @internal Clears the handle id at `index` so the following swap-remove
+ * does not rebind it to the moved-in slot. */
+export function _removeAnchoredHandleId(layer: AnchoredSpriteLayer, index: number): void {
+    if (layer._indexToId === null || layer._idToIndex === null) {
+        return;
+    }
+    const id = layer._indexToId[index]!;
+    if (id !== 0) {
+        layer._idToIndex.delete(id);
+    }
+}
+
+export function setAnchoredSpriteFrameIndex(layer: AnchoredSpriteLayer, index: number, frame: SpriteFrameRef): void {
     const frameIndex = resolveSpriteFrame(layer.atlas, frame);
     const meta = layer._meta[index]!;
     if (meta.frameIndex === frameIndex) {
@@ -261,7 +310,7 @@ export function setAnchoredSpriteFrame(layer: AnchoredSpriteLayer, index: number
     markDirty(layer._storage, index, index + 1);
 }
 
-export function playAnchoredSpriteClip(layer: AnchoredSpriteLayer, index: number, clip: string, loop?: boolean): void {
+export function playAnchoredSpriteClipIndex(layer: AnchoredSpriteLayer, index: number, clip: string, loop?: boolean): void {
     const clipIndex = layer.atlas._clipByName.get(clip);
     if (clipIndex === undefined) {
         throw new Error(`Sprite clip '${clip}' not found in atlas`);
@@ -270,7 +319,7 @@ export function playAnchoredSpriteClip(layer: AnchoredSpriteLayer, index: number
     layer._clips.set(index, state);
 }
 
-export function stopAnchoredSpriteClip(layer: AnchoredSpriteLayer, index: number): void {
+export function stopAnchoredSpriteClipIndex(layer: AnchoredSpriteLayer, index: number): void {
     const s = layer._clips.get(index);
     if (s) {
         s.playing = false;
@@ -284,6 +333,6 @@ export function _tickAnchoredSpriteClips(layer: AnchoredSpriteLayer, deltaMs: nu
     }
     for (const [index, state] of layer._clips) {
         const newFrame = advanceSpriteClip(layer.atlas, state, deltaMs);
-        setAnchoredSpriteFrame(layer, index, newFrame);
+        setAnchoredSpriteFrameIndex(layer, index, newFrame);
     }
 }

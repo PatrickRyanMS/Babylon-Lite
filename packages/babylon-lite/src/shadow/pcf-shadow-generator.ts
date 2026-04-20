@@ -20,7 +20,6 @@ import type { Mesh } from "../mesh/mesh.js";
 import type { EngineContext } from "../engine/engine.js";
 import type { EngineContextInternal } from "../engine/engine.js";
 import type { ShadowGenerator } from "./shadow-generator.js";
-import { createUniformBuffer } from "../resource/gpu-buffers.js";
 import {
     buildCasters,
     syncCasterMatrices,
@@ -37,7 +36,6 @@ import depthVertSrc from "../../shaders/shadow-pcf-depth.vertex.wgsl?raw";
 import { registerPcfShadowShader } from "../material/standard/standard-pipeline.js";
 import { registerPcfShadowBgl } from "../material/standard/standard-pipeline.js";
 import { WGSL_SCENE_UNIFORMS_SHADOW } from "../shader/wgsl-helpers.js";
-import { createSingleUniformBGL } from "../shader/bgl-helpers.js";
 
 // ─── PCF Shader Fragments (bundled only when PCF is used) ──────────
 
@@ -137,7 +135,10 @@ export function createPcfShadowGenerator(engine: EngineContext, light: SpotLight
     const { viewProj } = computeSpotLightMatrix(light, near, far);
 
     // --- Depth pipeline BGL (needed before buildCasters) ---
-    const depthMeshBGL = createSingleUniformBGL(eng, "pcf-depth-mesh", GPUShaderStage.VERTEX);
+    const depthMeshBGL = device.createBindGroupLayout({
+        label: "pcf-depth-mesh",
+        entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } }],
+    });
 
     // Build caster data + per-caster bind groups
     const casters = buildCasters(eng, casterMeshes, depthMeshBGL);
@@ -151,7 +152,11 @@ export function createPcfShadowGenerator(engine: EngineContext, light: SpotLight
     });
 
     // --- Depth pipeline (vertex-only, no fragment) ---
-    const depthSceneUBO = createUniformBuffer(eng, viewProj as Float32Array<ArrayBuffer>);
+    const depthSceneUBO = device.createBuffer({
+        size: 64,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(depthSceneUBO, 0, viewProj as Float32Array<ArrayBuffer>);
 
     const depthSceneBGL = createDepthSceneBGL(eng, "pcf-depth-scene");
 

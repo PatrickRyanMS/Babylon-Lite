@@ -1,6 +1,5 @@
 import type { EngineContextInternal } from "../engine/engine.js";
 import { pickingShaderSource, pickingThinInstanceShaderSource } from "./picking-shader.js";
-import { createSingleUniformBGL } from "../shader/bgl-helpers.js";
 
 // ─── Cache state (auto-invalidate on device change) ─────────────────
 
@@ -27,18 +26,38 @@ function invalidateIfNeeded(engine: EngineContextInternal): void {
 
 /** Group 0: scene-level viewProjection uniform. */
 export function getPickingSceneBGL(engine: EngineContextInternal): GPUBindGroupLayout {
+    const device = engine.device;
     invalidateIfNeeded(engine);
     if (!_sceneBGL) {
-        _sceneBGL = createSingleUniformBGL(engine, "picking-scene-bgl", GPUShaderStage.VERTEX);
+        _sceneBGL = device.createBindGroupLayout({
+            label: "picking-scene-bgl",
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: "uniform" },
+                },
+            ],
+        });
     }
     return _sceneBGL;
 }
 
 /** Group 1: per-mesh world matrix + pickId uniform (regular meshes). */
 export function getPickingMeshBGL(engine: EngineContextInternal): GPUBindGroupLayout {
+    const device = engine.device;
     invalidateIfNeeded(engine);
     if (!_meshBGL) {
-        _meshBGL = createSingleUniformBGL(engine, "picking-mesh-bgl", GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT);
+        _meshBGL = device.createBindGroupLayout({
+            label: "picking-mesh-bgl",
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" },
+                },
+            ],
+        });
     }
     return _meshBGL;
 }

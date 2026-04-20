@@ -33,22 +33,21 @@ ${BILLBOARD_VS_IN_WGSL}
 
 @vertex
 fn vs_main(in: VSIn) -> VSOut {
-    let s = sprites[in.sortIndex];
     let corner = cornerOf(in.vid);
-    let local = (corner - s.pivot) * s.sizePxOrWorld;
-    let rotated = rotate2(local, s.sinCos);
+    let local = (corner - in.pivot) * in.sizeWorld;
+    let rotated = rotate2(local, in.sinCos);
     let camPos = vec3<f32>(scene.cameraRight.w, scene.cameraUp.w, scene.cameraForward.w);
-    let toCam = normalize(camPos - s.worldPos);
+    let toCam = normalize(camPos - in.worldPos);
     let up = vec3<f32>(0.0, 1.0, 0.0);
     let rightRaw = cross(up, toCam);
     let rightLen = length(rightRaw);
     // Degenerate case (camera directly overhead/below) — fall back to world X.
     let right = select(vec3<f32>(1.0, 0.0, 0.0), rightRaw / max(rightLen, 1e-6), rightLen > 1e-4);
-    let world = s.worldPos + right * rotated.x + up * rotated.y;
+    let world = in.worldPos + right * rotated.x + up * rotated.y;
     var out: VSOut;
     out.pos = scene.viewProjection * vec4<f32>(world, 1.0);
-    out.uv = cornerUV(corner, s.uvRect, s.flagsAndPad.x, s.flagsAndPad.y);
-    out.color = s.color;
+    out.uv = cornerUV(corner, in.uvRect, in.flagsAndPad.x, in.flagsAndPad.y);
+    out.color = in.color;
     return out;
 }
 `;

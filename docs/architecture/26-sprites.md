@@ -1033,11 +1033,21 @@ A `SpriteAtlas` is a shared resource: the same atlas may back multiple layers/sy
 ### Population
 
 ```
-const i = addSprite2D(layer, init)   // returns the slot index; fills next free slot in _data, bumps _version (and _sortVersion for 3D blended families)
-playSprite2DClip(layer, i, name)     // attaches a SpriteClipState keyed by index
+const i = addSprite2DIndex(layer, init)         // Index API: returns the slot index, low-level (parallels ThinInstance)
+const h = addSprite2D(layer, init)              // Handle API: returns a Sprite2DHandle (observable + parentable)
+playSprite2DClipIndex(layer, i, name)           // attaches a SpriteClipState keyed by index
 ```
 
-The returned index is the sprite's stable handle: every mutator (`setSpriteFrame`, `setSpritePosition`, `playSprite2DClip`, `removeSprite`) takes it. There is no per-sprite object — the index addresses a slot in the layer's packed `_data` array.
+The Index API returns the sprite's slot index — every Index-suffixed mutator
+(`setSprite2DFrameIndex`, `updateSprite2DIndex`, `removeSprite2DIndex`,
+`playSprite2DClipIndex`) takes it. Indices are not stable across `removeXIndex`
+(swap-remove moves the last slot into the gap). The Index API parallels Lite's
+ThinInstance API: maximum throughput, zero per-sprite object cost, suitable for
+particles / static decoration / tile maps.
+
+The Handle API (`addSprite2D` etc., from the family's `*-handle.ts` module)
+returns a stable handle object whose `id` survives swap-remove via a per-layer
+`_idToIndex: Map`. See **Handles, Identity, and Parenting** below.
 
 ### Scene Registration
 
@@ -1090,6 +1100,166 @@ Two independent version counters drive the two independent costs:
 ### Disposal
 
 `disposeScene2D` / `removeFromScene` releases the layer's GPU buffers via the scene's existing per-renderable `dispose` callback (the same hook meshes use to release thin-instance buffers — no new disposal infrastructure is introduced). Atlas textures follow regular `Texture2D` lifetime — they may be shared across scenes/layers and are released only when no layer holds them.
+
+---
+
+## Handles, Identity, and Parenting
+
+Sprites in Babylon Lite use a **two-tier API** that mirrors the Index/Handle
+split common in data-oriented engines (and parallels Lite's ThinInstance vs.
+Mesh split for 3D geometry).
+
+### Two-tier API design
+
+| Tier            | Functions                                                         | Returns       | Use for                                                      |
+| --------------- | ----------------------------------------------------------------- | ------------- | ------------------------------------------------------------ |
+| **Index API**   | `addSprite2DIndex`, `updateSprite2DIndex`, `removeSprite2DIndex`, `setSprite2DFrameIndex`, `playSprite2DClipIndex`, `stopSprite2DClipIndex` (and the equivalents for `Anchored…Index` and `Billboard…Index`) | `number` (slot index) | Tile maps, scenery, particles, large fixed-layout HUDs. Maximum throughput, zero per-sprite GC. Indices are *not* stable — `removeXIndex` swap-removes. |
+| **Handle API**  | `addSprite2D`, `removeSprite2D` (and `addAnchoredSprite` / `removeAnchoredSprite` / `addBillboardSprite` / `removeBillboardSprite`) | `Sprite2DHandle` / `AnchoredSpriteHandle` / `BillboardSpriteHandle` | Player characters, enemies, UI elements that move or are parented. Observable fields, stable id, optional parenting. |
+
+Mario analogy: `Index` is a Goomba on a tile (set once, never updated, can
+spawn 10 000 of them); `Handle` is Mario himself (moves every frame, parented
+to a moving platform, owns animation state).
+
+The handle modules (`sprite-2d-handle.ts`, `sprite-anchored-handle.ts`,
+`sprite-billboard-handle.ts`) live in separate files so that scenes that only
+use the Index API never load handle code (see **Tree-shaking** below).
+
+### Stable IDs (`_idToIndex` / `_indexToId`)
+
+Each handle owns a `readonly id: number` (u32, monotonically allocated from
+`layer._nextHandleId`). The layer owns two parallel structures, lazily
+allocated on first handle creation:
+
+- `_idToIndex: Map<number, number> | null` — maps `handle.id` → current slot index.
+- `_indexToId: Uint32Array | null` — parallel to storage capacity; maps slot index → `handle.id` (0 = no handle for that slot, since ids start at 1).
+
+When `removeXIndex` swap-removes the last slot into the freed slot, it patches
+both maps so the moved-into slot's id resolves to its new index. When
+`removeSprite2D(handle)` is called, the handle module first calls
+`_removeSprite2DHandleId(layer, slot)` to drop the dying handle's id from the
+map, *then* invokes `removeSprite2DIndex` (so the swap-remove that follows
+correctly re-binds the moved-in slot's id without colliding with the dying
+handle's id).
+
+**Cost:** 4 B/slot in `_indexToId` + one Map lookup per handle mutation.
+Index API users skip the Map entirely — they keep raw indices and pay nothing
+for handle infrastructure. Both `_idToIndex` and `_indexToId` start as `null`
+and stay that way for layers that only use the Index API; bundle stays smaller.
+
+### Handle field tables
+
+**`Sprite2DHandle`** (Sprite2D family):
+
+| Field          | Slot floats it writes (per `SPRITE_2D_STRIDE = 20`)              | Setter side-effects                                                  |
+| -------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `position`     | `[off+0]` = x, `[off+1]` = y                                      | Marks worldMatrix2D dirty; if parented, walker overrides next frame  |
+| `sizePx`       | `[off+2]` = w·scale.x, `[off+3]` = h·scale.y (only when un-parented) | Marks slot dirty                                                  |
+| `pivot`        | `[off+4]`, `[off+5]`                                              | —                                                                    |
+| `scale`        | (none directly — scaled into sizePx)                              | Marks worldMatrix2D dirty; re-writes packed size                     |
+| `color`        | `[off+12..15]`                                                    | —                                                                    |
+| `rotation`     | (via `updateSprite2DIndex` patch — sin/cos at `[off+6..7]`)       | Marks worldMatrix2D dirty                                            |
+| `frame`        | UV at `[off+8..11]`                                               | Calls `setSprite2DFrameIndex`                                        |
+| `visible`      | Toggles packed sizePx between value and 0                         | Calls `writeSizePx`                                                  |
+| `pickable`     | Updates `_meta[i].pickable`                                       | —                                                                    |
+| `layerZ`       | `[off+16]`                                                        | Clamped to `[0, 1]`                                                  |
+| `parent`       | (only `IParentable2D`; doesn't touch slot directly)               | Adds/removes from `_parentedHandles`; installs walker on first parent |
+
+**`AnchoredSpriteHandle`** (Anchored family) and **`BillboardSpriteHandle`**
+(Billboard family) are structurally similar but use 3D `position: ObservableVec3`
+and (for billboard) `sizeWorld: ObservableVec2` instead of `sizePx`. Their
+`parent` setter takes any `IWorldMatrixProvider` (a Mesh, TransformNode, or
+even another sprite handle).
+
+### 3D parenting (Anchored + Billboard)
+
+Anchored and Billboard handles implement `IParentable` + `IWorldMatrixProvider`
+— the same interfaces meshes use. Setting `handle.parent = mesh` adds the
+handle to `layer._parentedHandles: Set<IParentedXHandle>` and installs the
+per-frame walker via the function-pointer hook `layer._parentedHandlesWalker`
+(see **Tree-shaking** below).
+
+Each frame, before the storage sync, the renderable invokes the walker if
+present. The walker iterates `_parentedHandles`, reads each handle's
+`worldMatrix` (resolved lazily through the chain via `WorldMatrixAccessors`),
+and writes only the **world translation** into slot `[off+0..2]`. Sprite
+rotation stays as a 2D-around-pivot rotation in the slot; parent rotation and
+scale do *not* propagate to the sprite's quad orientation (sprites face the
+camera in their renderable; allowing parent rotation to tilt them would defeat
+the whole point of an Anchored or Billboard sprite). Only translation
+propagates.
+
+Un-parented handles iterate over zero work — `_parentedHandles` is `null`
+until the first `handle.parent = …` call.
+
+### 2D parenting (Sprite2D)
+
+Sprite2D handles implement `IParentable2D` + `IWorldMatrix2DProvider`, the
+2D analogues built on `Mat3` affine matrices instead of `Mat4`. This enables
+Spine-style 2D skeletal hierarchies: a parent sprite's rotation and scale
+*do* propagate to children (since Sprite2D quads are explicitly oriented in
+2D, there is no "always face camera" constraint to violate).
+
+Sprite2D handles add a `scale: ObservableVec2` field (default `(1, 1)`) so the
+handle can express non-uniform local scale on top of `sizePx`. The walker
+(`walkParentedSprite2DHandles`) decomposes each handle's world `Mat3` into
+`(tx, ty)`, rotation, and `(sx, sy)`, then writes:
+
+- `[off+0..1]` = `(tx, ty)` — world translation
+- `[off+2..3]` = `(sizePx.x · sx, sizePx.y · sy)` — packed size with world scale
+- `[off+4..5]` = pivot (unchanged from local)
+- `[off+6..7]` = `(sin(rot), cos(rot))` — world rotation
+
+### Tree-shaking
+
+The handle modules and the walker modules are deliberately **separate files**
+so the static import graph of each renderable stays free of handle code:
+
+- **Renderable files** (`sprite-2d-renderable.ts`, `sprite-anchored-renderable.ts`,
+  `shared/sprite-billboard-renderable.ts`) statically import only the family
+  file (`sprite-2d.ts` etc.) — no handle modules, no walker modules. They
+  invoke the per-frame walker via the function-pointer hook
+  `layer._parentedHandlesWalker?.(layer)` — `null` for Index-only scenes,
+  zero call cost.
+- **Handle modules** statically import their corresponding walker module and
+  assign it to `layer._parentedHandlesWalker` on the first `handle.parent = …`
+  call. This means walker code is loaded only when an app actually uses
+  parenting — apps that use handles but never parent never load walker code.
+- **Apps that only use the Index API** (e.g. a tile-map scene) never import
+  any handle module, so `_idToIndex` / `_indexToId` / `_parentedHandles` /
+  `_parentedHandlesWalker` all stay `null`. The handle module's bytes are
+  tree-shaken out of the bundle entirely.
+
+### Dynamic imports & tree-shake boundaries
+
+This pattern matches the Lite-wide convention: every optional module is
+either tree-shake-only (handle modules, walker modules — pulled in by static
+imports from app code) or dynamically imported at first use. Concrete
+examples already shipped:
+
+- PBR fragment extensions (`packages/babylon-lite/src/material/pbr/fragments/*-fragment.ts`)
+  registered via `_registerPbrExt` after dynamic import.
+- glTF loader extensions (`packages/babylon-lite/src/loader-gltf/gltf-ext-*.ts`)
+  registered as `[needs(json), () => import(...)]` tuples.
+- Light variants, mipmap generation, picking pipelines, billboard pickers — all
+  dynamic-imported by the modules that detect they are needed.
+- Sprite renderables themselves (`sprite-2d-renderable.ts` etc.) are
+  dynamic-imported by their family's `_deferredBuild` hook.
+
+The handle/walker pair is one more case of the same rule: code is only fetched
+when the feature it implements is actually used.
+
+### Future physics integration
+
+The handle's `position: ObservableVec3` (or `ObservableVec2` for Sprite2D) is
+the natural integration point for a future `@babylon-lite/physics-2d` /
+`physics-3d` package. A physics body would write to `handle.position.x = …`
+each frame from its solver state via a per-frame sync; the observable's
+write-back path picks up the change and pushes it into the GPU buffer (or
+into the world matrix for parented handles). No core changes are required.
+
+This preserves the "if you don't use it, you don't pay for it" boundary:
+physics is an optional package that only sees the public Handle API and never
+reaches into layer internals.
 
 ---
 
@@ -1229,16 +1399,22 @@ packages/babylon-lite/src/
       sprite-pack.ts                            # Per-family packing helpers (one per family, no shared if)
       sprite-sort.ts                            # SpriteSortState + createSpriteSortState / syncSpriteSortIndices / computeSpriteCentroid / disposeSpriteSortState
       sprite-3d-instance-wgsl.ts                # Shared SPRITE_3D_DATA_WGSL (storage struct + binding) + SPRITE_3D_VS_IN_WGSL helpers (cornerOf, cornerUV, rotate2)
+      sprite-billboard-handle-walk.ts           # walkParentedBillboardHandles (per-frame walker; lives under shared/ because the three billboard renderables share it)
 
-    sprite-2d.ts                                # createSprite2DLayer + add/update/remove/setFrame/playClip/stopClip
+    sprite-2d.ts                                # createSprite2DLayer + Index API (add/update/remove/setFrame/playClip/stopClip with `*Index` suffix)
+    sprite-2d-handle.ts                         # Sprite2DHandle + addSprite2D/removeSprite2D (Handle API; observable + IParentable2D)
+    sprite-2d-handle-walk.ts                    # walkParentedSprite2DHandles (per-frame walker; assigned to layer._parentedHandlesWalker on first parent)
     sprite-2d-renderable.ts                     # Renderable builder for Sprite2DLayer (dynamic-imported)
     sprite-2d-shader.ts                         # composeSprite2D WGSL emitter
 
-    sprite-anchored.ts                          # createAnchoredSpriteLayer + helpers
+    sprite-anchored.ts                          # createAnchoredSpriteLayer + Index API
+    sprite-anchored-handle.ts                   # AnchoredSpriteHandle + addAnchoredSprite/removeAnchoredSprite (Handle API; IParentable + IWorldMatrixProvider)
+    sprite-anchored-handle-walk.ts              # walkParentedAnchoredHandles (per-frame walker)
     sprite-anchored-renderable.ts               # Renderable builder
     sprite-anchored-shader.ts                   # composeAnchoredSprite WGSL emitter
 
-    sprite-billboard-shared.ts                  # BillboardSpriteSystem common helpers (no mode `if`)
+    sprite-billboard-shared.ts                  # BillboardSpriteSystem common helpers (no mode `if`) + Index API
+    sprite-billboard-handle.ts                  # BillboardSpriteHandle + addBillboardSprite/removeBillboardSprite (Handle API)
     sprite-billboard-facing.ts                  # createFacingBillboardSystem
     sprite-billboard-facing-renderable.ts
     sprite-billboard-facing-shader.ts
@@ -1279,6 +1455,11 @@ tests/unit/                                     # vitest unit tests (one file pe
   sprite-pick-anchored.test.ts
   sprite-pick-billboard-uv.test.ts
   pick-contributor-registry.test.ts
+  mat3.test.ts                                   # § Mat3 utilities (identity/compose/multiply/invert/transformPoint)
+  sprite-handle-stable-id.test.ts                # § Handles, Identity, Parenting — swap-remove preserves handle.id resolution
+  sprite-handle-observable-write.test.ts         # § Handles — observable.x = v writes the correct flat-buffer slot
+  sprite-handle-parent-3d.test.ts                # § 3D parenting — walker writes parent translation; un-parenting preserves world pos
+  sprite-handle-parent-2d.test.ts                # § 2D parenting — walker decomposes parent Mat3 into pos+rot+scaledSize
 
 tests/parity/scenes/                            # Playwright parity specs reference scene NN
   (parity scenes are driven by lab/sceneNN.html via the existing scene-runner)

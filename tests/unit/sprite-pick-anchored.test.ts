@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { createGridSpriteAtlas } from "../../packages/babylon-lite/src/sprite/shared/sprite-atlas";
-import { addAnchoredSprite, createAnchoredSpriteLayer, updateAnchoredSprite } from "../../packages/babylon-lite/src/sprite/sprite-anchored";
+import { addAnchoredSpriteIndex, createAnchoredSpriteLayer, updateAnchoredSpriteIndex } from "../../packages/babylon-lite/src/sprite/sprite-anchored";
 import { pickAnchoredSprite } from "../../packages/babylon-lite/src/sprite/picking/pick-anchored";
 import type { SceneContext } from "../../packages/babylon-lite/src/scene/scene";
 import type { Camera } from "../../packages/babylon-lite/src/camera/camera";
@@ -76,7 +76,7 @@ describe("pickAnchoredSprite", () => {
     it("hits the sprite under the cursor at the projected anchor", () => {
         const scene = fakeScene();
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [80, 40] });
+        addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [80, 40] });
         registerLayer(scene, layer);
         const [px, py] = anchorScreenPx(scene, [0, 0, 5]);
         const hit = pickAnchoredSprite(scene, px, py);
@@ -89,7 +89,7 @@ describe("pickAnchoredSprite", () => {
     it("misses when the cursor is outside the pivot-aware rectangle", () => {
         const scene = fakeScene();
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [40, 40] });
+        addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [40, 40] });
         registerLayer(scene, layer);
         const [px, py] = anchorScreenPx(scene, [0, 0, 5]);
         // 100px away — guaranteed outside a 40px square.
@@ -99,8 +99,8 @@ describe("pickAnchoredSprite", () => {
     it("skips !visible and !pickable sprites", () => {
         const scene = fakeScene();
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [60, 60], visible: false });
-        addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [60, 60], pickable: false });
+        addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [60, 60], visible: false });
+        addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [60, 60], pickable: false });
         registerLayer(scene, layer);
         const [px, py] = anchorScreenPx(scene, [0, 0, 5]);
         expect(pickAnchoredSprite(scene, px, py)).toBeNull();
@@ -110,13 +110,13 @@ describe("pickAnchoredSprite", () => {
         const scene = fakeScene();
         const layer = createAnchoredSpriteLayer(fakeAtlas());
         // 200×10 horizontal bar.
-        const idx = addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [200, 10], rotation: 0 });
+        const idx = addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [200, 10], rotation: 0 });
         registerLayer(scene, layer);
         const [px, py] = anchorScreenPx(scene, [0, 0, 5]);
         // 80 px to the right, on the centerline → hit while horizontal.
         expect(pickAnchoredSprite(scene, px + 80, py)).not.toBeNull();
         // Same point, now bar is rotated 90° → vertical → 80px to the right is outside.
-        updateAnchoredSprite(layer, idx, { rotation: Math.PI / 2 });
+        updateAnchoredSpriteIndex(layer, idx, { rotation: Math.PI / 2 });
         expect(pickAnchoredSprite(scene, px + 80, py)).toBeNull();
         // But 80px above the anchor is now inside the rotated (now vertical) bar.
         expect(pickAnchoredSprite(scene, px, py - 80)).not.toBeNull();
@@ -125,8 +125,8 @@ describe("pickAnchoredSprite", () => {
     it("returns the topmost sprite (later insertion wins among equal layers)", () => {
         const scene = fakeScene();
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [60, 60] });
-        const top = addAnchoredSprite(layer, { position: [0, 0, 5], sizePx: [60, 60] });
+        addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [60, 60] });
+        const top = addAnchoredSpriteIndex(layer, { position: [0, 0, 5], sizePx: [60, 60] });
         registerLayer(scene, layer);
         const [px, py] = anchorScreenPx(scene, [0, 0, 5]);
         const hit = pickAnchoredSprite(scene, px, py);
@@ -137,7 +137,7 @@ describe("pickAnchoredSprite", () => {
         const scene = fakeScene();
         const layer = createAnchoredSpriteLayer(fakeAtlas());
         // z < 0 in LH-projection means behind the camera.
-        addAnchoredSprite(layer, { position: [0, 0, -2], sizePx: [200, 200] });
+        addAnchoredSpriteIndex(layer, { position: [0, 0, -2], sizePx: [200, 200] });
         registerLayer(scene, layer);
         expect(pickAnchoredSprite(scene, 640, 360)).toBeNull();
     });

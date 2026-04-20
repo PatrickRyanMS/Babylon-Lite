@@ -11,8 +11,6 @@
 import type { Mesh } from "../mesh/mesh.js";
 import type { MeshInternal } from "../mesh/mesh.js";
 import type { EngineContextInternal } from "../engine/engine.js";
-import { createUniformBuffer } from "../resource/gpu-buffers.js";
-import { createSingleUniformBGL } from "../shader/bgl-helpers.js";
 
 export interface ShadowCaster {
     positionBuffer: GPUBuffer;
@@ -32,7 +30,11 @@ export function buildCasters(engine: EngineContextInternal, meshes: Mesh[], mesh
         const gpu = (mesh as MeshInternal)._gpu;
         const worldMatrix = new Float32Array(mesh.worldMatrix);
 
-        const meshUBO = createUniformBuffer(engine, worldMatrix as Float32Array<ArrayBuffer>);
+        const meshUBO = device.createBuffer({
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        device.queue.writeBuffer(meshUBO, 0, worldMatrix as Float32Array<ArrayBuffer>);
 
         const entries: GPUBindGroupEntry[] = [{ binding: 0, resource: { buffer: meshUBO } }, ...(extraEntries ?? [])];
         const bindGroup = device.createBindGroup({ layout: meshBGL, entries });
@@ -137,17 +139,23 @@ export function multiply4x4(a: Float32Array, b: Float32Array): Float32Array {
 
 /** Create the shared depth-scene BGL (single uniform at binding 0, vertex stage). */
 export function createDepthSceneBGL(engine: EngineContextInternal, label: string): GPUBindGroupLayout {
-    return createSingleUniformBGL(engine, label, GPUShaderStage.VERTEX);
+    return engine.device.createBindGroupLayout({
+        label,
+        entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } }],
+    });
 }
 
 /** Create the shared shadow-params UBO (32 bytes) holding bias/depthScale/depth-range fields. */
 export function createShadowParamsUBO(engine: EngineContextInternal, bias: number, depthScale: number): GPUBuffer {
+    const device = engine.device;
     const data = new Float32Array(8);
     data[0] = bias;
     data[2] = depthScale;
     data[4] = 0; // depthMinZ (WebGPU)
     data[5] = 1; // depthMinZ + depthMaxZ
-    return createUniformBuffer(engine, data);
+    const ubo = device.createBuffer({ size: 32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(ubo, 0, data);
+    return ubo;
 }
 
 /** Create the shared receiver-side shadow UBO (96 bytes), initialised from state. */
@@ -157,9 +165,11 @@ export function createSharedShadowUBO(
     depthValues: Float32Array,
     shadowsInfo: Float32Array
 ): { ubo: GPUBuffer; data: Float32Array } {
+    const device = engine.device;
     const data = new Float32Array(24);
     writeShadowUboFields(data, { lightMatrix, depthValues, shadowsInfo });
-    const ubo = createUniformBuffer(engine, data);
+    const ubo = device.createBuffer({ size: 96, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(ubo, 0, data);
     return { ubo, data };
 }
 

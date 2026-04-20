@@ -13,7 +13,12 @@
 
 import { describe, it, expect } from "vitest";
 import { createGridSpriteAtlas } from "../../packages/babylon-lite/src/sprite/shared/sprite-atlas";
-import { addBillboardSprite, removeBillboardSprite, SPRITE_BILLBOARD_STRIDE, updateBillboardSprite } from "../../packages/babylon-lite/src/sprite/sprite-billboard-shared";
+import {
+    addBillboardSpriteIndex,
+    removeBillboardSpriteIndex,
+    SPRITE_BILLBOARD_STRIDE,
+    updateBillboardSpriteIndex,
+} from "../../packages/babylon-lite/src/sprite/sprite-billboard-shared";
 import { createFacingBillboardSystem } from "../../packages/babylon-lite/src/sprite/sprite-billboard-facing";
 import { createYawLockedBillboardSystem } from "../../packages/babylon-lite/src/sprite/sprite-billboard-yaw";
 import { createAxisLockedBillboardSystem } from "../../packages/babylon-lite/src/sprite/sprite-billboard-axis";
@@ -31,7 +36,7 @@ describe("Billboard sprite per-instance layout", () => {
 
     it("packs each field at the documented offset (Facing variant)", () => {
         const system = createFacingBillboardSystem(fakeAtlas());
-        addBillboardSprite(system, {
+        addBillboardSpriteIndex(system, {
             position: [1, 2, 3],
             sizeWorld: [4, 5],
             pivot: [0.25, 0.75],
@@ -56,13 +61,13 @@ describe("Billboard sprite per-instance layout", () => {
         // uvRect — frame 0 of a 64×64 atlas with 16×16 cells → uv (0,0..0.25,0.25)
         expect(Array.from(d.subarray(12, 16))).toEqual([0, 0, 0.25, 0.25]);
         expect(Array.from(d.subarray(16, 20)).map((v) => +v.toFixed(4))).toEqual([0.1, 0.2, 0.3, 0.4]);
-        // flagsAndPad: flipX=1, flipY=0, pickable=1 (default), pad=0
-        expect(Array.from(d.subarray(20, 24))).toEqual([1, 0, 1, 0]);
+        // flagsAndPad: flipX=1, flipY=0, pad=0,0
+        expect(Array.from(d.subarray(20, 24))).toEqual([1, 0, 0, 0]);
     });
 
     it("invisible sprite collapses sizeWorld to [0, 0]", () => {
         const system = createYawLockedBillboardSystem(fakeAtlas());
-        const i = addBillboardSprite(system, { position: [0, 0, 0], sizeWorld: [10, 10], visible: false });
+        const i = addBillboardSpriteIndex(system, { position: [0, 0, 0], sizeWorld: [10, 10], visible: false });
         const off = i * SPRITE_BILLBOARD_STRIDE;
         expect(system._storage.data[off + 6]).toBe(0);
         expect(system._storage.data[off + 7]).toBe(0);
@@ -70,10 +75,10 @@ describe("Billboard sprite per-instance layout", () => {
 
     it("swap-remove keeps remaining slots packed contiguously", () => {
         const system = createFacingBillboardSystem(fakeAtlas());
-        addBillboardSprite(system, { position: [1, 0, 0], sizeWorld: [1, 1] });
-        addBillboardSprite(system, { position: [2, 0, 0], sizeWorld: [1, 1] });
-        addBillboardSprite(system, { position: [3, 0, 0], sizeWorld: [1, 1] });
-        removeBillboardSprite(system, 0);
+        addBillboardSpriteIndex(system, { position: [1, 0, 0], sizeWorld: [1, 1] });
+        addBillboardSpriteIndex(system, { position: [2, 0, 0], sizeWorld: [1, 1] });
+        addBillboardSpriteIndex(system, { position: [3, 0, 0], sizeWorld: [1, 1] });
+        removeBillboardSpriteIndex(system, 0);
         expect(system.count).toBe(2);
         expect(system._storage.data[0]).toBe(3);
         expect(system._storage.data[SPRITE_BILLBOARD_STRIDE]).toBe(2);
@@ -81,8 +86,8 @@ describe("Billboard sprite per-instance layout", () => {
 
     it("update merges patch over current slot data", () => {
         const system = createFacingBillboardSystem(fakeAtlas());
-        const i = addBillboardSprite(system, { position: [0, 0, 0], sizeWorld: [2, 3], color: [1, 0, 0, 1] });
-        updateBillboardSprite(system, i, { position: [5, 5, 5] });
+        const i = addBillboardSpriteIndex(system, { position: [0, 0, 0], sizeWorld: [2, 3], color: [1, 0, 0, 1] });
+        updateBillboardSpriteIndex(system, i, { position: [5, 5, 5] });
         const d = system._storage.data;
         expect(Array.from(d.subarray(0, 3))).toEqual([5, 5, 5]);
         // Color preserved.

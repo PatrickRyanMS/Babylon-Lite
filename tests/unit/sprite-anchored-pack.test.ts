@@ -7,11 +7,11 @@
 import { describe, it, expect } from "vitest";
 import { createGridSpriteAtlas } from "../../packages/babylon-lite/src/sprite/shared/sprite-atlas";
 import {
-    addAnchoredSprite,
+    addAnchoredSpriteIndex,
     createAnchoredSpriteLayer,
-    removeAnchoredSprite,
+    removeAnchoredSpriteIndex,
     SPRITE_ANCHORED_STRIDE,
-    updateAnchoredSprite,
+    updateAnchoredSpriteIndex,
 } from "../../packages/babylon-lite/src/sprite/sprite-anchored";
 import type { Texture2D } from "../../packages/babylon-lite/src/texture/texture-2d";
 
@@ -27,7 +27,7 @@ describe("Anchored sprite per-instance layout", () => {
 
     it("packs each field at the documented offset", () => {
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        addAnchoredSprite(layer, {
+        addAnchoredSpriteIndex(layer, {
             position: [1, 2, 3],
             depthBias: 0.5,
             offsetPx: [10, -10],
@@ -50,13 +50,13 @@ describe("Anchored sprite per-instance layout", () => {
         // uvRect — frame 0 of a 64×64 atlas with 16×16 cells → uv (0,0..0.25,0.25)
         expect(Array.from(d.subarray(12, 16))).toEqual([0, 0, 0.25, 0.25]);
         expect(Array.from(d.subarray(16, 20)).map((v) => +v.toFixed(4))).toEqual([0.1, 0.2, 0.3, 0.4]);
-        // flagsAndPad: flipX=1, flipY=0, pickable=1 (default), pad=0
-        expect(Array.from(d.subarray(20, 24))).toEqual([1, 0, 1, 0]);
+        // flagsAndPad: flipX=1, flipY=0, pad=0,0
+        expect(Array.from(d.subarray(20, 24))).toEqual([1, 0, 0, 0]);
     });
 
     it("invisible sprite collapses sizePx to [0, 0]", () => {
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        const i = addAnchoredSprite(layer, { position: [0, 0, 0], sizePx: [40, 40], visible: false });
+        const i = addAnchoredSpriteIndex(layer, { position: [0, 0, 0], sizePx: [40, 40], visible: false });
         const off = i * SPRITE_ANCHORED_STRIDE;
         expect(layer._storage.data[off + 6]).toBe(0);
         expect(layer._storage.data[off + 7]).toBe(0);
@@ -64,10 +64,10 @@ describe("Anchored sprite per-instance layout", () => {
 
     it("swap-remove keeps remaining slots packed contiguously", () => {
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        addAnchoredSprite(layer, { position: [1, 0, 0] });
-        addAnchoredSprite(layer, { position: [2, 0, 0] });
-        addAnchoredSprite(layer, { position: [3, 0, 0] });
-        removeAnchoredSprite(layer, 0);
+        addAnchoredSpriteIndex(layer, { position: [1, 0, 0] });
+        addAnchoredSpriteIndex(layer, { position: [2, 0, 0] });
+        addAnchoredSpriteIndex(layer, { position: [3, 0, 0] });
+        removeAnchoredSpriteIndex(layer, 0);
         expect(layer.count).toBe(2);
         // Slot 0 now holds what was the last slot (position.x = 3).
         expect(layer._storage.data[0]).toBe(3);
@@ -77,8 +77,8 @@ describe("Anchored sprite per-instance layout", () => {
 
     it("update merges patch over current slot data", () => {
         const layer = createAnchoredSpriteLayer(fakeAtlas());
-        const i = addAnchoredSprite(layer, { position: [0, 0, 0], sizePx: [10, 10], color: [1, 0, 0, 1] });
-        updateAnchoredSprite(layer, i, { position: [5, 5, 5] });
+        const i = addAnchoredSpriteIndex(layer, { position: [0, 0, 0], sizePx: [10, 10], color: [1, 0, 0, 1] });
+        updateAnchoredSpriteIndex(layer, i, { position: [5, 5, 5] });
         const d = layer._storage.data;
         expect(Array.from(d.subarray(0, 3))).toEqual([5, 5, 5]);
         // Color preserved.

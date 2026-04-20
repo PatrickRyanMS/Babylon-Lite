@@ -20,7 +20,6 @@ import { acquireGPUTexture, releaseGPUTexture } from "../resource/gpu-pool.js";
 import { assembleEnvironmentTextures } from "../loader-env/env-helpers.js";
 import { parseRGBE, computeSHFromEquirect } from "./hdr-parser.js";
 import { equirectToCubemapGPU, prefilterCubemapGPU, generateBrdfLut } from "./hdr-ibl-pipeline.js";
-import { mipLevelCount } from "../texture/mip-count.js";
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
@@ -50,7 +49,7 @@ export async function loadHdrEnvironment(scene: SceneContext, url: string, optio
     const srcCube = equirectToCubemapGPU(engine, hdr, faceSize);
 
     // 4. Prefilter cubemap for IBL (GPU compute, importance-sampled GGX)
-    const mipCount = mipLevelCount(faceSize, faceSize);
+    const mipCount = Math.floor(Math.log2(faceSize)) + 1;
     const specularCube = prefilterCubemapGPU(engine, srcCube, faceSize, mipCount);
 
     // 5. BRDF LUT

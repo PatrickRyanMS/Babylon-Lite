@@ -16,7 +16,6 @@ import type { EngineContextInternal } from "../../engine/engine.js";
 import type { MeshGroupBuilder } from "../../render/renderable.js";
 import { computeUboLayout } from "../../shader/ubo-layout.js";
 import { createStandardTemplate } from "./standard-template.js";
-import { _getStdExts } from "./standard-pipeline.js";
 
 // ─── Shared Constants ────────────────────────────────────────────────
 
@@ -47,9 +46,15 @@ export const standardGroupBuilder: MeshGroupBuilder & { _loadRebuildSingle?: () 
 
     let tiSync: ((engine: EngineContextInternal, ti: any, pass: GPURenderPassEncoder | GPURenderBundleEncoder, slot: number, hasColor: boolean) => number) | undefined;
     let tiFragment: any;
+    let bumpFragment: any;
     let shadowFragment: any;
-
-    const { _registerStdExt } = await import("./standard-pipeline.js");
+    let emissiveFragment: any;
+    let specularFragment: any;
+    let ambientFragment: any;
+    let lightmapFragment: any;
+    let opacityFragment: any;
+    let reflectionFragment: any;
+    let cubeReflectionFragment: any;
 
     const imports: Promise<any>[] = [];
     if (hasTI) {
@@ -63,7 +68,11 @@ export const standardGroupBuilder: MeshGroupBuilder & { _loadRebuildSingle?: () 
         );
     }
     if (hasBump) {
-        imports.push(import("./fragments/normal-map-fragment.js").then((m) => _registerStdExt(m.bumpStdExt)));
+        imports.push(
+            import("./fragments/normal-map-fragment.js").then((m) => {
+                bumpFragment = m.createNormalMapFragment;
+            })
+        );
     }
     if (hasShadow) {
         imports.push(
@@ -73,25 +82,53 @@ export const standardGroupBuilder: MeshGroupBuilder & { _loadRebuildSingle?: () 
         );
     }
     if (hasEmissive) {
-        imports.push(import("./fragments/std-emissive-fragment.js").then((m) => _registerStdExt(m.stdEmissiveExt)));
+        imports.push(
+            import("./fragments/std-emissive-fragment.js").then((m) => {
+                emissiveFragment = m.createStdEmissiveFragment;
+            })
+        );
     }
     if (hasSpecular) {
-        imports.push(import("./fragments/std-specular-fragment.js").then((m) => _registerStdExt(m.stdSpecularExt)));
+        imports.push(
+            import("./fragments/std-specular-fragment.js").then((m) => {
+                specularFragment = m.createStdSpecularFragment;
+            })
+        );
     }
     if (hasAmbient) {
-        imports.push(import("./fragments/std-ambient-fragment.js").then((m) => _registerStdExt(m.stdAmbientExt)));
+        imports.push(
+            import("./fragments/std-ambient-fragment.js").then((m) => {
+                ambientFragment = m.createStdAmbientFragment;
+            })
+        );
     }
     if (hasLightmap) {
-        imports.push(import("./fragments/std-lightmap-fragment.js").then((m) => _registerStdExt(m.stdLightmapExt)));
+        imports.push(
+            import("./fragments/std-lightmap-fragment.js").then((m) => {
+                lightmapFragment = m.createStdLightmapFragment;
+            })
+        );
     }
     if (hasOpacity) {
-        imports.push(import("./fragments/std-opacity-fragment.js").then((m) => _registerStdExt(m.stdOpacityExt)));
+        imports.push(
+            import("./fragments/std-opacity-fragment.js").then((m) => {
+                opacityFragment = m.createStdOpacityFragment;
+            })
+        );
     }
     if (hasReflection) {
-        imports.push(import("./fragments/std-reflection-fragment.js").then((m) => _registerStdExt(m.stdReflectionExt)));
+        imports.push(
+            import("./fragments/std-reflection-fragment.js").then((m) => {
+                reflectionFragment = m.createStdReflectionFragment;
+            })
+        );
     }
     if (hasCubeReflection) {
-        imports.push(import("./fragments/std-cube-reflection-fragment.js").then((m) => _registerStdExt(m.stdCubeReflectionExt)));
+        imports.push(
+            import("./fragments/std-cube-reflection-fragment.js").then((m) => {
+                cubeReflectionFragment = m.createStdCubeReflectionFragment;
+            })
+        );
     }
     if (imports.length > 0) {
         await Promise.all(imports);
@@ -101,7 +138,15 @@ export const standardGroupBuilder: MeshGroupBuilder & { _loadRebuildSingle?: () 
     return buildStandardMeshRenderables(scene, meshes, {
         tiSync,
         tiFragment,
+        bumpFragment,
         shadowFragment,
+        emissiveFragment,
+        specularFragment,
+        ambientFragment,
+        lightmapFragment,
+        opacityFragment,
+        reflectionFragment,
+        cubeReflectionFragment,
     });
 };
 // Lazy loader for the single-mesh rebuild function — loaded only when a material swap happens
@@ -219,8 +264,26 @@ export function collectStdBoundTextures(mat: StandardMaterialProps): Texture2D[]
     if (mat.diffuseTexture) {
         t.push(mat.diffuseTexture);
     }
-    for (const ext of _getStdExts().values()) {
-        ext.textures?.(mat, t);
+    if (mat.emissiveTexture) {
+        t.push(mat.emissiveTexture);
+    }
+    if (mat.bumpTexture) {
+        t.push(mat.bumpTexture);
+    }
+    if (mat.specularTexture) {
+        t.push(mat.specularTexture);
+    }
+    if (mat.ambientTexture) {
+        t.push(mat.ambientTexture);
+    }
+    if (mat.lightmapTexture) {
+        t.push(mat.lightmapTexture);
+    }
+    if (mat.opacityTexture) {
+        t.push(mat.opacityTexture);
+    }
+    if (mat.reflectionTexture) {
+        t.push(mat.reflectionTexture);
     }
     return t;
 }
