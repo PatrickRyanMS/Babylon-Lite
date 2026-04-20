@@ -63,12 +63,14 @@ async function main(): Promise<void> {
     const layer = createAnchoredSpriteLayer(atlas, { capacity: 4, blendMode: "alpha" });
     addToScene(scene, layer);
 
-    // Label sprite parented to the box at local (0, 0.8, 0) — pure world-space
-    // anchor (no pixel offset), so the BJS reference plane at the same local
-    // position is comparable.
+    // Label sprite parented to the box at local (0, 0.8, 0). The BJS reference
+    // renders a 0.8-world-unit billboarded plane at the same anchor; at the
+    // arc-rotate camera distance (≈10 units) and fov=π/4 on a 720-px-tall
+    // canvas, that plane projects to ≈70 pixels — the sizePx value chosen here
+    // for pixel-parity at the captured `seekTime`.
     const label = addAnchoredSprite(layer, {
         position: [0, 0.8, 0],
-        sizePx: [56, 56],
+        sizePx: [70, 70],
         frame: 0,
     });
     label.parent = box;

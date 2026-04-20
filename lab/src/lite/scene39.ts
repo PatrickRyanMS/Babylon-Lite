@@ -3,22 +3,15 @@
 // Demonstrates the new high-level Sprite2D handle API:
 //   - `addSprite2D` returns a Sprite2DHandle (not a number).
 //   - `handle.position.x = ...` writes via the Observable -> flat buffer slot.
-//   - A parented "health-bar" handle follows the moving "character" via
-//     `bar.parent = character` (IParentable2D wiring).
+//   - The "health-bar" handle tracks the moving "character" each frame via the
+//     observable `position` setter (translation-only follow).
 //
-// Lab-only demo (not in parity test). Side-by-side with BJS reference for
-// visual eyeball + bundle-size comparison.
+// Note on parity: BJS sprites have no scene graph, so the BJS reference uses
+// manual per-frame position copy. To remain pixel-identical, this scene also
+// updates the bar's position manually instead of using `bar.parent = character`
+// (which would inherit the character's rotation as well, diverging from BJS).
 
-import {
-    addSprite2D,
-    addToScene2D,
-    createEngine,
-    createScene2DContext,
-    createSprite2DLayer,
-    loadSpriteAtlas,
-    onBeforeRender2D,
-    startEngine2D,
-} from "babylon-lite";
+import { addSprite2D, addToScene2D, createEngine, createScene2DContext, createSprite2DLayer, loadSpriteAtlas, onBeforeRender2D, startEngine2D } from "babylon-lite";
 import { getSpriteAtlasDataUrl, SPRITE_ATLAS_INFO } from "../_shared/sprite-atlas-image";
 
 async function main(): Promise<void> {
@@ -53,14 +46,13 @@ async function main(): Promise<void> {
         color: [1, 1, 1, 1],
     });
 
-    // Health bar — parented to the character; its position is local-to-character.
+    // Health bar — tracks the character's translation each frame (no parent).
     const healthBar = addSprite2D(layer, {
-        positionPx: [0, -64], // 64px above the character (parent local space).
+        positionPx: [120, canvas.height / 2 - 64],
         sizePx: [80, 12],
         frame: 8,
         color: [0.2, 1.0, 0.4, 1],
     });
-    healthBar.parent = character;
 
     let t = 0;
     const targetFrames = seekTime !== null ? Math.round(seekTime * 60) : 0;
@@ -79,6 +71,9 @@ async function main(): Promise<void> {
         const x = canvas.width / 2 + Math.cos(t * 0.8) * (canvas.width / 2 - 120);
         character.position.x = x;
         character.rotation = Math.sin(t) * 0.1;
+        // Manual translate-only follow (matches BJS scene-graph-less reference).
+        healthBar.position.x = character.position.x;
+        healthBar.position.y = character.position.y - 64;
     });
 
     await startEngine2D(engine, scene);

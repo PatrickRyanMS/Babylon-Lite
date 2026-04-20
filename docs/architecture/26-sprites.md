@@ -432,7 +432,7 @@ export type BillboardBasisFn = (
     worldPos: readonly [number, number, number],
     camRight: readonly [number, number, number],
     camUp: readonly [number, number, number],
-    camPos: readonly [number, number, number],
+    camPos: readonly [number, number, number]
 ) => { right: [number, number, number]; up: [number, number, number] };
 ```
 
@@ -467,16 +467,16 @@ All families use **64-byte aligned strides**. Layouts differ slightly because th
 
 #### AnchoredSpriteLayer (96 B = 24 floats)
 
-| Offset (floats) | Field         | Notes                                                                                         |
-| --------------- | ------------- | --------------------------------------------------------------------------------------------- |
-| 0..2            | `worldPos`    | world-space anchor                                                                            |
-| 3               | `depthBias`   | NDC-z bias added after projection (positive = pushed toward camera)                           |
-| 4..5            | `offsetPx`    | pixel offset added to the rotated quad before pixel-snap                                      |
-| 6..7            | `sizePx`      | width/height in pixels                                                                        |
-| 8..9            | `pivot`       | normalized [0,1]                                                                              |
-| 10..11          | `sinCos`      | precomputed sin/cos of rotation                                                               |
-| 12..15          | `uvRect`      | uvMin.xy, uvMax.xy                                                                            |
-| 16..19          | `color`       | RGBA tint                                                                                     |
+| Offset (floats) | Field         | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0..2            | `worldPos`    | world-space anchor                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 3               | `depthBias`   | NDC-z bias added after projection (positive = pushed toward camera)                                                                                                                                                                                                                                                                                                                                                                                    |
+| 4..5            | `offsetPx`    | pixel offset added to the rotated quad before pixel-snap                                                                                                                                                                                                                                                                                                                                                                                               |
+| 6..7            | `sizePx`      | width/height in pixels                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 8..9            | `pivot`       | normalized [0,1]                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 10..11          | `sinCos`      | precomputed sin/cos of rotation                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 12..15          | `uvRect`      | uvMin.xy, uvMax.xy                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 16..19          | `color`       | RGBA tint                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 20..23          | `flagsAndPad` | `[0]=flipX`, `[1]=flipY`, `[2]=pickable` (1.0 if `pickable !== false`, else 0.0), `[3]=reserved` — same float-encoding convention as Sprite2DLayer. The pickable bit is read by the GPU pick fragment shader for billboard variants — non-pickable sprites are `discard`-ed so the picked silhouette matches the rendered silhouette excluding non-pickable instances. Anchored layers also pack this bit for parity even though they pick on the CPU. |
 
 #### BillboardSpriteSystem (96 B = 24 floats)
@@ -644,15 +644,15 @@ Per-batch only. Per-sprite blend mode would require splitting a layer into multi
 
 ### Per-Family Differences
 
-| Setting          | Sprite2DLayer                             | AnchoredSpriteLayer                                                    | Billboard (any variant)                                                                                                                          |
-| ---------------- | ----------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Depth attachment | **none**                                  | yes                                                                    | yes                                                                                                                                              |
-| Depth compare    | n/a                                       | `less-equal` (or `always` if `depthTest=false`)                        | `less-equal`                                                                                                                                     |
-| Depth write      | n/a                                       | `false`                                                                | `false` for blended, `true` for `cutout` (or per `depthWrite`)                                                                                   |
-| Bind group 0     | `Sprite2DSceneUBO` @binding(0)            | `Sprite3DSceneUBO` @binding(0) (replaces 3D `SceneUBO` for sprite renderables — consolidates viewProjection + camera basis + viewport into a single UBO) | `Sprite3DSceneUBO` @binding(0) (replaces 3D `SceneUBO` for sprite renderables — consolidates viewProjection + camera basis + viewport into a single UBO) |
-| Bind group 1     | tex@0, samp@1, `SpriteLayerUBO`@2         | tex@0, samp@1, `SpriteLayerUBO`@2, packed sprite storage buffer@3      | tex@0, samp@1, **`SpriteLayerUBO`@2 (facing/yaw) _or_ `AxisLockedBillboardSystemUBO`@2 (axis-locked, replaces layer UBO)**, packed sprite storage buffer@3 |
-| Sort key         | `(layer.order, sprite.layerZ, insertion)` | `(layer.order, anchor view-Z back-to-front)`                           | back-to-front view-Z when blended; front-to-back view-Z when `cutout`                                                                            |
-| Render queue     | dedicated overlay pass (final)            | transparent (210 + order) for blended, opaque (110 + order) for cutout | transparent (210 + order) for blended, opaque (110 + order) for cutout                                                                           |
+| Setting          | Sprite2DLayer                             | AnchoredSpriteLayer                                                                                                                                      | Billboard (any variant)                                                                                                                                    |
+| ---------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Depth attachment | **none**                                  | yes                                                                                                                                                      | yes                                                                                                                                                        |
+| Depth compare    | n/a                                       | `less-equal` (or `always` if `depthTest=false`)                                                                                                          | `less-equal`                                                                                                                                               |
+| Depth write      | n/a                                       | `false`                                                                                                                                                  | `false` for blended, `true` for `cutout` (or per `depthWrite`)                                                                                             |
+| Bind group 0     | `Sprite2DSceneUBO` @binding(0)            | `Sprite3DSceneUBO` @binding(0) (replaces 3D `SceneUBO` for sprite renderables — consolidates viewProjection + camera basis + viewport into a single UBO) | `Sprite3DSceneUBO` @binding(0) (replaces 3D `SceneUBO` for sprite renderables — consolidates viewProjection + camera basis + viewport into a single UBO)   |
+| Bind group 1     | tex@0, samp@1, `SpriteLayerUBO`@2         | tex@0, samp@1, `SpriteLayerUBO`@2, packed sprite storage buffer@3                                                                                        | tex@0, samp@1, **`SpriteLayerUBO`@2 (facing/yaw) _or_ `AxisLockedBillboardSystemUBO`@2 (axis-locked, replaces layer UBO)**, packed sprite storage buffer@3 |
+| Sort key         | `(layer.order, sprite.layerZ, insertion)` | `(layer.order, anchor view-Z back-to-front)`                                                                                                             | back-to-front view-Z when blended; front-to-back view-Z when `cutout`                                                                                      |
+| Render queue     | dedicated overlay pass (final)            | transparent (210 + order) for blended, opaque (110 + order) for cutout                                                                                   | transparent (210 + order) for blended, opaque (110 + order) for cutout                                                                                     |
 
 ### Bind Group Layouts
 
@@ -954,11 +954,11 @@ The composer emits exactly the right fragment shader for the family + blend mode
 
 All three pickers honor the per-sprite `pickable` flag (default `true`). CPU pickers (Sprite2D / Anchored) skip non-pickable sprites by checking `meta.pickable` before the rectangle test; the GPU picker (Billboard) `discard`s them in the pick fragment shader by reading `flagsAndPad.z < 0.5`. `visible: false` sprites are also skipped — the degenerate quad already returns no fragment in the GPU ID pass; CPU pickers explicitly check the visible flag before the rectangle test.
 
-| Family              | Strategy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sprite2DLayer       | **CPU.** Walk layers in reverse `order`, then walk sprites in reverse `(layerZ, insertion)` skipping `!visible` and `!pickable`, transform the screen point into sprite-local space (inverse pan/zoom/rotation, then inverse sprite rotation around pivot), and test against the pivot-aware local rectangle `[-pivot.x · sizePx.x, (1 - pivot.x) · sizePx.x] × [-pivot.y · sizePx.y, (1 - pivot.y) · sizePx.y]` (the same `(corner - pivot) * sizePx` convention used in the WGSL).                                                                                |
-| AnchoredSpriteLayer | **CPU.** For each `visible` and `pickable` sprite, project anchor through `viewProjection`, NDC → pixels, apply `offsetPx`, then transform the screen point into sprite-local space (inverse rotation around the projected pivot) and test against the same pivot-aware rectangle as Sprite2D. Walk reverse-order.                                                                                                                                                                                                                                                  |
-| BillboardSpriteSystem | **GPU**, via the engine's shared `pickAsync()` 1×1 ID pass plus a per-system `PickContributor`. The pick pipeline reuses each variant's vertex math (Facing / Yaw / Axis), so the picked silhouette is byte-equal to the rendered silhouette. Cutout pipelines `discard` based on `alphaCutoff`; non-pickable sprites `discard` via `flagsAndPad.z < 0.5`. UV is reconstructed at resolve time by inverse-projecting the GPU's reconstructed world hit point through `system._basisFn` and `meta.rotation`/`meta.pivot`/`meta.sizeWorld`.                          |
+| Family                | Strategy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sprite2DLayer         | **CPU.** Walk layers in reverse `order`, then walk sprites in reverse `(layerZ, insertion)` skipping `!visible` and `!pickable`, transform the screen point into sprite-local space (inverse pan/zoom/rotation, then inverse sprite rotation around pivot), and test against the pivot-aware local rectangle `[-pivot.x · sizePx.x, (1 - pivot.x) · sizePx.x] × [-pivot.y · sizePx.y, (1 - pivot.y) · sizePx.y]` (the same `(corner - pivot) * sizePx` convention used in the WGSL).                                                      |
+| AnchoredSpriteLayer   | **CPU.** For each `visible` and `pickable` sprite, project anchor through `viewProjection`, NDC → pixels, apply `offsetPx`, then transform the screen point into sprite-local space (inverse rotation around the projected pivot) and test against the same pivot-aware rectangle as Sprite2D. Walk reverse-order.                                                                                                                                                                                                                        |
+| BillboardSpriteSystem | **GPU**, via the engine's shared `pickAsync()` 1×1 ID pass plus a per-system `PickContributor`. The pick pipeline reuses each variant's vertex math (Facing / Yaw / Axis), so the picked silhouette is byte-equal to the rendered silhouette. Cutout pipelines `discard` based on `alphaCutoff`; non-pickable sprites `discard` via `flagsAndPad.z < 0.5`. UV is reconstructed at resolve time by inverse-projecting the GPU's reconstructed world hit point through `system._basisFn` and `meta.rotation`/`meta.pivot`/`meta.sizeWorld`. |
 
 ### `PickContributor` interface
 
@@ -982,15 +982,15 @@ Each `BillboardSpriteSystem` registers exactly one contributor. Registration is 
 
 **Per-system 80-byte pick UBO** (`BILLBOARD_PICK_UBO_BYTES = 80`, layout matches the WGSL struct in `billboard-pick-pipeline.ts`):
 
-| Offset | Field           | Notes                                                                 |
-| ------ | --------------- | --------------------------------------------------------------------- |
-| 0..15  | `cameraRight`   | `vec4<f32>` — xyz from camera world matrix; `w` packs `camPos.x`     |
-| 16..31 | `cameraUp`      | `vec4<f32>` — xyz; `w` packs `camPos.y`                                |
-| 32..47 | `cameraForward` | `vec4<f32>` — xyz; `w` packs `camPos.z`                                |
-| 48..63 | `lockAxis`      | `vec4<f32>` — axis variant only; xyz; `w` unused                       |
-| 64..67 | `baseId`        | `u32` — first pick ID assigned to instance 0 in this system           |
-| 68..71 | `alphaCutoff`   | `f32` — used only when cutout pipeline is selected                    |
-| 72..79 | `_pad`          | 8 B trailing pad                                                      |
+| Offset | Field           | Notes                                                            |
+| ------ | --------------- | ---------------------------------------------------------------- |
+| 0..15  | `cameraRight`   | `vec4<f32>` — xyz from camera world matrix; `w` packs `camPos.x` |
+| 16..31 | `cameraUp`      | `vec4<f32>` — xyz; `w` packs `camPos.y`                          |
+| 32..47 | `cameraForward` | `vec4<f32>` — xyz; `w` packs `camPos.z`                          |
+| 48..63 | `lockAxis`      | `vec4<f32>` — axis variant only; xyz; `w` unused                 |
+| 64..67 | `baseId`        | `u32` — first pick ID assigned to instance 0 in this system      |
+| 68..71 | `alphaCutoff`   | `f32` — used only when cutout pipeline is selected               |
+| 72..79 | `_pad`          | 8 B trailing pad                                                 |
 
 Packing the camera position into the basis vectors' `w` channels keeps the UBO at 80 B and avoids re-binding the main `Sprite3DSceneUBO` in the pick pass.
 
@@ -1111,12 +1111,12 @@ Mesh split for 3D geometry).
 
 ### Two-tier API design
 
-| Tier            | Functions                                                         | Returns       | Use for                                                      |
-| --------------- | ----------------------------------------------------------------- | ------------- | ------------------------------------------------------------ |
-| **Index API**   | `addSprite2DIndex`, `updateSprite2DIndex`, `removeSprite2DIndex`, `setSprite2DFrameIndex`, `playSprite2DClipIndex`, `stopSprite2DClipIndex` (and the equivalents for `Anchored…Index` and `Billboard…Index`) | `number` (slot index) | Tile maps, scenery, particles, large fixed-layout HUDs. Maximum throughput, zero per-sprite GC. Indices are *not* stable — `removeXIndex` swap-removes. |
-| **Handle API**  | `addSprite2D`, `removeSprite2D` (and `addAnchoredSprite` / `removeAnchoredSprite` / `addBillboardSprite` / `removeBillboardSprite`) | `Sprite2DHandle` / `AnchoredSpriteHandle` / `BillboardSpriteHandle` | Player characters, enemies, UI elements that move or are parented. Observable fields, stable id, optional parenting. |
+| Tier           | Functions                                                                                                                                                                                                    | Returns                                                             | Use for                                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Index API**  | `addSprite2DIndex`, `updateSprite2DIndex`, `removeSprite2DIndex`, `setSprite2DFrameIndex`, `playSprite2DClipIndex`, `stopSprite2DClipIndex` (and the equivalents for `Anchored…Index` and `Billboard…Index`) | `number` (slot index)                                               | Tile maps, scenery, particles, large fixed-layout HUDs. Maximum throughput, zero per-sprite GC. Indices are _not_ stable — `removeXIndex` swap-removes. |
+| **Handle API** | `addSprite2D`, `removeSprite2D` (and `addAnchoredSprite` / `removeAnchoredSprite` / `addBillboardSprite` / `removeBillboardSprite`)                                                                          | `Sprite2DHandle` / `AnchoredSpriteHandle` / `BillboardSpriteHandle` | Player characters, enemies, UI elements that move or are parented. Observable fields, stable id, optional parenting.                                    |
 
-Mario analogy: `Index` is a Goomba on a tile (set once, never updated, can
+Mario analogy: `Index` is a scenario tile (set once, never updated, can
 spawn 10 000 of them); `Handle` is Mario himself (moves every frame, parented
 to a moving platform, owns animation state).
 
@@ -1137,7 +1137,7 @@ When `removeXIndex` swap-removes the last slot into the freed slot, it patches
 both maps so the moved-into slot's id resolves to its new index. When
 `removeSprite2D(handle)` is called, the handle module first calls
 `_removeSprite2DHandleId(layer, slot)` to drop the dying handle's id from the
-map, *then* invokes `removeSprite2DIndex` (so the swap-remove that follows
+map, _then_ invokes `removeSprite2DIndex` (so the swap-remove that follows
 correctly re-binds the moved-in slot's id without colliding with the dying
 handle's id).
 
@@ -1150,19 +1150,19 @@ and stay that way for layers that only use the Index API; bundle stays smaller.
 
 **`Sprite2DHandle`** (Sprite2D family):
 
-| Field          | Slot floats it writes (per `SPRITE_2D_STRIDE = 20`)              | Setter side-effects                                                  |
-| -------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `position`     | `[off+0]` = x, `[off+1]` = y                                      | Marks worldMatrix2D dirty; if parented, walker overrides next frame  |
-| `sizePx`       | `[off+2]` = w·scale.x, `[off+3]` = h·scale.y (only when un-parented) | Marks slot dirty                                                  |
-| `pivot`        | `[off+4]`, `[off+5]`                                              | —                                                                    |
-| `scale`        | (none directly — scaled into sizePx)                              | Marks worldMatrix2D dirty; re-writes packed size                     |
-| `color`        | `[off+12..15]`                                                    | —                                                                    |
-| `rotation`     | (via `updateSprite2DIndex` patch — sin/cos at `[off+6..7]`)       | Marks worldMatrix2D dirty                                            |
-| `frame`        | UV at `[off+8..11]`                                               | Calls `setSprite2DFrameIndex`                                        |
-| `visible`      | Toggles packed sizePx between value and 0                         | Calls `writeSizePx`                                                  |
-| `pickable`     | Updates `_meta[i].pickable`                                       | —                                                                    |
-| `layerZ`       | `[off+16]`                                                        | Clamped to `[0, 1]`                                                  |
-| `parent`       | (only `IParentable2D`; doesn't touch slot directly)               | Adds/removes from `_parentedHandles`; installs walker on first parent |
+| Field      | Slot floats it writes (per `SPRITE_2D_STRIDE = 20`)                  | Setter side-effects                                                   |
+| ---------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `position` | `[off+0]` = x, `[off+1]` = y                                         | Marks worldMatrix2D dirty; if parented, walker overrides next frame   |
+| `sizePx`   | `[off+2]` = w·scale.x, `[off+3]` = h·scale.y (only when un-parented) | Marks slot dirty                                                      |
+| `pivot`    | `[off+4]`, `[off+5]`                                                 | —                                                                     |
+| `scale`    | (none directly — scaled into sizePx)                                 | Marks worldMatrix2D dirty; re-writes packed size                      |
+| `color`    | `[off+12..15]`                                                       | —                                                                     |
+| `rotation` | (via `updateSprite2DIndex` patch — sin/cos at `[off+6..7]`)          | Marks worldMatrix2D dirty                                             |
+| `frame`    | UV at `[off+8..11]`                                                  | Calls `setSprite2DFrameIndex`                                         |
+| `visible`  | Toggles packed sizePx between value and 0                            | Calls `writeSizePx`                                                   |
+| `pickable` | Updates `_meta[i].pickable`                                          | —                                                                     |
+| `layerZ`   | `[off+16]`                                                           | Clamped to `[0, 1]`                                                   |
+| `parent`   | (only `IParentable2D`; doesn't touch slot directly)                  | Adds/removes from `_parentedHandles`; installs walker on first parent |
 
 **`AnchoredSpriteHandle`** (Anchored family) and **`BillboardSpriteHandle`**
 (Billboard family) are structurally similar but use 3D `position: ObservableVec3`
@@ -1183,7 +1183,7 @@ present. The walker iterates `_parentedHandles`, reads each handle's
 `worldMatrix` (resolved lazily through the chain via `WorldMatrixAccessors`),
 and writes only the **world translation** into slot `[off+0..2]`. Sprite
 rotation stays as a 2D-around-pivot rotation in the slot; parent rotation and
-scale do *not* propagate to the sprite's quad orientation (sprites face the
+scale do _not_ propagate to the sprite's quad orientation (sprites face the
 camera in their renderable; allowing parent rotation to tilt them would defeat
 the whole point of an Anchored or Billboard sprite). Only translation
 propagates.
@@ -1196,7 +1196,7 @@ until the first `handle.parent = …` call.
 Sprite2D handles implement `IParentable2D` + `IWorldMatrix2DProvider`, the
 2D analogues built on `Mat3` affine matrices instead of `Mat4`. This enables
 Spine-style 2D skeletal hierarchies: a parent sprite's rotation and scale
-*do* propagate to children (since Sprite2D quads are explicitly oriented in
+_do_ propagate to children (since Sprite2D quads are explicitly oriented in
 2D, there is no "always face camera" constraint to violate).
 
 Sprite2D handles add a `scale: ObservableVec2` field (default `(1, 1)`) so the
@@ -1265,28 +1265,28 @@ reaches into layer internals.
 
 ## Babylon.js Equivalence Map
 
-| Babylon.js                                        | Babylon Lite                                                  | Notes                                                                                     |
-| ------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `SpriteManager` (2D usage)                        | `Sprite2DLayer` (in `Scene2DContext`)                         | Lite carves out 2D as a first-class scene type                                            |
-| `SpriteManager` (3D usage)                        | `*BillboardSpriteSystem`                                      | Always world-space, perspective-correct                                                   |
-| `SpritePackedManager`                             | `createNamedSpriteAtlas` + family factory                     | Atlas is a separate, reusable type                                                        |
-| `Sprite`                                          | `*Init` interfaces + per-family helpers                       | Functional, returns index                                                                 |
-| `sprite.cellIndex` / `cellRef`                    | `setSprite*Frame(layer, idx, frame)`                          | `frame` is `number \| string` (named-frame lookup via atlas)                              |
-| `sprite.playAnimation(from, to, loop, delay, cb)` | `playSprite*Clip(layer, idx, clipName, loop)`                 | Named clips defined on the atlas                                                          |
-| `sprite.invertU` / `invertV`                      | `init.flipX` / `init.flipY`                                   |                                                                                           |
-| `sprite.angle`                                    | `init.rotation`                                               | Both radians                                                                              |
-| `sprite.position`                                 | `init.positionPx` (2D) / `init.position` (3D)                 |                                                                                           |
-| `sprite.size` / `sprite.width` / `sprite.height`  | `init.sizePx` (2D/anchored) / `init.sizeWorld` (billboard)    | Type encodes pixel-space vs. world-space                                                  |
-| `sprite.color`                                    | `init.color` / `update*({ color: [r,g,b,a] })`                | Per-sprite tint, packed in instance attributes; mutated via the family's `update*` helper |
-| `mesh.billboardMode = BILLBOARDMODE_ALL`          | `createFacingBillboardSystem`                                 | Explicit factory                                                                          |
-| `mesh.billboardMode = BILLBOARDMODE_Y`            | `createYawLockedBillboardSystem`                              | Explicit factory                                                                          |
-| `mesh.billboardMode = BILLBOARDMODE_X/Z`          | `createAxisLockedBillboardSystem(atlas, [1,0,0])`             | One factory covers all axes                                                               |
-| `SpriteManager.disableDepthWrite`                 | Implied by `SpriteBlendMode`                                  | `cutout`/`opaque` write depth; `blend` does not — no separate flag                        |
-| `AdvancedDynamicTexture` + `Image`                | `Sprite2DLayer` overlay on a 3D `SceneContext`                | Different scope — no GUI tree; for retained-mode UI use a future GUI module               |
-| `scene.pickSprite(x, y)`                          | `pickSprite2D` / `pickAnchoredSprite` / `pickBillboardSprite` | Three pickers, one per family                                                             |
-| `SpriteMap` (tile maps)                           | Out of scope                                                  | Separate future module                                                                    |
+| Babylon.js                                        | Babylon Lite                                                  | Notes                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SpriteManager` (2D usage)                        | `Sprite2DLayer` (in `Scene2DContext`)                         | Lite carves out 2D as a first-class scene type                                                                                                                                                                                                                                                                                |
+| `SpriteManager` (3D usage)                        | `*BillboardSpriteSystem`                                      | Always world-space, perspective-correct                                                                                                                                                                                                                                                                                       |
+| `SpritePackedManager`                             | `createNamedSpriteAtlas` + family factory                     | Atlas is a separate, reusable type                                                                                                                                                                                                                                                                                            |
+| `Sprite`                                          | `*Init` interfaces + per-family helpers                       | Functional, returns index                                                                                                                                                                                                                                                                                                     |
+| `sprite.cellIndex` / `cellRef`                    | `setSprite*Frame(layer, idx, frame)`                          | `frame` is `number \| string` (named-frame lookup via atlas)                                                                                                                                                                                                                                                                  |
+| `sprite.playAnimation(from, to, loop, delay, cb)` | `playSprite*Clip(layer, idx, clipName, loop)`                 | Named clips defined on the atlas                                                                                                                                                                                                                                                                                              |
+| `sprite.invertU` / `invertV`                      | `init.flipX` / `init.flipY`                                   |                                                                                                                                                                                                                                                                                                                               |
+| `sprite.angle`                                    | `init.rotation`                                               | Both radians                                                                                                                                                                                                                                                                                                                  |
+| `sprite.position`                                 | `init.positionPx` (2D) / `init.position` (3D)                 |                                                                                                                                                                                                                                                                                                                               |
+| `sprite.size` / `sprite.width` / `sprite.height`  | `init.sizePx` (2D/anchored) / `init.sizeWorld` (billboard)    | Type encodes pixel-space vs. world-space                                                                                                                                                                                                                                                                                      |
+| `sprite.color`                                    | `init.color` / `update*({ color: [r,g,b,a] })`                | Per-sprite tint, packed in instance attributes; mutated via the family's `update*` helper                                                                                                                                                                                                                                     |
+| `mesh.billboardMode = BILLBOARDMODE_ALL`          | `createFacingBillboardSystem`                                 | Explicit factory                                                                                                                                                                                                                                                                                                              |
+| `mesh.billboardMode = BILLBOARDMODE_Y`            | `createYawLockedBillboardSystem`                              | Explicit factory                                                                                                                                                                                                                                                                                                              |
+| `mesh.billboardMode = BILLBOARDMODE_X/Z`          | `createAxisLockedBillboardSystem(atlas, [1,0,0])`             | One factory covers all axes                                                                                                                                                                                                                                                                                                   |
+| `SpriteManager.disableDepthWrite`                 | Implied by `SpriteBlendMode`                                  | `cutout`/`opaque` write depth; `blend` does not — no separate flag                                                                                                                                                                                                                                                            |
+| `AdvancedDynamicTexture` + `Image`                | `Sprite2DLayer` overlay on a 3D `SceneContext`                | Different scope — no GUI tree; for retained-mode UI use a future GUI module                                                                                                                                                                                                                                                   |
+| `scene.pickSprite(x, y)`                          | `pickSprite2D` / `pickAnchoredSprite` / `pickBillboardSprite` | Three pickers, one per family                                                                                                                                                                                                                                                                                                 |
+| `SpriteMap` (tile maps)                           | Out of scope                                                  | Separate future module                                                                                                                                                                                                                                                                                                        |
 | `SpriteManager` `epsilon` arg                     | _no equivalent_                                               | BJS insets each quad corner by `epsilon` × size (default 0.01) for atlas-bleed defense. Lite never insets — atlases are expected to have a 1-px transparent border, NPOT cells, or padded sub-rects when bleed is a concern. Porting a BJS scene 1:1 typically requires `epsilon=0` on the BJS side to match Lite's geometry. |
-| Quad VBO                                          | Vertexless (`vertex_index`)                                   | Eliminates the static quad buffer                                                         |
+| Quad VBO                                          | Vertexless (`vertex_index`)                                   | Eliminates the static quad buffer                                                                                                                                                                                                                                                                                             |
 
 ### Anchored sizing — common porting pitfalls
 
