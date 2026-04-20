@@ -275,9 +275,9 @@
         "tags": ["pbr", "gltf", "env", "transmission", "volume"]
     },
     {
-        "id": 31,
-        "slug": "scene31-sprites-2d",
-        "name": "Scene 31 — Sprites 2D Grid",
+        "id": 50,
+        "slug": "scene50-sprites-2d",
+        "name": "Scene 50 — Sprites 2D Grid",
         "maxMad": 0.15,
         "maxRawKB": 20,
         "maxGzipKB": 8,
@@ -288,9 +288,9 @@
         ]
     },
     {
-        "id": 32,
-        "slug": "scene32-sprites-ui",
-        "name": "Scene 32 — Sprites UI",
+        "id": 51,
+        "slug": "scene51-sprites-ui",
+        "name": "Scene 51 — Sprites UI",
         "maxMad": 0.02,
         "maxRawKB": 20,
         "maxGzipKB": 8,
@@ -302,9 +302,9 @@
         ]
     },
     {
-        "id": 33,
-        "slug": "scene33-sprites-animated",
-        "name": "Scene 33 — Sprites Animated",
+        "id": 52,
+        "slug": "scene52-sprites-animated",
+        "name": "Scene 52 — Sprites Animated",
         "maxMad": 0.01,
         "maxRawKB": 21,
         "maxGzipKB": 9,
@@ -316,9 +316,9 @@
         ]
     },
     {
-        "id": 34,
-        "slug": "scene34-sprites-anchored-labels",
-        "name": "Scene 34 — Sprites Anchored Labels",
+        "id": 53,
+        "slug": "scene53-sprites-anchored-labels",
+        "name": "Scene 53 — Sprites Anchored Labels",
         "maxMad": 0.01,
         "maxRawKB": 80,
         "maxGzipKB": 30,
@@ -331,9 +331,9 @@
         ]
     },
     {
-        "id": 35,
-        "slug": "scene35-sprites-anchored-animated-cutout",
-        "name": "Scene 35 — Sprites Anchored Animated Cutout",
+        "id": 54,
+        "slug": "scene54-sprites-anchored-animated-cutout",
+        "name": "Scene 54 — Sprites Anchored Animated Cutout",
         "maxMad": 0.05,
         "maxRawKB": 80,
         "maxGzipKB": 30,
@@ -347,9 +347,9 @@
         ]
     },
     {
-        "id": 36,
-        "slug": "scene36-billboard-facing",
-        "name": "Scene 36 — Billboard Facing",
+        "id": 55,
+        "slug": "scene55-billboard-facing",
+        "name": "Scene 55 — Billboard Facing",
         "maxMad": 0.005,
         "maxRawKB": 64,
         "maxGzipKB": 25,
@@ -362,9 +362,9 @@
         ]
     },
     {
-        "id": 37,
-        "slug": "scene37-billboard-yaw",
-        "name": "Scene 37 — Billboard Yaw-Locked",
+        "id": 56,
+        "slug": "scene56-billboard-yaw",
+        "name": "Scene 56 — Billboard Yaw-Locked",
         "maxMad": 0.005,
         "maxRawKB": 64,
         "maxGzipKB": 25,
@@ -377,9 +377,9 @@
         ]
     },
     {
-        "id": 38,
-        "slug": "scene38-billboard-axis",
-        "name": "Scene 38 — Billboard Axis-Locked [1,0,0]",
+        "id": 57,
+        "slug": "scene57-billboard-axis",
+        "name": "Scene 57 — Billboard Axis-Locked [1,0,0]",
         "maxMad": 0.005,
         "maxRawKB": 65,
         "maxGzipKB": 25,
@@ -392,9 +392,9 @@
         ]
     },
     {
-        "id": 39,
-        "slug": "scene39-sprite2d-handles",
-        "name": "Scene 39 — Sprite2D Handles + 2D Parenting",
+        "id": 58,
+        "slug": "scene58-sprite2d-handles",
+        "name": "Scene 58 — Sprite2D Handles + 2D Parenting",
         "maxMad": 0.05,
         "maxRawKB": 25,
         "maxGzipKB": 10,
@@ -407,9 +407,9 @@
         ]
     },
     {
-        "id": 40,
-        "slug": "scene40-anchored-handles",
-        "name": "Scene 40 — Anchored Sprite Handles + 3D Parenting",
+        "id": 59,
+        "slug": "scene59-anchored-handles",
+        "name": "Scene 59 — Anchored Sprite Handles + 3D Parenting",
         "maxMad": 0.05,
         "maxRawKB": 85,
         "maxGzipKB": 32,
@@ -423,9 +423,9 @@
         ]
     },
     {
-        "id": 41,
-        "slug": "scene41-billboard-handles",
-        "name": "Scene 41 — Billboard Sprite Handles + 3D Parenting",
+        "id": 60,
+        "slug": "scene60-billboard-handles",
+        "name": "Scene 60 — Billboard Sprite Handles + 3D Parenting",
         "maxMad": 0.05,
         "maxRawKB": 85,
         "maxGzipKB": 32,
