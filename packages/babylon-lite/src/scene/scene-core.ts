@@ -72,8 +72,6 @@ export interface SceneContextInternal extends SceneContext, RenderingContext {
     _prePasses: PrePassRenderable[];
     /** Scene uniform updaters (one per shared UBO). */
     _uniformUpdaters: SceneUniformUpdater[];
-    /** Fixed delta time in ms for deterministic animation. 0 = use real rAF delta. */
-    _fixedDeltaMs: number;
     /** Per-frame callbacks run before rendering (animation, physics, etc.). */
     _beforeRender: ((deltaMs: number) => void)[];
     /** Deferred builders — registered by loaders/factories, run once at startEngine(). */
@@ -162,13 +160,7 @@ export function createSceneContext(engine: EngineContext): SceneContext {
         _transparentRenderables: [],
         _prePasses: [],
         _uniformUpdaters: [],
-        _fixedDeltaMs: 0,
-        get fixedDeltaMs(): number {
-            return ctx._fixedDeltaMs;
-        },
-        set fixedDeltaMs(v: number) {
-            ctx._fixedDeltaMs = v;
-        },
+        fixedDeltaMs: 0,
         _beforeRender: [],
         _deferredBuilders: [],
         _groups: new Map(),
@@ -179,7 +171,7 @@ export function createSceneContext(engine: EngineContext): SceneContext {
         _drawCallsPre: 0,
 
         _update(encoder: GPUCommandEncoder, delta: number): GPUCommandEncoder {
-            const d = ctx._fixedDeltaMs > 0 ? ctx._fixedDeltaMs : delta;
+            const d = ctx.fixedDeltaMs > 0 ? ctx.fixedDeltaMs : delta;
             let draws = 0;
             for (const cb of ctx._beforeRender) {
                 cb(d);
