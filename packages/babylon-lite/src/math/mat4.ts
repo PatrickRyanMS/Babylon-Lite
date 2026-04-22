@@ -149,21 +149,9 @@ export function mat4FromQuat(qx: number, qy: number, qz: number, qw: number): Ma
 
 /** Compose TRS (translation * rotation * scale) into a single Mat4. */
 export function mat4Compose(tx: number, ty: number, tz: number, qx: number, qy: number, qz: number, qw: number, sx: number, sy: number, sz: number): Mat4 {
-    const rot = mat4FromQuat(qx, qy, qz, qw);
-    // Apply scale to rotation columns, then set translation
-    rot[0]! *= sx;
-    rot[1]! *= sx;
-    rot[2]! *= sx;
-    rot[4]! *= sy;
-    rot[5]! *= sy;
-    rot[6]! *= sy;
-    rot[8]! *= sz;
-    rot[9]! *= sz;
-    rot[10]! *= sz;
-    rot[12] = tx;
-    rot[13] = ty;
-    rot[14] = tz;
-    return rot;
+    const out = new Float32Array(16) as Mat4;
+    mat4ComposeInto(out, 0, tx, ty, tz, qx, qy, qz, qw, sx, sy, sz);
+    return out;
 }
 
 // ─── Zero-allocation helpers for per-frame animation ─────────────────
