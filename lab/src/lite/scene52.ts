@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     addToScene(scene, ground);
 
     // Shadow generator with skinned casters — exercises the new skinning depth path.
-    light.shadowGenerator = createShadowGenerator(engine, light, skinnedCasters, {
+    light.shadowGenerator = await createShadowGenerator(engine, light, skinnedCasters, {
         mapSize: 1024,
         depthScale: 30,
         bias: 0.00005,

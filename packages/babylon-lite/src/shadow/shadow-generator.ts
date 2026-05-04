@@ -20,6 +20,7 @@ import type { DirectionalLight } from "../light/directional-light.js";
 import type { Mesh, MeshInternal } from "../mesh/mesh.js";
 import type { EngineContext } from "../engine/engine.js";
 import type { EngineContextInternal } from "../engine/engine.js";
+import type { SkinnedShadowCaster, drawSkinnedShadowCasters, syncSkinnedShadowCasterMatrices } from "./shadow-skinned-caster.js";
 import { getOrCreateSampler } from "../resource/gpu-pool.js";
 import { createUniformBuffer } from "../resource/gpu-buffers.js";
 import {
@@ -35,8 +36,6 @@ import {
 } from "./shadow-base.js";
 import depthVertSrc from "../../shaders/shadow-depth.vertex.wgsl?raw";
 import depthFragSrc from "../../shaders/shadow-depth.fragment.wgsl?raw";
-import skinnedVert4Src from "../../shaders/shadow-skinned-4.vertex.wgsl?raw";
-import skinnedVert8Src from "../../shaders/shadow-skinned-8.vertex.wgsl?raw";
 import blurVertSrc from "../../shaders/shadow-blur.vertex.wgsl?raw";
 import blurFragSrc from "../../shaders/shadow-blur.fragment.wgsl?raw";
 import { WGSL_SCENE_UNIFORMS_SHADOW } from "../shader/wgsl-helpers.js";
@@ -178,86 +177,7 @@ function computeDirectionalLightMatrix(
     return { viewProj: multiply4x4(proj, view), near, far };
 }
 
-/** Per-mesh skinned depth state: pipeline + bind group + buffers for one skinned caster. */
-interface SkinnedShadowCaster {
-    readonly mesh: MeshInternal;
-    readonly pipeline: GPURenderPipeline;
-    readonly meshBindGroup: GPUBindGroup;
-    readonly meshUBO: GPUBuffer;
-    readonly worldMatrix: Float32Array<ArrayBuffer>;
-    _lastWorldVersion: number;
-}
-
-/** Build skinned-aware depth infra for a single skinned caster. Each caster has its own bone
- *  texture, so each gets its own bind group; the pipeline can be shared across casters with the
- *  same skinning width (4-bone vs 8-bone) but here we keep it simple and create one per caster. */
-function buildSkinnedDepthCaster(
-    eng: EngineContextInternal,
-    mesh: MeshInternal,
-    skel: NonNullable<Mesh["skeleton"]>,
-    depthSceneBGL: GPUBindGroupLayout,
-    shadowParamsUBO: GPUBuffer
-): SkinnedShadowCaster {
-    const device = eng.device;
-    const has8Bones = !!skel.joints1Buffer;
-    const vertCode = WGSL_SCENE_UNIFORMS_SHADOW + (has8Bones ? skinnedVert8Src : skinnedVert4Src);
-
-    // Per-mesh bind group layout: mesh UBO + shadow params UBO + bone texture (rgba32float).
-    const meshBglEntries: GPUBindGroupLayoutEntry[] = [
-        { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } },
-        { binding: 1, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
-        { binding: 2, visibility: GPUShaderStage.VERTEX, texture: { sampleType: "unfilterable-float" } },
-    ];
-    const meshBGL = device.createBindGroupLayout({ label: "shadow-skinned-mesh", entries: meshBglEntries });
-
-    const worldMatrix = new Float32Array(mesh.worldMatrix);
-    const meshUBO = createUniformBuffer(eng, worldMatrix);
-    const meshBindGroup = device.createBindGroup({
-        layout: meshBGL,
-        entries: [
-            { binding: 0, resource: { buffer: meshUBO } },
-            { binding: 1, resource: { buffer: shadowParamsUBO } },
-            { binding: 2, resource: skel.boneTexture.createView() },
-        ],
-    });
-
-    const vertModule = device.createShaderModule({ code: vertCode, label: has8Bones ? "shadow-skinned-vert-8" : "shadow-skinned-vert-4" });
-    const fragModule = device.createShaderModule({ code: depthFragSrc, label: "shadow-skinned-frag" });
-
-    // Vertex buffer layouts: position (slot 0), joints (slot 1), weights (slot 2),
-    // and optionally joints1 (slot 3), weights1 (slot 4) for 8-bone meshes.
-    const buffers: GPUVertexBufferLayout[] = [
-        { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
-        { arrayStride: 16, attributes: [{ shaderLocation: 1, offset: 0, format: "uint32x4" }] },
-        { arrayStride: 16, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x4" }] },
-    ];
-    if (has8Bones) {
-        buffers.push(
-            { arrayStride: 16, attributes: [{ shaderLocation: 3, offset: 0, format: "uint32x4" }] },
-            { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: "float32x4" }] }
-        );
-    }
-
-    const pipeline = device.createRenderPipeline({
-        label: "shadow-skinned-depth",
-        layout: device.createPipelineLayout({ bindGroupLayouts: [depthSceneBGL, meshBGL] }),
-        vertex: { module: vertModule, entryPoint: "main", buffers },
-        fragment: { module: fragModule, entryPoint: "main", targets: [{ format: "rgba16float" }] },
-        primitive: { topology: "triangle-list", cullMode: "back", frontFace: "ccw" },
-        depthStencil: { format: "depth32float", depthWriteEnabled: true, depthCompare: "less-equal" },
-    });
-
-    return {
-        mesh,
-        pipeline,
-        meshBindGroup,
-        meshUBO,
-        worldMatrix,
-        _lastWorldVersion: mesh.worldMatrixVersion,
-    };
-}
-
-export function createShadowGenerator(engine: EngineContext, light: DirectionalLight, casterMeshes: Mesh[], cfg: ShadowGeneratorConfig = {}): ShadowGenerator {
+export async function createShadowGenerator(engine: EngineContext, light: DirectionalLight, casterMeshes: Mesh[], cfg: ShadowGeneratorConfig = {}): Promise<ShadowGenerator> {
     const eng = engine as EngineContextInternal;
     const device = eng.device;
     const mapSize = cfg.mapSize ?? 1024;
@@ -314,8 +234,18 @@ export function createShadowGenerator(engine: EngineContext, light: DirectionalL
 
     // Skinned casters share the depthSceneBGL/BG (same scene UBO) but need per-mesh skinning
     // pipelines (different vertex stage with bone-texture sampling) and bind groups (each has
-    // its own bone texture). Built lazily per skinned caster mesh.
-    const skinnedCasters: SkinnedShadowCaster[] = skinnedCasterMeshes.map((m) => buildSkinnedDepthCaster(eng, m, m.skeleton!, depthSceneBGL, shadowParamsUBO));
+    // its own bone texture). The whole skinned-caster module — including its WGSL imports — is
+    // dynamic-imported only when at least one caster is skinned, so scenes with only static
+    // casters (the common case) never pull any of that code into their bundle.
+    const skinnedCasters: SkinnedShadowCaster[] = [];
+    let _drawSkinned: typeof drawSkinnedShadowCasters | null = null;
+    let _syncSkinned: typeof syncSkinnedShadowCasterMatrices | null = null;
+    if (skinnedCasterMeshes.length > 0) {
+        const mod = await import("./shadow-skinned-caster.js");
+        _drawSkinned = mod.drawSkinnedShadowCasters;
+        _syncSkinned = mod.syncSkinnedShadowCasterMatrices;
+        skinnedCasters.push(...mod.buildSkinnedDepthCasters(eng, skinnedCasterMeshes, depthSceneBGL, shadowParamsUBO));
+    }
 
     // --- Textures ---
     const esmTexture = device.createTexture({
@@ -442,13 +372,9 @@ export function createShadowGenerator(engine: EngineContext, light: DirectionalL
         syncCasterMatrices(eng, casters);
         // Sync skinned caster mesh UBOs (world matrix). Bone textures are managed by the
         // skeleton updater and are already current by the time renderShadowMap runs.
-        for (const sc of skinnedCasters) {
-            if (sc.mesh.worldMatrixVersion !== sc._lastWorldVersion) {
-                sc.worldMatrix.set(sc.mesh.worldMatrix);
-                device.queue.writeBuffer(sc.meshUBO, 0, sc.worldMatrix);
-                sc._lastWorldVersion = sc.mesh.worldMatrixVersion;
-            }
-        }
+        // Helper is captured by the dynamic-import in createShadowGenerator and is only
+        // non-null when at least one skinned caster is present.
+        _syncSkinned?.(device, skinnedCasters);
 
         // Pass 1: Shadow depth
         const dp = encoder.beginRenderPass({
@@ -473,23 +399,10 @@ export function createShadowGenerator(engine: EngineContext, light: DirectionalL
             dp.setPipeline(depthPipeline);
             drawCasters(dp, casters);
         }
-        // Skinned casters: per-caster pipeline + bind group + extra vertex buffers (joints, weights,
-        // and joints1/weights1 for 8-bone meshes). Bones are sampled from the per-caster bone texture.
-        for (const sc of skinnedCasters) {
-            const skel = sc.mesh.skeleton!;
-            const gpu = sc.mesh._gpu;
-            dp.setPipeline(sc.pipeline);
-            dp.setBindGroup(1, sc.meshBindGroup);
-            dp.setVertexBuffer(0, gpu.positionBuffer);
-            dp.setVertexBuffer(1, skel.jointsBuffer);
-            dp.setVertexBuffer(2, skel.weightsBuffer);
-            if (skel.joints1Buffer && skel.weights1Buffer) {
-                dp.setVertexBuffer(3, skel.joints1Buffer);
-                dp.setVertexBuffer(4, skel.weights1Buffer);
-            }
-            dp.setIndexBuffer(gpu.indexBuffer, gpu.indexFormat);
-            dp.drawIndexed(gpu.indexCount);
-        }
+        // Skinned casters: per-caster pipeline + bind group + extra vertex buffers (joints,
+        // weights, and joints1/weights1 for 8-bone meshes). Bones are sampled from the
+        // per-caster bone texture. Helper is loaded lazily — see _pendingInit above.
+        _drawSkinned?.(dp, skinnedCasters);
         dp.end();
 
         // Pass 2: Blur H

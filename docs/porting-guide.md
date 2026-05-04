@@ -28,7 +28,7 @@ This guide shows how to translate a Babylon.js (BJS) scene to Babylon Lite, side
 | `new Texture(url, scene)` | `await loadTexture2D(engine, url)` |
 | KTX/KTX2 compressed 2D texture | `await loadKtxTexture2D(engine, baseUrl, suffixes)` |
 | Basis Universal (.basis) 2D texture | `await loadBasisTexture2D(engine, url)` |
-| `new ShadowGenerator(size, light)` | `createShadowGenerator(engine, light, casters, opts)` |
+| `new ShadowGenerator(size, light)` | `await createShadowGenerator(engine, light, casters, opts)` |
 | `sg.usePercentageCloserFiltering = true` | `createPcfShadowGenerator(engine, light, casters, opts)` |
 | `mesh.thinInstanceSetBuffer("matrix", data, 16)` | `setThinInstances(mesh, data, count)` |
 | `mesh.thinInstanceSetBuffer("color", data, 4)` | `setThinInstanceColors(mesh, data)` |
@@ -135,7 +135,7 @@ sg.useBlurExponentialShadowMap = true;
 ground.receiveShadows = true;
 
 // ✅ Babylon Lite
-light.shadowGenerator = createShadowGenerator(engine, light, [mesh], {
+light.shadowGenerator = await createShadowGenerator(engine, light, [mesh], {
     mapSize: 1024,
     depthScale: 50,
     blurScale: 2,

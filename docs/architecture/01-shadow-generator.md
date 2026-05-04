@@ -109,8 +109,13 @@ export function createShadowGenerator(
   light: DirectionalLight,
   casterMeshes: Mesh[],
   cfg?: ShadowGeneratorConfig,
-): ShadowGenerator;
+): Promise<ShadowGenerator>;
 ```
+
+The directional generator is asynchronous because it dynamic-imports the
+skinned-caster module (and its WGSL shaders) only when at least one caster
+mesh has a skeleton. Scenes whose casters are all static still pay zero
+runtime bytes for the skinned path; the `await` is essentially free.
 
 ### PCF Factory Function (`pcf-shadow-generator.ts`)
 

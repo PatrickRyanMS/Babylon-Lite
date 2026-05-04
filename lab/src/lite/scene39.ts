@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     // small relative to the desired drop-shadow extent, so without this override the
     // auto-fit ortho frustum would hug the sphere tightly and the ESM blur could not
     // spread the silhouette far enough to look like a soft ground shadow.
-    light.shadowGenerator = createShadowGenerator(engine, light, [sphere], {
+    light.shadowGenerator = await createShadowGenerator(engine, light, [sphere], {
         mapSize: 1024,
         depthScale: 50,
         bias: 0.00005,

@@ -41,7 +41,7 @@ async function main(): Promise<void> {
     const ground = createGround(engine, { width: 10, height: 10, subdivisions: 2 });
     ground.receiveShadows = true;
 
-    light.shadowGenerator = createShadowGenerator(engine, light, [sphere], {
+    light.shadowGenerator = await createShadowGenerator(engine, light, [sphere], {
         mapSize: 1024,
         depthScale: 50,
         bias: 0.00005,

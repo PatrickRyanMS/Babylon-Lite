@@ -299,8 +299,9 @@ createGroundFromHeightMap(engine: Engine, url: string, options: GroundOptions): 
 createStandardMaterial(): StandardMaterialProps
 createPbrMaterial(props?: Partial<PbrMaterialProps>): PbrMaterialProps
 
-// Shadows — note: takes engine + casterMeshes[], not scene
-createShadowGenerator(engine: Engine, light: DirectionalLight, casterMeshes: Mesh[], config?: ShadowGeneratorConfig): ShadowGenerator
+// Shadows — note: takes engine + casterMeshes[], not scene; async because the
+// directional generator dynamic-imports skinned-caster WGSL when any caster is skinned.
+createShadowGenerator(engine: Engine, light: DirectionalLight, casterMeshes: Mesh[], config?: ShadowGeneratorConfig): Promise<ShadowGenerator>
 createPcfShadowGenerator(engine: Engine, light: SpotLight, casterMeshes: Mesh[], config?: PcfShadowGeneratorConfig): ShadowGenerator
 
 // Animation

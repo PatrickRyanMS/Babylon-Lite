@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     addToScene(scene, ground);
 
     // Shadow generator — torus casts shadows (directional light, ESM blur)
-    light.shadowGenerator = createShadowGenerator(engine, light, [torus], {
+    light.shadowGenerator = await createShadowGenerator(engine, light, [torus], {
         mapSize: 1024,
         depthScale: 50,
         bias: 0.00005,
