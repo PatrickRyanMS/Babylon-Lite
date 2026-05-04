@@ -5,7 +5,7 @@
 // Animation is deterministic via `?seekTime=…` (matches scene 5 / scene 11).
 
 import { addToScene, attachControl, createArcRotateCamera, createDirectionalLight, createEngine, createGround, createPbrMaterial, createSceneContext, createShadowGenerator, createSolidTexture2D, goToFrame, loadGltf, onBeforeRender, pauseAnimation, registerScene, startEngine } from "babylon-lite";
-import type { Mesh } from "babylon-lite";
+import type { Mesh, TransformNode } from "babylon-lite";
 
 async function main(): Promise<void> {
     const __initStart = performance.now();
@@ -31,9 +31,11 @@ async function main(): Promise<void> {
     // Load the same Alien.gltf used by scene 5 — already proven skinned + animated.
     // The model's local origin sits at chest height (boundMin.y ≈ -0.66, boundMax.y ≈ +0.19),
     // so without a translation the alien would be mostly buried by the ground plane below.
+    // glTF asset containers always put the root TransformNode at entities[0] (see
+    // packages/babylon-lite/src/loader-gltf/load-gltf.ts).
     const alien = await loadGltf(engine, "https://playground.babylonjs.com/scenes/Alien/Alien.gltf");
     // Lift the asset so its feet sit just above the ground plane at y=0.
-    alien.entities[0]!.position.y = 0.7;
+    (alien.entities[0] as TransformNode).position.y = 0.7;
     addToScene(scene, alien);
 
     // Find the skinned mesh in the loaded asset so we can register it as a shadow caster.
