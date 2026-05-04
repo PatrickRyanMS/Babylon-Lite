@@ -93,7 +93,8 @@ export function createIblFragment(hasNormalMap: boolean, anisoBentNormalCode: st
 
         fragmentSlots: {
             AI: makeIblCalculation(hasNormalMap, anisoBentNormalCode, skyboxCalculation),
-            BA: `luminanceOverAlpha += dot(finalRadianceScaled, vec3<f32>(0.2126, 0.7152, 0.0722));`,
+            BA: `luminanceOverAlpha += dot(finalRadianceScaled, vec3<f32>(0.2126, 0.7152, 0.0722));
+luminanceOverAlpha += dot(finalSpecularScaled, vec3<f32>(0.2126, 0.7152, 0.0722));`,
         },
     };
 }
