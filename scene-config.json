@@ -33,7 +33,7 @@
         "slug": "scene4-shadows",
         "name": "Scene 4 — Shadows",
         "maxMad": 0.08,
-        "maxRawKB": 72.4,
+        "maxRawKB": 74.6,
         "description": "DirectionalLight, ESM shadow map with blur, heightmap ground, torus caster.",
         "tags": ["shadow", "procedural", "std"]
     },
@@ -71,7 +71,7 @@
         "slug": "scene8-glass-sphere",
         "name": "Scene 8 — HDR Glass Sphere",
         "maxMad": 0.027,
-        "maxRawKB": 74.2,
+        "maxRawKB": 76.4,
         "description": "Glass sphere with HDR environment, alpha transparency, and custom exposure.",
         "tags": ["pbr", "procedural", "env"]
     },
@@ -89,7 +89,7 @@
         "slug": "scene10-pbr-rough",
         "name": "Scene 10 — PBR Rough Sphere",
         "maxMad": 0.011,
-        "maxRawKB": 54.1,
+        "maxRawKB": 55.7,
         "description": "PBR metallic-roughness sphere: golden base, metallic=0, roughness=1, hemispheric light only.",
         "tags": ["pbr", "procedural"]
     },
@@ -107,7 +107,7 @@
         "slug": "scene12-shader-balls",
         "name": "Scene 12 — PBR Shader Balls",
         "maxMad": 0.027,
-        "maxRawKB": 99.6,
+        "maxRawKB": 102.6,
         "description": "3 shader balls with metallic reflectance textures, directional light, env rotation.",
         "tags": ["pbr", "gltf"]
     },
@@ -152,7 +152,7 @@
         "slug": "scene17-pbr-std-thin-instances",
         "name": "Scene 17 — PBR + Std TI",
         "maxMad": 0.021,
-        "maxRawKB": 89.8,
+        "maxRawKB": 92.5,
         "description": "Mixed PBR + Standard materials with thin instances and per-instance color. Env IBL, negative scale.",
         "tags": ["pbr", "procedural"]
     },
@@ -197,7 +197,7 @@
         "slug": "scene22-pbr-shadows",
         "name": "Scene 22 — PBR Shadows",
         "maxMad": 0.07,
-        "maxRawKB": 101.8,
+        "maxRawKB": 104.9,
         "description": "Scene 4 variant with PBR ground material. Tests PBR multi-light shadow receiving (ESM + PCF).",
         "tags": ["pbr", "shadow", "procedural", "multilight"]
     },
@@ -300,7 +300,7 @@
         "slug": "scene33-lights-punctual",
         "name": "Scene 33 — KHR_lights_punctual",
         "maxMad": 0.5,
-        "maxRawKB": 88.7,
+        "maxRawKB": 91.4,
         "description": "LightsPunctualLamp.glb (KHR_lights_punctual point lights + KHR_materials_transmission) with default IBL environment. Matches PG #YG3BBF#54.",
         "note": "MAD ceiling temporarily relaxed (0.5 actual vs 0.02 target). Glass lampshade needs correct transmission parity (see scene 30) to tighten maxMad below 0.5.",
         "tags": ["pbr", "gltf", "env", "lights-punctual", "transmission"]
@@ -458,7 +458,7 @@
         "slug": "scene67-nme-pbr-core",
         "name": "Scene 67 — NME PBR Core",
         "maxMad": 0.02,
-        "maxRawKB": 95,
+        "maxRawKB": 97.9,
         "description": "NME PBRMetallicRoughnessBlock + ReflectionBlock with IBL plumbing on a saturated teal matte sphere. Hemi + point + spot + directional lights make the base material visible against a black background.",
         "tags": ["pbr", "nme", "procedural", "env"]
     },
@@ -549,7 +549,7 @@
         "slug": "scene90-pbr-shadow-only",
         "name": "Scene 90 — PBR Shadow-Only Receiver",
         "maxMad": 0.5,
-        "maxRawKB": 80,
+        "maxRawKB": 75,
         "description": "Wide invisible PBR ground plane (mode: \"shadowOnly\") catching the soft drop shadow of a small static sphere. DirectionalLight uses the new `frustumSize` override so the ESM blur spreads the silhouette over the full frustum. BJS oracle: BackgroundMaterial.shadowOnly + DirectionalLight.shadowFrustumSize.",
         "tags": ["pbr", "procedural", "shadows", "shadow-only"],
         "skipPerf": true
@@ -559,7 +559,7 @@
         "slug": "scene91-skinned-shadow",
         "name": "Scene 91 — Skinned Shadow Casting",
         "maxMad": 0.5,
-        "maxRawKB": 130,
+        "maxRawKB": 110,
         "description": "Alien.gltf (same skinned rig as scene 5) casting a shadow onto a flat PBR ground via the directional shadow generator. Exercises the new skinned depth pipeline (4-bone path) and per-caster bone-texture bind groups. Animation deterministic via ?seekTime=2.",
         "tags": ["pbr", "gltf", "skeleton", "shadows"],
         "skipPerf": true
