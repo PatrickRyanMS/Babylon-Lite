@@ -97,13 +97,17 @@ function detailedPick(info: PickingInfo, ray: Ray): void {
     }
 
     if (closestFace >= 0) {
-        const bjsBu = 1 - closestBu - closestBv;
+        const bjsBu = clampBarycentric(1 - closestBu - closestBv);
         info.faceId = closestFace;
         info.bu = bjsBu;
-        info.bv = closestBu;
+        info.bv = clampBarycentric(closestBu);
         info.distance = closestT;
         info.pickedPoint = [ray.origin[0] + ray.direction[0] * closestT, ray.origin[1] + ray.direction[1] * closestT, ray.origin[2] + ray.direction[2] * closestT];
     }
+}
+
+function clampBarycentric(value: number): number {
+    return Math.abs(value) < 1e-12 ? 0 : value;
 }
 
 /** Möller-Trumbore ray-triangle intersection with Babylon.js Ray epsilon semantics.

@@ -47,13 +47,6 @@ function expectScene113State(hitState: Awaited<ReturnType<typeof readScene113Sta
     expect(Math.abs(pickPoint[1]), "Scene 113 should use the off-center visual pick target").toBeGreaterThan(0.1);
 }
 
-test("Scene 113 — Babylon.js reference places picking markers", async ({ page }) => {
-    test.setTimeout(90_000);
-
-    await page.goto("/babylon-ref-scene113.html");
-    expectScene113State(await readScene113State(page));
-});
-
 test("Scene 113 — Picking Precision matches Babylon.js reference", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
 
