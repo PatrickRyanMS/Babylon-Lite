@@ -40,104 +40,121 @@ function wgslMinifyPlugin(): Plugin {
             return { code: `export default ${JSON.stringify(minified)}`, map: null };
         },
         renderChunk(code: string, chunk) {
-            const minified = minifyTemplateWgsl(code);
             const isPbrChunk = chunk.fileName?.includes("pbr-metallic-roughness-block") || chunk.name?.includes("pbr-metallic-roughness-block");
+            const minified = minifyTemplateWgsl(code);
             return { code: isPbrChunk ? mangleInlineWgsl(minified) : minified, map: null };
         },
     };
 }
 
-function mangleInlineWgsl(code: string): string {
-    const replacements: [string, string][] = [
-        ["nme_pbr_transmittanceBurley", "pTB"],
-        ["nme_pbr_anisoBentNormal", "pAB"],
-        ["nme_pbr_anisoRoughness", "pAR"],
-        ["nme_pbr_colorAtDistance", "pCD"],
-        ["nme_pbr_visAnisoSmith", "pVS"],
-        ["nme_pbr_diffuseEON", "pDE"],
-        ["nme_pbr_cocaLambert", "pCL"],
-        ["nme_pbr_burleyAnisoD", "pBD"],
-        ["nme_pbr_fresSchlick", "pFS"],
-        ["nme_pbr_ccSchlick", "pCC"],
-        ["nme_pbr_charlieD", "pCH"],
-        ["nme_pbr_distGGX", "pDG"],
-        ["nme_pbr_geomGGX", "pGG"],
-        ["refractionSpecEnvReflectance", "rser"],
-        ["ccDirectAbsorption_h", "cdah"],
-        ["ccDirectAbsorption", "cda"],
-        ["ccAbsorptionColor", "cac"],
-        ["ccNdotLRefract_h", "cnlrh"],
-        ["ccNdotVRefract", "cnvr"],
-        ["ccNdotLRefract", "cnlr"],
-        ["ccTintThickness", "ctt"],
-        ["ccSpecEnvReflRaw", "cserr"],
-        ["ccSpecEnvRefl", "cse"],
-        ["ccFresnelIBL", "cfi"],
-        ["ccBrdfSample", "cbs"],
-        ["directDiffuseTranslucencyScale", "ddts"],
-        ["diffuseTransmissionAcc", "dta"],
-        ["ssRefractionIrradiance", "sri"],
-        ["finalSpecularScaledDirect", "fsd"],
-        ["colorSpecEnvReflectance", "cser"],
-        ["baseSpecEnvReflectance", "bser"],
-        ["ccEnergyConservation", "cec"],
-        ["finalRadianceScaled", "frs"],
-        ["environmentIrradiance", "eir"],
-        ["environmentRadiance", "era"],
-        ["translucencyIntensity", "tri"],
-        ["baseLayerAbsorption", "bla"],
-        ["NdotLUnclamped", "nlu"],
-        ["NdotVUnclamped", "nvu"],
-        ["ccDirectSpecAcc", "cdsa"],
-        ["ccRoughnessIn", "cri"],
-        ["ccIntensityIn", "cii"],
-        ["ccBumpColor", "cbc"],
-        ["ccBumpUv", "cbu"],
-        ["ccNormalW", "cnw"],
-        ["ccVRefract", "cvr"],
-        ["ccAlphaG", "cag"],
-        ["ccIorInv", "cii2"],
-        ["ccF0_raw", "cfrw"],
-        ["ccNdotH_h", "cnhh"],
-        ["ccVdotH_h", "cvhh"],
-        ["NdotH_h", "nhh"],
-        ["VdotH_h", "vhh"],
-        ["ccRough", "crg"],
-        ["finalIrradiance", "fir"],
-        ["finalRefractionRaw", "frr"],
-        ["baseLayerAtten", "blt"],
-        ["shAlbedoScaling", "sas"],
-        ["surfaceAlbedo", "sal"],
-        ["refractionOpacity", "rop"],
-        ["finalRefraction", "fre"],
-        ["ccFinalRadiance", "cfr"],
-        ["shadowFactors", "sfs"],
-        ["directSpecR0", "dsr"],
-        ["lumOverAlpha", "loa"],
-        ["geometricNormal", "gnm"],
-        ["ccAbsorption", "cab"],
-        ["shFinalIbl", "sfi"],
-        ["worldNormal", "wnm"],
-        ["diffuseAcc", "dac"],
-        ["specAcc", "sac"],
-        ["worldPos", "wpo"],
-        ["cameraPos", "cpo"],
-        ["NmePbrMrResult", "PMR"],
-        ["NME_PBR_PI", "PI"],
-    ];
+type WgslIdentifierReplacement = readonly [from: string, to: string];
+
+const PBR_INLINE_WGSL_IDENTIFIER_REPLACEMENTS: readonly WgslIdentifierReplacement[] = [
+    ["nme_pbr_transmittanceBurley", "pTB"],
+    ["nme_pbr_anisoBentNormal", "pAB"],
+    ["nme_pbr_anisoRoughness", "pAR"],
+    ["nme_pbr_colorAtDistance", "pCD"],
+    ["nme_pbr_visAnisoSmith", "pVS"],
+    ["nme_pbr_diffuseEON", "pDE"],
+    ["nme_pbr_cocaLambert", "pCL"],
+    ["nme_pbr_burleyAnisoD", "pBD"],
+    ["nme_pbr_fresSchlick", "pFS"],
+    ["nme_pbr_ccSchlick", "pCC"],
+    ["nme_pbr_charlieD", "pCH"],
+    ["nme_pbr_distGGX", "pDG"],
+    ["nme_pbr_geomGGX", "pGG"],
+    ["refractionSpecEnvReflectance", "rser"],
+    ["ccDirectAbsorption_h", "cdah"],
+    ["ccDirectAbsorption", "cda"],
+    ["ccAbsorptionColor", "cac"],
+    ["ccNdotLRefract_h", "cnlrh"],
+    ["ccNdotVRefract", "cnvr"],
+    ["ccNdotLRefract", "cnlr"],
+    ["ccTintThickness", "ctt"],
+    ["ccSpecEnvReflRaw", "cserr"],
+    ["ccSpecEnvRefl", "cse"],
+    ["ccFresnelIBL", "cfi"],
+    ["ccBrdfSample", "cbs"],
+    ["directDiffuseTranslucencyScale", "ddts"],
+    ["diffuseTransmissionAcc", "dta"],
+    ["ssRefractionIrradiance", "sri"],
+    ["finalSpecularScaledDirect", "fsd"],
+    ["colorSpecEnvReflectance", "cser"],
+    ["baseSpecEnvReflectance", "bser"],
+    ["ccEnergyConservation", "cec"],
+    ["finalRadianceScaled", "frs"],
+    ["environmentIrradiance", "eir"],
+    ["environmentRadiance", "era"],
+    ["translucencyIntensity", "tri"],
+    ["baseLayerAbsorption", "bla"],
+    ["NdotLUnclamped", "nlu"],
+    ["NdotVUnclamped", "nvu"],
+    ["ccDirectSpecAcc", "cdsa"],
+    ["ccRoughnessIn", "cri"],
+    ["ccIntensityIn", "cii"],
+    ["ccBumpColor", "cbc"],
+    ["ccBumpUv", "cbu"],
+    ["ccNormalW", "cnw"],
+    ["ccVRefract", "cvr"],
+    ["ccAlphaG", "cag"],
+    ["ccIorInv", "cii2"],
+    ["ccF0_raw", "cfrw"],
+    ["ccNdotH_h", "cnhh"],
+    ["ccVdotH_h", "cvhh"],
+    ["NdotH_h", "nhh"],
+    ["VdotH_h", "vhh"],
+    ["ccRough", "crg"],
+    ["finalIrradiance", "fir"],
+    ["finalRefractionRaw", "frr"],
+    ["baseLayerAtten", "blt"],
+    ["shAlbedoScaling", "sas"],
+    ["surfaceAlbedo", "sal"],
+    ["refractionOpacity", "rop"],
+    ["finalRefraction", "fre"],
+    ["ccFinalRadiance", "cfr"],
+    ["shadowFactors", "sfs"],
+    ["directSpecR0", "dsr"],
+    ["lumOverAlpha", "loa"],
+    ["geometricNormal", "gnm"],
+    ["ccAbsorption", "cab"],
+    ["shFinalIbl", "sfi"],
+    ["worldNormal", "wnm"],
+    ["diffuseAcc", "dac"],
+    ["specAcc", "sac"],
+    ["worldPos", "wpo"],
+    ["cameraPos", "cpo"],
+    ["NmePbrMrResult", "PMR"],
+    ["NME_PBR_PI", "PI"],
+];
+
+const PBR_INLINE_WGSL_RESERVED_IDENTIFIERS = [
+    "worldNormal",
+    "environmentIrradiance",
+    "translucencyIntensity",
+    "baseLayerAbsorption",
+    "ccNormalW",
+    "ccVRefract",
+    "ssRefractionIrradiance",
+    "NdotVUnclamped",
+    "diffuseTransmissionAcc",
+    "ccIorInv",
+    "finalSpecularScaledDirect",
+    "colorSpecEnvReflectance",
+    "ccRoughnessIn",
+] as const;
+
+export function mangleInlineWgsl(code: string): string {
     let out = code;
-    for (const [from, to] of replacements) {
-        out = out.replace(new RegExp(`\\b${from}\\b`, "g"), to);
+    for (const [from, to] of PBR_INLINE_WGSL_IDENTIFIER_REPLACEMENTS) {
+        if (!isReservedPbrInlineIdentifier(from)) {
+            out = replaceWgslIdentifiers(out, [[from, to]]);
+        }
     }
-    return out
-        .replace(/\b0\.0\b/g, "0.")
-        .replace(/\b1\.0\b/g, "1.")
-        .replace(/\b0\.0000001\b/g, "1e-7")
-        .replace(/\b0\.0005\b/g, "5e-4");
+    return compactWgslNumericLiterals(out);
 }
 
 /** Strip spaces around WGSL operators inside template literal content. */
-function minifyTemplateWgsl(code: string): string {
+export function minifyTemplateWgsl(code: string): string {
     const out: string[] = [];
     let i = 0;
     const len = code.length;
@@ -272,8 +289,28 @@ function processTemplateLiteral(code: string, i: number, len: number, out: strin
     return i;
 }
 
+function isReservedPbrInlineIdentifier(identifier: string): boolean {
+    return (PBR_INLINE_WGSL_RESERVED_IDENTIFIERS as readonly string[]).includes(identifier);
+}
+
+function replaceWgslIdentifiers(code: string, replacements: readonly WgslIdentifierReplacement[]): string {
+    let out = code;
+    for (const [from, to] of replacements) {
+        out = out.replace(new RegExp(`\\b${from}\\b`, "g"), to);
+    }
+    return out;
+}
+
+function compactWgslNumericLiterals(code: string): string {
+    return code
+        .replace(/\b0\.0\b/g, "0.")
+        .replace(/\b1\.0\b/g, "1.")
+        .replace(/\b0\.0000001\b/g, "1e-7")
+        .replace(/\b0\.0005\b/g, "5e-4");
+}
+
 function mangleWgslIdentifiers(code: string): string {
-    const replacements: [string, string][] = [
+    const replacements: readonly WgslIdentifierReplacement[] = [
         ["computeLighting", "cl"],
         ["computeSphericalCoords", "csc"],
         ["computePlanarCoords", "cpc"],
@@ -362,7 +399,6 @@ function mangleWgslIdentifiers(code: string): string {
         ["cosRot", "cr2"],
         ["sinRot", "sr2"],
         ["rotated", "rot"],
-        ["worldPos", "wp"],
         ["iUvMin", "ium"],
         ["iUvMax", "iux"],
         ["iPivot", "ip"],
@@ -371,11 +407,7 @@ function mangleWgslIdentifiers(code: string): string {
         ["iPos", "ipos"],
         ["iRot", "ir"],
     ];
-    let out = code;
-    for (const [from, to] of replacements) {
-        out = out.replace(new RegExp(`\\b${from}\\b`, "g"), to);
-    }
-    return out;
+    return compactWgslNumericLiterals(replaceWgslIdentifiers(code, replacements));
 }
 
 /**
