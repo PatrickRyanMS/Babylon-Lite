@@ -115,6 +115,9 @@ importers:
       '@recast-navigation/generators':
         specifier: 0.43.0
         version: 0.43.0
+      '@recast-navigation/wasm':
+        specifier: 0.43.0
+        version: 0.43.0
       draco3d:
         specifier: ^1.5.7
         version: 1.5.7

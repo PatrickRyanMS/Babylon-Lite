@@ -927,7 +927,7 @@ function minimalVitePreloadPlugin(): Plugin {
 }
 
 function isLiteBundleExternal(id: string): boolean {
-    return id === "@babylonjs/havok" || id === "manifold-3d" || id.startsWith("manifold-3d/");
+    return id === "@babylonjs/havok" || id === "manifold-3d" || id.startsWith("manifold-3d/") || id.startsWith("@recast-navigation/");
 }
 
 export async function buildLiteSceneBundleInfo(scene: string, sourceRoot: string, infoDir: string): Promise<void> {
@@ -1060,7 +1060,7 @@ export async function buildBundleScenes(): Promise<void> {
                     input: { [scene]: resolve(labDir, isBjs ? `src/bjs/${scene.slice(4)}.ts` : `src/lite/${scene}.ts`) },
                     // Exclude third-party WASM runtimes from Lite bundles so the
                     // bundle-size metric reflects only first-party Lite engine code.
-                    ...(!isBjs && { external: ["@babylonjs/havok", "manifold-3d"] }),
+                    ...(!isBjs && { external: isLiteBundleExternal }),
                     output: {
                         format: "es",
                         entryFileNames: "[name].js",

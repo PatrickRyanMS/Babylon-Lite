@@ -50,7 +50,7 @@ async function main(): Promise<void> {
     box.position.set(1, 1.5, 0);
     addToScene(scene, box);
 
-    const nav = await createNavigationPluginAsync();
+    const nav = await createNavigationPluginAsync({ locateFile: () => "/recast-navigation.wasm" });
     createNavMesh(nav, [ground, sphere, box], {
         cs: 0.2,
         ch: 0.2,

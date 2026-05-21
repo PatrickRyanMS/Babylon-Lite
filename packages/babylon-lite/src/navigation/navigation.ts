@@ -81,13 +81,21 @@ let _coreModule: any = null;
 let _generatorsModule: any = null;
 let _initPromise: Promise<void> | null = null;
 
-async function _ensureRecast(): Promise<{ core: any; gens: any }> {
+async function _ensureRecast(locateFile?: (url: string) => string): Promise<{ core: any; gens: any }> {
     if (!_coreModule || !_generatorsModule) {
         if (!_initPromise) {
             _initPromise = (async () => {
                 const core = await import("@recast-navigation/core");
                 const gens = await import("@recast-navigation/generators");
-                await core.init();
+                if (locateFile) {
+                    const impl = async () => {
+                        const wasmFactory = (await import("@recast-navigation/wasm/wasm")).default;
+                        return wasmFactory({ locateFile });
+                    };
+                    await core.init(impl);
+                } else {
+                    await core.init();
+                }
                 _coreModule = core;
                 _generatorsModule = gens;
             })();
@@ -100,9 +108,15 @@ async function _ensureRecast(): Promise<{ core: any; gens: any }> {
 /**
  * Create a navigation plugin. Loads the Recast wasm internally on first call;
  * subsequent calls reuse the loaded module.
+ *
+ * Pass `locateFile` to serve the wasm from a public path instead of bundling
+ * it inline — same pattern as `HavokPhysics({ locateFile: () => "/HavokPhysics.wasm" })`.
+ *
+ * @example
+ *   const nav = await createNavigationPluginAsync({ locateFile: () => "/recast-navigation.wasm" });
  */
-export async function createNavigationPluginAsync(): Promise<NavigationPlugin> {
-    const { core, gens } = await _ensureRecast();
+export async function createNavigationPluginAsync(options?: { locateFile?: (url: string) => string }): Promise<NavigationPlugin> {
+    const { core, gens } = await _ensureRecast(options?.locateFile);
     return {
         _recast: core,
         _generators: gens,
