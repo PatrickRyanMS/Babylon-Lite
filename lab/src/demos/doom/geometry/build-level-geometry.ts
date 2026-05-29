@@ -137,6 +137,27 @@ function buildWalls(map: DoomMap, textures: DoomTextureCache, batches: LevelBatc
             );
         }
 
+        // Two-sided middle texture (grates, bars, fences, vines): drawn once in the
+        // sector opening, no vertical tiling, with alpha cutout. Prefer the front side's
+        // midtexture; fall back to the back side's when the front has none.
+        const midSide = frontSide.middle !== "-" && frontSide.middle !== "" ? frontSide : backSide && backSide.middle !== "-" && backSide.middle !== "" ? backSide : null;
+        if (midSide) {
+            const lightSec = midSide === frontSide ? frontSec : backSec;
+            emitMidtexture(
+                batches,
+                textures,
+                midSide.middle,
+                v1,
+                v2,
+                len,
+                Math.max(frontSec.floorHeight, backSec.floorHeight),
+                Math.min(frontSec.ceilHeight, backSec.ceilHeight),
+                midSide,
+                (ld.flags & ML_DONTPEGBOTTOM) !== 0,
+                light01(lightSec.light + contrast)
+            );
+        }
+
         // Back side lower / upper (opposite comparisons / viewpoint).
         if (backSide) {
             if (frontSec.floorHeight > backSec.floorHeight) {
@@ -205,6 +226,65 @@ function emitWallSegment(
             { x: v2.x, y: yBottom, z: v2.y },
             { x: v2.x, y: yTop, z: v2.y },
             { x: v1.x, y: yTop, z: v1.y },
+        ],
+        [
+            [u1, vBottom],
+            [u2, vBottom],
+            [u2, vTop],
+            [u1, vTop],
+        ],
+        lr
+    );
+}
+
+function emitMidtexture(
+    batches: LevelBatches,
+    textures: DoomTextureCache,
+    texName: string,
+    v1: { x: number; y: number },
+    v2: { x: number; y: number },
+    len: number,
+    openBottom: number,
+    openTop: number,
+    side: Sidedef,
+    pegBottom: boolean,
+    lr: number
+): void {
+    if (openTop <= openBottom) return;
+    const tex = textures.getWall(texName);
+    if (!tex) return;
+    const { width: texW, height: texH } = tex;
+
+    // Doom draws the midtexture once (no vertical tiling), anchored to the opening:
+    // bottom-pegged (DONTPEGBOTTOM) rises from the floor, otherwise it hangs from the
+    // ceiling. The visible quad is clipped to the opening.
+    let yTop: number;
+    let yBottom: number;
+    if (pegBottom) {
+        yBottom = openBottom + side.yOffset;
+        yTop = yBottom + texH;
+    } else {
+        yTop = openTop + side.yOffset;
+        yBottom = yTop - texH;
+    }
+    const unclippedTop = yTop;
+    const drawTop = Math.min(yTop, openTop);
+    const drawBottom = Math.max(yBottom, openBottom);
+    if (drawTop <= drawBottom) return;
+
+    const u1 = side.xOffset / texW;
+    const u2 = (side.xOffset + len) / texW;
+    const vTop = (unclippedTop - drawTop) / texH;
+    const vBottom = (unclippedTop - drawBottom) / texH;
+
+    const batch = batchFor(batches, texName);
+    addQuad(
+        batch,
+        [
+            { x: v1.x, y: drawBottom, z: v1.y },
+            { x: v2.x, y: drawBottom, z: v2.y },
+            { x: v2.x, y: drawTop, z: v2.y },
+            { x: v1.x, y: drawTop, z: v1.y },
         ],
         [
             [u1, vBottom],

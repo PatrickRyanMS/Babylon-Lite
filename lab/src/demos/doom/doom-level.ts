@@ -20,6 +20,12 @@ import { buildCollisionLines, tryMove, VIEW_HEIGHT } from "./physics/collision.j
 const MOVE_SPEED = 320; // map units per second
 const TURN_SPEED = 2.4; // radians per second
 const TIC_SECONDS = 1 / 35; // DOOM simulation tic rate
+// Cap the per-frame timestep so a single long frame (e.g. the dynamic-mesh
+// rebuild that runs the first time a door/lift starts moving, or any render
+// hitch) cannot fast-forward many sim tics at once and snap movers fully
+// open/closed in one frame. Without this, doors appear to "disappear" instead
+// of sliding, and lifts teleport instead of gliding.
+const MAX_FRAME_SECONDS = 0.05;
 
 export interface DoomLevel {
     map: DoomMap;
@@ -107,7 +113,7 @@ function installCamera(scene: SceneContext, map: DoomMap, specials: SpecialsMana
     window.addEventListener("keyup", onUp);
 
     onBeforeRender(scene, (deltaMs) => {
-        const dt = deltaMs / 1000;
+        const dt = Math.min(deltaMs / 1000, MAX_FRAME_SECONDS);
         const strafeMod = keys.has("AltLeft") || keys.has("AltRight");
         if (!strafeMod) {
             if (keys.has("ArrowLeft")) yaw += TURN_SPEED * dt;

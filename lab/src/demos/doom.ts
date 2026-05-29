@@ -6,7 +6,8 @@
  * WAD format, builds the first level's geometry, and renders it with a palette +
  * COLORMAP material so it reproduces the original engine's banded light look.
  *
- * Controls: WASD to move, arrow keys to look, Shift to run.
+ * Controls: arrow keys move/turn, comma/period (or Alt+arrows) strafe, Shift to run,
+ * Space to use (open doors / activate switches / lifts).
  */
 
 import { createEngine, createSceneContext, registerScene, startEngine } from "babylon-lite";
