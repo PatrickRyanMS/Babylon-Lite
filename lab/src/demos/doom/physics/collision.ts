@@ -18,6 +18,7 @@ export const MAX_STEP = 24;
 export const VIEW_HEIGHT = 41;
 
 const ML_BLOCKING = 0x0001;
+const ML_BLOCKMONSTERS = 0x0002;
 
 export interface CollLine {
     x1: number;
@@ -26,10 +27,21 @@ export interface CollLine {
     y2: number;
     oneSided: boolean;
     blocking: boolean;
+    blockMonsters: boolean;
     /** Front/back sector indices; back is -1 for one-sided lines. */
     frontSec: number;
     backSec: number;
 }
+
+export interface MoveOpts {
+    radius: number;
+    height: number;
+    maxStep: number;
+    /** When true, ML_BLOCKMONSTERS lines also block this mover. */
+    isMonster: boolean;
+}
+
+const PLAYER_MOVE: MoveOpts = { radius: PLAYER_RADIUS, height: PLAYER_HEIGHT, maxStep: MAX_STEP, isMonster: false };
 
 export function buildCollisionLines(map: DoomMap): CollLine[] {
     const lines: CollLine[] = [];
@@ -50,6 +62,7 @@ export function buildCollisionLines(map: DoomMap): CollLine[] {
             y2: v2.y,
             oneSided,
             blocking: (ld.flags & ML_BLOCKING) !== 0,
+            blockMonsters: (ld.flags & ML_BLOCKMONSTERS) !== 0,
             frontSec,
             backSec,
         });
@@ -59,31 +72,33 @@ export function buildCollisionLines(map: DoomMap): CollLine[] {
 
 // Live opening test against current sector heights, so doors/lifts that mutate
 // sector floor/ceiling immediately affect passability.
-function lineBlocks(line: CollLine, currentFloor: number, sectors: Sector[]): boolean {
+function lineBlocks(line: CollLine, currentFloor: number, sectors: Sector[], opts: MoveOpts): boolean {
     if (line.oneSided || line.blocking) return true;
+    if (opts.isMonster && line.blockMonsters) return true;
     const front = sectors[line.frontSec];
     const back = sectors[line.backSec];
     if (!front || !back) return true;
     const openTop = Math.min(front.ceilHeight, back.ceilHeight);
     const openBottom = Math.max(front.floorHeight, back.floorHeight);
-    if (openTop - openBottom < PLAYER_HEIGHT) return true;
-    if (openBottom - currentFloor > MAX_STEP) return true;
+    if (openTop - openBottom < opts.height) return true;
+    if (openBottom - currentFloor > opts.maxStep) return true;
     return false;
 }
 
 /**
  * Resolves a desired move from (fromX,fromY) by (dx,dy) against blocking lines,
- * sliding along walls. `currentFloor` is the floor height the player stands on.
+ * sliding along walls. `currentFloor` is the floor height the mover stands on.
+ * `opts` defaults to the player's dimensions.
  */
-export function tryMove(lines: CollLine[], fromX: number, fromY: number, dx: number, dy: number, currentFloor: number, sectors: Sector[]): { x: number; y: number } {
+export function tryMove(lines: CollLine[], fromX: number, fromY: number, dx: number, dy: number, currentFloor: number, sectors: Sector[], opts: MoveOpts = PLAYER_MOVE): { x: number; y: number } {
     let px = fromX + dx;
     let py = fromY + dy;
-    const r2 = PLAYER_RADIUS * PLAYER_RADIUS;
+    const r2 = opts.radius * opts.radius;
 
     for (let iter = 0; iter < 4; iter++) {
         let moved = false;
         for (const line of lines) {
-            if (!lineBlocks(line, currentFloor, sectors)) continue;
+            if (!lineBlocks(line, currentFloor, sectors, opts)) continue;
             // Extent gate: only react if the destination is near this segment.
             const cp = closestPointOnSegment(line, px, py);
             const gx = px - cp.x;
@@ -91,7 +106,7 @@ export function tryMove(lines: CollLine[], fromX: number, fromY: number, dx: num
             if (gx * gx + gy * gy >= r2) continue;
 
             // Resolve along the infinite line's normal, oriented toward the side the
-            // player came FROM, so fast moves can't tunnel to the far side.
+            // mover came FROM, so fast moves can't tunnel to the far side.
             const lx = line.x2 - line.x1;
             const ly = line.y2 - line.y1;
             let nx = -ly;
@@ -105,8 +120,8 @@ export function tryMove(lines: CollLine[], fromX: number, fromY: number, dx: num
                 ny = -ny;
             }
             const sDest = (px - line.x1) * nx + (py - line.y1) * ny;
-            if (sDest < PLAYER_RADIUS) {
-                const push = PLAYER_RADIUS - sDest;
+            if (sDest < opts.radius) {
+                const push = opts.radius - sDest;
                 px += nx * push;
                 py += ny * push;
                 moved = true;

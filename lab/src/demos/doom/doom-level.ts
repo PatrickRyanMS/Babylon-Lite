@@ -14,8 +14,14 @@ import { createSky } from "./render/sky.js";
 import { buildLevelBatches } from "./geometry/build-level-geometry.js";
 import { DynamicGeometry } from "./geometry/dynamic-geometry.js";
 import { SpecialsManager } from "./specials/specials.js";
-import { NF_SUBSECTOR } from "./wad/map.js";
 import { buildCollisionLines, tryMove, VIEW_HEIGHT } from "./physics/collision.js";
+import { floorHeightAt, sectorIndexAt } from "./wad/bsp-query.js";
+import { SpriteStore } from "./render/sprites.js";
+import { SpriteRenderer } from "./render/sprite-render.js";
+import { DoomWorld } from "./mobj/world.js";
+import { Player, Weapon } from "./player/player.js";
+import { DoomHud } from "./hud/hud.js";
+import { DoomSound } from "./sound/sound.js";
 
 const MOVE_SPEED = 320; // map units per second
 const TURN_SPEED = 2.4; // radians per second
@@ -76,16 +82,47 @@ export function buildDoomLevel(engine: EngineContext, scene: SceneContext, wadBy
 
     const dynamicGeo = new DynamicGeometry(engine, scene, map, textures, colormapTex, specials);
 
+    // Mobjs (monsters, items, decorations) rendered as faithful billboards.
+    const spriteStore = new SpriteStore(engine, wad);
+    const world = new DoomWorld(map, spriteStore);
+    const usedSprites = world.spawnFromMap();
+    // Sprites referenced only by runtime spawns (projectiles, puffs, blood, the
+    // barrel explosion) must also be in the atlas.
+    for (const extra of ["PUFF", "BLUD", "BAL1", "BEXP"]) {
+        if (spriteStore.has(extra)) usedSprites.add(extra);
+    }
+    spriteStore.build(usedSprites);
+    const spriteRenderer = new SpriteRenderer(engine, scene, spriteStore, colormapTex);
+
+    // Player state, HUD overlay and sound, wired to world events.
+    const player = new Player(world);
+    const sound = new DoomSound(wad);
+    const hud = new DoomHud(player);
+    world.events = {
+        message: (text) => {
+            player.setMessage(text);
+            hud.flashMessage(text);
+        },
+        sound: (name) => sound.play(name),
+        pickup: (kind) => player.pickup(kind),
+        damagePlayer: (amount) => player.takeDamage(amount),
+    };
+
     const skyTex = textures.getWall("SKY1");
     const sky = skyTex ? createSky(engine, skyTex.texture, colormapTex) : null;
     if (sky) addToScene(scene, sky);
 
-    installCamera(scene, map, specials, dynamicGeo, playerSectorRef, sky);
+    installCamera(scene, map, specials, dynamicGeo, playerSectorRef, sky, world, spriteRenderer, player, hud, sound);
 
-    return { map, dispose: () => {} };
+    return {
+        map,
+        dispose: () => {
+            hud.dispose();
+        },
+    };
 }
 
-function installCamera(scene: SceneContext, map: DoomMap, specials: SpecialsManager, dynamicGeo: DynamicGeometry, playerSectorRef: { value: number }, sky: Mesh | null): void {
+function installCamera(scene: SceneContext, map: DoomMap, specials: SpecialsManager, dynamicGeo: DynamicGeometry, playerSectorRef: { value: number }, sky: Mesh | null, world: DoomWorld, spriteRenderer: SpriteRenderer, player: Player, hud: DoomHud, sound: DoomSound): void {
     const start = map.things.find((t) => t.type === 1) ?? map.things[0];
     const sx = start ? start.x : 0;
     const sz = start ? start.y : 0;
@@ -101,16 +138,43 @@ function installCamera(scene: SceneContext, map: DoomMap, specials: SpecialsMana
     let yaw = yaw0;
     let ticAccum = 0;
     let usePressed = false;
+    let firing = false;
     const collLines = buildCollisionLines(map);
     const keys = new Set<string>();
+    const weaponKeys: Record<string, Weapon> = {
+        Digit1: Weapon.FIST,
+        Digit2: Weapon.PISTOL,
+        Digit3: Weapon.SHOTGUN,
+        Digit4: Weapon.CHAINGUN,
+        Digit5: Weapon.ROCKET,
+        Digit6: Weapon.PLASMA,
+        Digit7: Weapon.BFG,
+    };
     const onDown = (e: KeyboardEvent): void => {
         if (e.code === "Space" && !keys.has("Space")) usePressed = true;
+        if (e.code === "ControlLeft" || e.code === "ControlRight") firing = true;
+        if (e.code in weaponKeys) player.selectWeapon(weaponKeys[e.code]);
         keys.add(e.code);
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) e.preventDefault();
     };
-    const onUp = (e: KeyboardEvent): void => void keys.delete(e.code);
+    const onUp = (e: KeyboardEvent): void => {
+        if (e.code === "ControlLeft" || e.code === "ControlRight") firing = false;
+        keys.delete(e.code);
+    };
+    const onMouseDown = (e: MouseEvent): void => {
+        if (e.button === 0) {
+            firing = true;
+            sound.resume();
+        }
+    };
+    const onMouseUp = (e: MouseEvent): void => {
+        if (e.button === 0) firing = false;
+    };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("keydown", () => sound.resume(), { once: true });
 
     onBeforeRender(scene, (deltaMs) => {
         const dt = Math.min(deltaMs / 1000, MAX_FRAME_SECONDS);
@@ -162,6 +226,14 @@ function installCamera(scene: SceneContext, map: DoomMap, specials: SpecialsMana
         ticAccum += dt;
         while (ticAccum >= TIC_SECONDS) {
             specials.tic();
+            // Sync the player mobj to the camera so monsters can see/target it.
+            world.player.x = eye.x;
+            world.player.y = eye.z;
+            world.player.z = floorHeightAt(map, eye.x, eye.z);
+            world.player.angle = yaw;
+            if (firing) player.fire();
+            player.tic();
+            world.tic();
             ticAccum -= TIC_SECONDS;
         }
         if (specials.consumeDirty()) {
@@ -184,33 +256,9 @@ function installCamera(scene: SceneContext, map: DoomMap, specials: SpecialsMana
         cam.target.x = eye.x + fx;
         cam.target.y = eye.y;
         cam.target.z = eye.z + fz;
+
+        // Rebuild all mobj billboards once per frame, facing the camera.
+        spriteRenderer.rebuild(world.collectSprites(eye.x, eye.z));
+        hud.update();
     });
-}
-
-/** Walks the BSP to the subsector containing (doomX, doomY), returns its sector floor height. */
-function floorHeightAt(map: DoomMap, x: number, y: number): number {
-    const sec = sectorIndexAt(map, x, y);
-    return sec < 0 ? 0 : (map.sectors[sec]?.floorHeight ?? 0);
-}
-
-/** Walks the BSP to the subsector containing (doomX, doomY), returns its sector index (or -1). */
-function sectorIndexAt(map: DoomMap, x: number, y: number): number {
-    if (map.nodes.length === 0) return -1;
-    let ref = map.nodes.length - 1;
-    while (!(ref & NF_SUBSECTOR)) {
-        const node = map.nodes[ref];
-        if (!node) return -1;
-        const s = node.dx * (y - node.y) - node.dy * (x - node.x);
-        ref = s <= 0 ? node.rightChild : node.leftChild;
-    }
-    const ss = map.subsectors[ref & ~NF_SUBSECTOR];
-    if (!ss) return -1;
-    const seg = map.segs[ss.firstSeg];
-    if (!seg) return -1;
-    const ld = map.linedefs[seg.linedef];
-    if (!ld) return -1;
-    const sideRef = seg.side === 0 ? ld.front : ld.back;
-    if (sideRef < 0) return -1;
-    const side = map.sidedefs[sideRef];
-    return side ? side.sector : -1;
 }
