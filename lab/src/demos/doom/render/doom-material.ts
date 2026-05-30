@@ -42,7 +42,11 @@ const DIST_PER_BAND: f32 = ${DIST_PER_BAND.toFixed(1)};
   let fullbright = input.light.y;
   // Brighter sectors map to lower (lighter) colormap rows.
   let baseRow = clamp(31.0 - floor(sectorLight / 8.0), 0.0, 31.0);
-  let distBand = floor(length(input.viewPos) / DIST_PER_BAND);
+  // Doom diminishes light by forward DEPTH (distance into the view), not radial
+  // distance, so bands read as flat horizontal steps rather than arcs curving
+  // around the camera. View space is left-handed (camera looks down +Z).
+  let depth = max(0.0, input.viewPos.z);
+  let distBand = floor(depth / DIST_PER_BAND);
   var row = clamp(baseRow + distBand, 0.0, 31.0);
   row = mix(row, 0.0, step(0.5, fullbright));
   let lut = textureSample(colormapTex, colormapTexSampler, vec2<f32>((idx + 0.5) / 256.0, (row + 0.5) / 34.0));
