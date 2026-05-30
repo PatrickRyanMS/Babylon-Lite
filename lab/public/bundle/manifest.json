@@ -1159,7 +1159,7 @@
     "bjsGzipKB": 801.9
   },
   "scene74": {
-    "rawKB": 7.9,
+    "rawKB": 8,
     "gzipKB": 3.3,
     "ignoredRawKB": 0,
     "runtimeChunks": [
@@ -1182,7 +1182,7 @@
   },
   "scene76": {
     "rawKB": 8.9,
-    "gzipKB": 3.6,
+    "gzipKB": 3.7,
     "ignoredRawKB": 0,
     "runtimeChunks": [
       "scene76.js"

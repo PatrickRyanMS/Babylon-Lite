@@ -1,6 +1,54 @@
 import { defineConfig, type Plugin } from "vite";
 import { resolve } from "path";
 import { createReadStream, existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { createGzip } from "zlib";
+
+function gzipJsResponses(): Plugin {
+    return {
+        name: "dev-gzip-js",
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                const url = (req.url ?? "").split("?")[0];
+                const accept = String(req.headers["accept-encoding"] ?? "");
+                if (!accept.includes("gzip") || !/\.(js|mjs|cjs)$/.test(url)) {
+                    return next();
+                }
+                const origWriteHead = res.writeHead.bind(res);
+                const origWrite = res.write.bind(res);
+                const origEnd = res.end.bind(res);
+                const chunks: Buffer[] = [];
+                let headArgs: any[] | null = null;
+
+                res.writeHead = ((...args: any[]) => {
+                    headArgs = args;
+                    return res;
+                }) as any;
+                res.write = ((chunk: any) => {
+                    if (chunk) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                    return true;
+                }) as any;
+                res.end = ((chunk?: any) => {
+                    if (chunk) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                    const body = Buffer.concat(chunks);
+                    const gz = createGzip({ level: 9 });
+                    const out: Buffer[] = [];
+                    gz.on("data", (d) => out.push(d));
+                    gz.on("end", () => {
+                        const gzBuf = Buffer.concat(out);
+                        res.setHeader("Content-Encoding", "gzip");
+                        res.setHeader("Content-Length", gzBuf.length);
+                        res.removeHeader("ETag");
+                        if (headArgs) origWriteHead(...(headArgs as [number]));
+                        origEnd(gzBuf);
+                    });
+                    gz.end(body);
+                    return res;
+                }) as any;
+                next();
+            });
+        },
+    };
+}
 
 function hasBuildableRootScripts(htmlFile: string): boolean {
     const html = readFileSync(resolve(__dirname, htmlFile), "utf-8");
@@ -103,7 +151,7 @@ function serveReferenceImages(): Plugin {
 }
 
 export default defineConfig({
-    plugins: [serveReferenceImages()],
+    plugins: [gzipJsResponses(), serveReferenceImages()],
     optimizeDeps: {
         // BJS uses prototype-patching side-effect imports (e.g. abstractEngine.dom.js).
         // babylon-lite uses ?raw WGSL imports that esbuild can't handle.
