@@ -56,7 +56,6 @@ export function buildDoomLevel(engine: EngineContext, scene: SceneContext, wadBy
 
     const playerSectorRef = { value: -1 };
     const specials = new SpecialsManager(map, {
-        onExit: () => console.log("[doom] level exit triggered"),
         playerSector: () => playerSectorRef.value,
     });
 
