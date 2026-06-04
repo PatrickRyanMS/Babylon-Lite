@@ -39,7 +39,7 @@
 - **Only the scene knows its contents.** Components never reference the scene.
 - A light is plain data. A camera is plain data. A mesh is plain data. None of them hold a reference to the scene.
 - The scene holds arrays of lights, cameras, meshes. The scene is the owner.
-- Factory functions like `createHemisphericLight()` return plain data — they do NOT take a scene parameter. The caller adds the result to the scene via `addToScene()`.
+- Factory functions like `createHemisphericLight()` return plain data — they do NOT take a **scene** parameter. The caller adds the result to the scene via `addToScene()`.
 - This ensures zero circular dependencies, trivial serialization, and maximum tree-shakability.
 
 ### 4b′. Pure State Interfaces (Critical)

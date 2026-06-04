@@ -317,8 +317,8 @@
         "slug": "scene33-lights-punctual",
         "name": "Scene 33 — KHR_lights_punctual",
         "maxMad": 0.07,
-        "maxRawKB": 94.5,
-        "note": "Ceiling raised 93->94 (user-approved) when scene212 added KHR_materials_dispersion: scene33 shares the transmission + dielectric chunks and carries ~0.6 KB of unavoidable dispersion plumbing (the 3-ray WGSL itself ships only in scene212's bundle). Further raised 94->94.5 (user-approved) to absorb shared glTF-core growth from native interleaved-buffer support + EXT_meshopt_compression/KHR_xmp_json_ld/KHR_mesh_quantization registrations.",
+        "maxRawKB": 95,
+        "note": "Ceiling raised 93->94 (user-approved) when scene212 added KHR_materials_dispersion: scene33 shares the transmission + dielectric chunks and carries ~0.6 KB of unavoidable dispersion plumbing (the 3-ray WGSL itself ships only in scene212's bundle). Raised 94->94.5 (user-approved) to absorb shared glTF-core growth from native interleaved-buffer support + EXT_meshopt_compression/KHR_xmp_json_ld/KHR_mesh_quantization registrations (PR #157). Bumped 94.5->95 (user-approved) after HPM/LWR substrate (#116) adds another ~0.8 KB of shared engine code on top of the dispersion plumbing.",
         "description": "LightsPunctualLamp.glb (KHR_lights_punctual point lights + KHR_materials_transmission) with default IBL environment. Matches PG #YG3BBF#54.",
         "tags": ["pbr", "gltf", "env", "lights-punctual", "transmission"],
         "skipPerf": true
@@ -1340,6 +1340,27 @@
         "tags": ["pbr", "gltf", "clustered", "lights"],
         "skipPerf": true,
         "bundleTimeoutMs": 180000
+    },
+    {
+        "id": 200,
+        "slug": "scene200-high-precision-jitter-hpm-off",
+        "name": "Scene 200 - LWR Demo (HPM off, FO off)",
+        "maxMad": 2.5,
+        "maxRawKB": 50,
+        "description": "5×5 grid of boxes + pillar at world (~5e6, *, ~5e6) with useHighPrecisionMatrix=false. F32 view-proj chain visibly jitters at this magnitude — stair-stepped silhouettes, mis-aligned cube faces. Compare to scene 201 (FO on) for the precision win.",
+        "tags": ["hpm", "lwr", "precision", "procedural", "std"],
+        "skipPerf": true,
+        "_madCeilingNotes": "Measured MAD = 1.386 on local Windows Chromium (WebGPU/D3D), 2.095 on CI macOS BrowserStack (WebGPU/Metal). Cross-platform drift is intrinsic F32 catastrophic-cancellation noise on the view×world product at 5e6 coords — neither a Lite bug nor a BJS bug. Matrix multiplication is non-associative in F32, and once cancellation consumes ~20 of the 23 mantissa bits, the remaining few bits are exquisitely sensitive to op ordering, SIMD packing, and WGSL→driver codegen, which differ substantially between the D3D and Metal backends. Ceiling 2.5 = ~20% headroom above the observed macOS MAD to absorb future driver/codegen drift. Sky is byte-identical (camera-position precision doesn't affect rays at infinity); diff is concentrated on geometry edges and interiors. The pair scene 200 (MAD~1.4–2.1) vs scene 201 (MAD=0) is the parity proof that LWR/HPM eliminates the cancellation entirely."
+    },
+    {
+        "id": 201,
+        "slug": "scene201-high-precision-jitter-hpm-on",
+        "name": "Scene 201 - LWR Demo (HPM on, FO on)",
+        "maxMad": 0.1,
+        "maxRawKB": 50,
+        "description": "Same 5×5 grid + pillar as scene 200, but useHighPrecisionMatrix=true and useFloatingOrigin=true. F64 caches + eye-relative upload trick keep GPU-facing translations small; rasterization is crisp.",
+        "tags": ["hpm", "lwr", "floating-origin", "precision", "procedural", "std"],
+        "skipPerf": true
     },
     {
         "id": 210,

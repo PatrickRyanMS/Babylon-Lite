@@ -71,3 +71,6 @@ pages-dist/
 build-timeline.json
 # Generated TypeDoc API documentation (regenerated on demand)
 lab/public/api-docs/
+lab/public/lite/api-docs/
+
+playwright-report/
