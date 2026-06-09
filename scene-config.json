@@ -1461,5 +1461,15 @@
         "description": "Baked vertex animation: the scene-11 shark's skeletal animation is pre-evaluated into one rgba32float texture (bakeVat) and played through the GPU VAT vertex path (mesh.vat) with NO live CPU skeleton — the vertex shader reads each bone matrix from the baked texture at the current frame row. First step toward thin-instancing animated meshes. The baker + VAT shader fragment live in a dynamic-import chunk reached only when a scene bakes a VAT, so scenes that never use vertex animation pay zero bytes.",
         "tags": ["vat", "animation", "skeleton", "instancing", "pbr", "gltf"],
         "skipPerf": true
+    },
+    {
+        "id": 219,
+        "slug": "scene219-vat-instanced",
+        "name": "Scene 219 — Per-instance VAT",
+        "maxMad": 0.02,
+        "maxRawKB": 93,
+        "description": "Per-instance VAT: the scene-11 shark baked to a VAT texture and rendered through the GPU thin-instance VAT path (one identity-matrix instance), frozen via ?seekTime. The instanced path's finalWorld = instanceMatrix * mesh.world * skin equals the plain skinned pose at identity, so it matches the BJS live-skeleton golden exactly — validating per-instance frame selection (the instance params texture read by @builtin(instance_index)), the thin-instance world placement, and the dual-clip blend path (single clip = blend 0). One draw call, no live CPU skeleton.",
+        "tags": ["vat", "animation", "skeleton", "instancing", "pbr", "gltf"],
+        "skipPerf": true
     }
 ]

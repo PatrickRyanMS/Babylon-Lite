@@ -1,9 +1,12 @@
-// Scene 219 — Per-instance VAT (instanced baked animation, one draw call)
+// Scene 219 — Per-instance VAT parity.
 //
-// The scene-11 shark, baked to a VAT texture (bakeVat) and GPU thin-instanced into a grid. Each instance
-// plays the swimming clip at its OWN random phase via handle.setInstances() — one (fromRow,toRow,offset,fps)
-// vec4 per instance in a small texture the VAT vertex path reads by instance_index. The whole crowd renders
-// in a single draw call with no live CPU skeletons — proving animated meshes can be GPU-instanced through VAT.
+// The scene-11 shark, baked to a VAT texture and rendered through the PER-INSTANCE VAT path (one GPU
+// thin-instance), frozen at an integer frame via ?seekTime. The instanced path computes
+//   finalWorld = instanceMatrix * mesh.world * skin
+// so with an IDENTITY instance matrix it equals the non-instanced scene-218 pose exactly — and therefore
+// must match the Babylon.js live-skeleton golden. This validates the instanced VAT shader (per-instance
+// frame read from the instance texture by @builtin(instance_index), the thin-instance world placement, and
+// the dual-clip blend path with blend=0) against ground truth — no skipParity.
 
 import {
     onBeforeRender,
@@ -13,20 +16,14 @@ import {
     createSceneContext,
     createDefaultCamera,
     createHemisphericLight,
-    createDirectionalLight,
-    createGround,
-    createPbrMaterial,
-    createSolidTexture2D,
-    createCsmDirectionalShadowGenerator,
-    setShadowTaskCasterMeshes,
     loadGltf,
     attachControl,
-    registerSceneWithShadowSupport,
+    registerScene,
     bakeVat,
     attachVat,
     setThinInstances,
 } from "babylon-lite";
-import type { TransformNode, Mesh, VatHandle } from "babylon-lite";
+import type { TransformNode, Mesh, VatHandle, VatClip } from "babylon-lite";
 
 /** Depth-first search for the first mesh in a node tree that carries a skeleton. */
 function findSkinned(node: TransformNode): Mesh | null {
@@ -43,12 +40,17 @@ function findSkinned(node: TransformNode): Mesh | null {
     return null;
 }
 
+/** Per-instance params for one instance frozen at clip-frame `frame` (fps 0 → static at that frame). */
+function frozenParams(swim: VatClip, frame: number): Float32Array {
+    return new Float32Array([swim.fromRow, swim.fromRow + swim.frameCount - 1, frame, 0]);
+}
+
 async function main(): Promise<void> {
     const __initStart = performance.now();
     const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
     const engine = await createEngine(canvas);
     const scene = createSceneContext(engine);
-    scene.clearColor = { r: 0.1, g: 0.12, b: 0.18, a: 1.0 };
+    scene.clearColor = { r: 0.14, g: 0.14, b: 0.16, a: 1.0 };
 
     const container = await loadGltf(engine, "https://models.babylonjs.com/shark.glb");
     addToScene(scene, container);
@@ -57,106 +59,57 @@ async function main(): Promise<void> {
     const mesh = findSkinned(root);
     const groups = container.animationGroups ?? [];
 
-    const GRID = 6;
-    const N = GRID * GRID;
-    const SPACING = 14;
     let handle: VatHandle | null = null;
-
+    let swim: VatClip | null = null;
     if (mesh && groups.length > 0) {
-        // Bake every clip BEFORE registerScene, then thin-instance the baked shark + give each instance its
-        // own phase. attachVat drops the live skeleton; setInstances selects the MSH_VAT_INSTANCED variant.
         const baked = bakeVat(engine, mesh, groups);
         handle = attachVat(engine, mesh, baked, "swimming");
+        swim = baked.clips["swimming"] ?? null;
 
-        // Grid of instance world matrices (column-major: scale on the diagonal, translation in column 3).
-        const matrices = new Float32Array(N * 16);
-        for (let i = 0; i < N; i++) {
-            const gx = (i % GRID) - (GRID - 1) / 2;
-            const gz = Math.floor(i / GRID) - (GRID - 1) / 2;
-            const o = i * 16;
-            matrices[o] = 1;
-            matrices[o + 5] = 1;
-            matrices[o + 10] = 1;
-            matrices[o + 15] = 1;
-            matrices[o + 12] = gx * SPACING;
-            matrices[o + 14] = gz * SPACING;
+        // ONE thin-instance at identity → the instanced VAT path runs, and finalWorld = mesh.world * skin
+        // (same as scene 218). setInstances BEFORE registerScene so the instance texture exists when the
+        // bind group is built.
+        const identity = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+        setThinInstances(mesh, identity, 1);
+        if (swim) {
+            handle.setInstances(frozenParams(swim, 0));
         }
-        setThinInstances(mesh, matrices, N);
-
-        // Per-instance DUAL-CLIP VAT: blend swimming<->circling, the blend weight sweeping across the grid
-        // columns (left column = pure swim, right = pure circle), each instance at its own phase. Proves
-        // smooth clip cross-fading under instancing — exactly what animal gait blending needs.
-        const swim = baked.clips["swimming"]!;
-        const circ = baked.clips["circling"] ?? swim;
-        const params = new Float32Array(N * 8);
-        for (let i = 0; i < N; i++) {
-            const col = i % GRID;
-            const blend = GRID > 1 ? col / (GRID - 1) : 0;
-            const offset = Math.random() * swim.frameCount;
-            const o = i * 8;
-            params[o + 0] = swim.fromRow;
-            params[o + 1] = swim.fromRow + swim.frameCount - 1;
-            params[o + 2] = offset;
-            params[o + 3] = swim.fps;
-            params[o + 4] = circ.fromRow;
-            params[o + 5] = circ.fromRow + circ.frameCount - 1;
-            params[o + 6] = blend;
-            params[o + 7] = circ.fps;
-        }
-        handle.setInstancesBlend(params);
-
-        canvas.dataset.instances = String(N);
         canvas.dataset.vatBones = String(baked.boneCount);
-        canvas.dataset.vatClips = Object.keys(baked.clips).join(",");
+        canvas.dataset.vatFrames = String(baked.frameCount);
     }
 
     const cam = createDefaultCamera(scene);
+    cam.alpha = 0; // side view, matching scene 218 / scene 11
+    cam.beta = Math.PI / 2.2;
     attachControl(cam, canvas, scene);
-    addToScene(scene, createHemisphericLight([0, 1, 0], 0.5));
+    addToScene(scene, createHemisphericLight([0, 1, 0], 1.0));
 
-    // A directional light + ESM shadow map, with the VAT-instanced shark registered as a CASTER, proves the
-    // VAT vertex path also runs in the shadow caster pass — so instanced animated meshes drop real shadows.
-    const sun = createDirectionalLight([-1, -2.2, -1]);
-    sun.position.set(40, 80, 40);
-    addToScene(scene, sun);
-
-    const ground = createGround(engine, { width: 400, height: 400, subdivisions: 1 });
-    ground.position.set(0, -6, 0);
-    ground.material = createPbrMaterial({
-        baseColorTexture: createSolidTexture2D(engine, 0.46, 0.5, 0.42),
-        ormTexture: createSolidTexture2D(engine, 1.0, 0.95, 0.0), // occlusion=1, roughness=0.95, metallic=0
-        usePhysicalLightFalloff: false,
-    });
-    ground.receiveShadows = true;
-    addToScene(scene, ground);
-
-    sun.shadowGenerator = createCsmDirectionalShadowGenerator(engine, sun, {
-        mapSize: 1024,
-        numCascades: 4,
-        lambda: 0.5,
-        cascadeBlendPercentage: 0.1,
-        bias: 0.00005,
-    });
-    if (mesh) {
-        setShadowTaskCasterMeshes(sun.shadowGenerator, [mesh]);
-    }
-
-    let last = performance.now();
+    // ?seekTime freezes the instance at the exact baked frame seekTime*60, matching the BJS live oracle.
+    const params = new URLSearchParams(window.location.search);
+    const seekTimeParam = parseFloat(params.get("seekTime") || "");
+    const freezing = !isNaN(seekTimeParam) && seekTimeParam >= 0;
     let frameCount = 0;
+    let seekDone = false;
+    let last = performance.now();
     onBeforeRender(scene, () => {
         frameCount++;
         canvas.dataset.frameCount = String(frameCount);
         const now = performance.now();
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
-        handle?.update(dt); // one shared clock advances the whole crowd; per-instance offsets stagger them
+        if (freezing) {
+            if (frameCount === 10 && !seekDone && handle && swim) {
+                handle.setInstances(frozenParams(swim, Math.round(seekTimeParam * 60)));
+                handle.update(0);
+                seekDone = true;
+                canvas.dataset.animationFrozen = "true";
+            }
+            return; // frozen pose — never advance the clock
+        }
+        handle?.update(dt);
     });
 
-    await registerSceneWithShadowSupport(engine, scene);
-    // Frame the whole grid (set after register so it isn't overridden by content auto-framing).
-    cam.alpha = 0.85;
-    cam.beta = 1.0;
-    cam.radius = GRID * SPACING * 1.7;
+    await registerScene(engine, scene);
     await startEngine(engine);
     canvas.dataset.drawCalls = String(engine.drawCallCount);
     canvas.dataset.initMs = String(performance.now() - __initStart);
