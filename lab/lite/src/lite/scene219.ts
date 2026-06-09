@@ -13,9 +13,15 @@ import {
     createSceneContext,
     createDefaultCamera,
     createHemisphericLight,
+    createDirectionalLight,
+    createGround,
+    createPbrMaterial,
+    createSolidTexture2D,
+    createCsmDirectionalShadowGenerator,
+    setShadowTaskCasterMeshes,
     loadGltf,
     attachControl,
-    registerScene,
+    registerSceneWithShadowSupport,
     bakeVat,
     attachVat,
     setThinInstances,
@@ -106,7 +112,34 @@ async function main(): Promise<void> {
 
     const cam = createDefaultCamera(scene);
     attachControl(cam, canvas, scene);
-    addToScene(scene, createHemisphericLight([0, 1, 0], 1.05));
+    addToScene(scene, createHemisphericLight([0, 1, 0], 0.5));
+
+    // A directional light + ESM shadow map, with the VAT-instanced shark registered as a CASTER, proves the
+    // VAT vertex path also runs in the shadow caster pass — so instanced animated meshes drop real shadows.
+    const sun = createDirectionalLight([-1, -2.2, -1]);
+    sun.position.set(40, 80, 40);
+    addToScene(scene, sun);
+
+    const ground = createGround(engine, { width: 400, height: 400, subdivisions: 1 });
+    ground.position.set(0, -6, 0);
+    ground.material = createPbrMaterial({
+        baseColorTexture: createSolidTexture2D(engine, 0.46, 0.5, 0.42),
+        ormTexture: createSolidTexture2D(engine, 1.0, 0.95, 0.0), // occlusion=1, roughness=0.95, metallic=0
+        usePhysicalLightFalloff: false,
+    });
+    ground.receiveShadows = true;
+    addToScene(scene, ground);
+
+    sun.shadowGenerator = createCsmDirectionalShadowGenerator(engine, sun, {
+        mapSize: 1024,
+        numCascades: 4,
+        lambda: 0.5,
+        cascadeBlendPercentage: 0.1,
+        bias: 0.00005,
+    });
+    if (mesh) {
+        setShadowTaskCasterMeshes(sun.shadowGenerator, [mesh]);
+    }
 
     let last = performance.now();
     let frameCount = 0;
@@ -119,8 +152,8 @@ async function main(): Promise<void> {
         handle?.update(dt); // one shared clock advances the whole crowd; per-instance offsets stagger them
     });
 
-    await registerScene(engine, scene);
-    // Frame the whole grid (set after registerScene so it isn't overridden by content auto-framing).
+    await registerSceneWithShadowSupport(engine, scene);
+    // Frame the whole grid (set after register so it isn't overridden by content auto-framing).
     cam.alpha = 0.85;
     cam.beta = 1.0;
     cam.radius = GRID * SPACING * 1.7;
