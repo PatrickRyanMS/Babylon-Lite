@@ -3,6 +3,8 @@ import type { Texture2D, Texture2DOptions } from "../texture/texture-2d.js";
 import { _setHpmAllocator } from "../math/_matrix-allocator.js";
 import type { RenderTarget } from "./render-target.js";
 import { createRenderTarget } from "./render-target.js";
+import { TU } from "./gpu-flags.js";
+import { _serviceCaptureQueue, _finishCapture } from "./screenshot.js";
 
 /** Babylon Lite version string. */
 export const VERSION = "0.1.0";
@@ -99,6 +101,11 @@ export interface EngineContext {
     _currentDelta: number;
     /** @internal */
     _cbs: GPUCommandBuffer[];
+
+    /** @internal Pending `captureScreenshot` requests. Serviced by `renderFrame` on the next
+     *  frame (one shared copy of the swapchain texture resolves all queued requests), then
+     *  cleared. Undefined when nothing is waiting so non-capturing frames pay nothing. */
+    _captureQueue?: { resolve: (s: import("./screenshot.js").Screenshot) => void; reject: (e: unknown) => void }[];
 
     /** @internal Per-frame floating-origin offset updater. Set when the engine
      *  was created with `useFloatingOrigin: true` (which requires
@@ -275,7 +282,10 @@ export async function createEngine(canvas: RenderCanvas, options?: EngineOptions
 
     const format = navigator.gpu.getPreferredCanvasFormat();
     const alphaMode: GPUCanvasAlphaMode = options?.alphaMode ?? "opaque";
-    context.configure({ device, format, alphaMode });
+    // COPY_SRC (on top of the implicit RENDER_ATTACHMENT) lets `captureScreenshot` copy the
+    // presented swapchain texture into a readback buffer — WebGPU canvases otherwise can't be
+    // read back (toDataURL returns black once the frame is presented).
+    context.configure({ device, format, alphaMode, usage: TU.RENDER_ATTACHMENT | TU.COPY_SRC });
 
     const versionToLog = `Babylon Lite v${VERSION}`;
     // eslint-disable-next-line no-console
@@ -498,7 +508,11 @@ export function renderFrame(engine: EngineContext, delta: number): void {
     }
 
     const finalEncoder = engine._currentEncoder;
+    const pendingCapture = engine._captureQueue ? _serviceCaptureQueue(engine, finalEncoder) : null;
     engine._cbs[0] = finalEncoder.finish();
     engine._device.queue.submit(engine._cbs);
     engine.drawCallCount = drawCalls;
+    if (pendingCapture) {
+        void _finishCapture(pendingCapture);
+    }
 }
