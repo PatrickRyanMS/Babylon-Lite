@@ -1,0 +1,52 @@
+# Weekly freshness check for the scene226 FBX parity goldens.
+#
+# Those goldens are pinned copies of Babylon.js's committed FBX visualization
+# reference images. This job re-diffs the pinned goldens against Babylon's CURRENT
+# images (master) so upstream rendering changes are surfaced instead of silently
+# going stale and letting Babylon Lite "pass" parity against an outdated baseline.
+#
+# It is intentionally separate from the deterministic parity suite (which pins the
+# local goldens). A detected drift fails the run, which surfaces the change. To
+# re-pin after reviewing, run `pnpm sync:fbx-goldens` locally and re-run parity.
+name: FBX Golden Drift Check
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # 09:00 UTC every Monday
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Babylon.js git ref to compare the pinned goldens against"
+        default: "master"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fbx-golden-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check FBX goldens for upstream drift
+        run: pnpm check:fbx-goldens -- --ref "${{ github.event.inputs.ref || 'master' }}"
