@@ -15,7 +15,7 @@ import { _computeStandardMaterialFeatures, _standardShaderVariantKey } from "./s
 import { acquireTexture, releaseTexture, clearSamplerCache } from "../../resource/gpu-pool.js";
 import { createUniformBuffer } from "../../resource/gpu-buffers.js";
 import { getOrCreateStandardBindings, getOrCreateStandardPipeline, createStandardMeshBindGroup, clearStandardPipelineCache, writeStdMaterialData } from "./standard-pipeline.js";
-import { ESM_SHADOW_OUTPUT, NO_COLOR_OUTPUT, NEEDS_UV, NEEDS_UV2, HAS_OPACITY_TEXTURE, _getStdExts } from "./standard-flags.js";
+import { ESM_SHADOW_OUTPUT, NO_COLOR_OUTPUT, NEEDS_UV, NEEDS_UV2, HAS_OPACITY_TEXTURE, HAS_VERTEX_COLOR, _getStdExts } from "./standard-flags.js";
 import type { ShaderFragment } from "../../shader/fragment-types.js";
 import type { ShadowGenerator } from "../../shadow/shadow-generator.js";
 import { writeMeshLightSelection } from "../../render/lights-ubo.js";
@@ -73,8 +73,13 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
         const mat = (materialOverride ?? mesh.material) as StandardMaterialProps;
         const renderFeatures = (mat._renderFeatures ??= { features: _computeStandardMaterialFeatures(mat) }) as MaterialRenderFeatures;
         const isOverride = materialOverride != null;
-        const features = renderFeatures.features;
-        const shadowOutput = (features & (NO_COLOR_OUTPUT | ESM_SHADOW_OUTPUT)) !== 0;
+        const shadowOutput = (renderFeatures.features & (NO_COLOR_OUTPUT | ESM_SHADOW_OUTPUT)) !== 0;
+        // Per-vertex color is gated by a feature bit OR'd into a *local* copy of the cached
+        // material features (never mutate `renderFeatures.features`). Because this bit is both
+        // the pipeline cache key and the StdExt loop gate below, the composed shader and the
+        // key stay consistent with no extra masking. Suppressed for shadow/depth passes.
+        const hasVColor = !shadowOutput && !!mesh._gpu.colorBuffer;
+        const features = renderFeatures.features | (hasVColor ? HAS_VERTEX_COLOR : 0);
         const receiveShadows = !shadowOutput && mesh.receiveShadows && hasSomeShadows;
         const meshFeatures = _computeMeshFeatures(mesh, receiveShadows);
         // Build per-feature fragment list (deduped via pipeline cache).
@@ -210,6 +215,9 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
             }
             if (needsUV2 && g.uv2Buffer) {
                 pass.setVertexBuffer(slot++, g.uv2Buffer, vb?._u2?._offset);
+            }
+            if (hasVColor && g.colorBuffer) {
+                pass.setVertexBuffer(slot++, g.colorBuffer, vb?._c?._offset);
             }
 
             const ti = hasThinInstances ? mesh.thinInstances : null;

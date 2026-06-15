@@ -217,6 +217,7 @@ export { createTransformNode, cloneTransformNode } from "./scene/transform-node.
 export type { TransformNode } from "./scene/transform-node.js";
 export type { SceneNode } from "./scene/scene-node.js";
 export { loadBabylon } from "./loader-babylon/load-babylon.js";
+export { loadFbx } from "./loader-fbx/load-fbx.js";
 export { loadEnvironment } from "./loader-env/load-env.js";
 export { loadHdrEnvironment } from "./loader-hdr/load-hdr.js";
 export { loadTexture2D, cloneTexture2D } from "./texture/texture-2d.js";

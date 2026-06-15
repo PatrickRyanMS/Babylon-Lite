@@ -57,6 +57,12 @@ export const standardGroupBuilder: MeshGroupBuilder = async (scene, meshes) => {
             })
         );
     }
+    if (meshes.some((m) => !!m._gpu?.colorBuffer)) {
+        // Per-vertex color is wired as a plain StdExt (gated on HAS_VERTEX_COLOR) so it
+        // reuses the shared ext-composition loop in standard-renderable — no bespoke
+        // factory plumbing in the always-loaded path.
+        imports.push(import("./fragments/std-vertex-color-fragment.js").then((mod) => _registerStdExt(mod.stdVertexColorExt)));
+    }
     for (const [prop, load, key] of _STD_MAT_EXTS) {
         if (meshes.some((m) => !!(m.material as any)[prop])) {
             imports.push(load().then((mod) => _registerStdExt(mod[key])));

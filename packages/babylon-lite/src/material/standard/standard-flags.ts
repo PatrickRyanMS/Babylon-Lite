@@ -25,6 +25,10 @@ export const NO_COLOR_OUTPUT = 1 << 18;
 export const HAS_DEPTH_EMISSIVE_TEXTURE = 1 << 19;
 export const ESM_SHADOW_OUTPUT = 1 << 20;
 export const GEOMETRY_OUTPUT = 1 << 21;
+/** Mesh has per-vertex RGB colors. Driven off the mesh's color buffer (not a material
+ *  property), OR'd into the local feature bitmask for non-shadow colored meshes so the
+ *  shared StdExt loop composes the vertex-color fragment and keys the pipeline correctly. */
+export const HAS_VERTEX_COLOR = 1 << 22;
 
 // ─── Standard Material Extension Registry ───────────────────────────
 

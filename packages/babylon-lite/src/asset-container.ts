@@ -2,6 +2,7 @@ import type { SceneNode } from "./scene/scene-node.js";
 import type { LightBase } from "./light/types.js";
 import type { AnimationGroup } from "./animation/animation-group.js";
 import type { MaterialVariantData } from "./loader-gltf/material-variants.js";
+import type { FbxSkeletonBinding } from "./loader-fbx/fbx-skeleton-build.js";
 
 /**
  * Result returned by loadGltf / loadBabylon.
@@ -24,4 +25,8 @@ export interface AssetContainer {
     /** KHR_xmp_json_ld metadata. `packets` are the JSON-LD packets declared at the
      *  document level; `assetPacket` is the packet referenced by `asset` (if any). */
     xmpMetadata?: { packets: unknown[]; assetPacket?: unknown };
+    /** @internal FBX skeletal bindings produced by the skeleton-build pass and
+     *  consumed by the FBX animation builder (Phase 7b) to drive bones per frame.
+     *  Not part of the public API — trimmed from the published type surface. */
+    _fbxSkeletonBindings?: readonly FbxSkeletonBinding[];
 }
