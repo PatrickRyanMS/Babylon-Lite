@@ -11,7 +11,6 @@
  */
 
 import type { ShaderTemplate, UboField, VertexAttribute, Varying, BindingDecl } from "../../shader/fragment-types.js";
-import { WGSL_FOG } from "../../shader/wgsl-fog.js";
 import { MAX_LIGHTS } from "../../light/types.js";
 import { appendMeshLightUboFields, meshLightIndexWGSL } from "../../render/lights-ubo.js";
 
@@ -63,10 +62,18 @@ export interface StandardTemplateConfig {
     readonly _diffuseUsesUV2?: boolean;
     /** @internal Disable lighting (unlit material) */
     readonly _disableLighting?: boolean;
+    /** @internal Morph targets active — vertex shader reads morphedPos/morphedNorm (defined by the morph fragment's VR slot). */
+    readonly _hasMorph?: boolean;
     /** @internal Generate a fragment stage that runs discard/alpha-test logic and writes no color. */
     readonly _noColorOutput?: boolean;
     /** @internal Generate a fragment stage that runs discard/alpha-test logic and writes ESM shadow color. */
     readonly _esmShadowOutput?: boolean;
+    /** @internal Scene has fog — emit the fog varying (`vf`), helper, and blend block. */
+    readonly _hasFog?: boolean;
+    /** @internal Fog `calcFogFactor` helper WGSL (passed in from `std-fog-wgsl`; only present when `_hasFog`). */
+    readonly _fogHelper?: string;
+    /** @internal Fog blend block WGSL (passed in from `std-fog-wgsl`; only present when `_hasFog`). */
+    readonly _fogBlock?: string;
 }
 
 /**
@@ -74,7 +81,7 @@ export interface StandardTemplateConfig {
  * The template contains slot markers that the composer fills.
  */
 export function createStandardTemplate(config: StandardTemplateConfig, esmShadowDepthCode = ""): ShaderTemplate {
-    const { _diffuse, _needsUV, _needsUV2, _diffuseUsesUV2, _disableLighting, _noColorOutput, _esmShadowOutput } = config;
+    const { _diffuse, _needsUV, _needsUV2, _diffuseUsesUV2, _disableLighting, _hasMorph, _noColorOutput, _esmShadowOutput, _hasFog } = config;
 
     // ── Base vertex attributes ──────────────────────────────────
     const _baseVertexAttributes: VertexAttribute[] = [
@@ -89,11 +96,14 @@ export function createStandardTemplate(config: StandardTemplateConfig, esmShadow
     }
 
     // ── Base varyings ───────────────────────────────────────────
+    // `vf` (camera view-space position) is fog-only — emitted only when the scene has fog.
     const _baseVaryings: Varying[] = [
         { _name: "vp", _type: "vec3<f32>" },
         { _name: "vn", _type: "vec3<f32>" },
-        { _name: "vf", _type: "vec3<f32>" },
     ];
+    if (_hasFog) {
+        _baseVaryings.push({ _name: "vf", _type: "vec3<f32>" });
+    }
     if (_needsUV) {
         _baseVaryings.push({ _name: "vu", _type: "vec2<f32>" });
     }
@@ -137,8 +147,17 @@ export function createStandardTemplate(config: StandardTemplateConfig, esmShadow
 
     const uv2Passthrough = _needsUV2 ? `out.vv = uv2;` : "";
 
+    // Camera view-space position — fog-only varying, emitted only when the scene has fog.
+    const vfPassthrough = _hasFog ? `out.vf = (scene.view * worldPos4).xyz;` : "";
+
     // Vertex UBO struct definitions (must be before binding declarations)
     const vertexUboStructs = _needsUV ? `struct upUniforms { u: vec4<f32>, }` : "";
+
+    // When morph targets are active, the morph fragment's VR slot defines
+    // morphedPos/morphedNorm; the base template uses those instead of the raw
+    // vertex attributes (mirrors pbr-template.ts). Non-morph output is byte-identical.
+    const posVar = _hasMorph ? "morphedPos" : "position";
+    const normVar = _hasMorph ? "morphedNorm" : "normal";
 
     const _vertexTemplate = `/*SU*/
 /*MU*/
@@ -154,12 +173,12 @@ var out: VertexOutput;
 /*VR*/
 var finalWorld = mesh.world;
 /*VW*/
-let worldPos4 = finalWorld * vec4<f32>(position, 1.0);
+let worldPos4 = finalWorld * vec4<f32>(${posVar}, 1.0);
 out.vp = worldPos4.xyz;
 let normalWorld = mat3x3<f32>(finalWorld[0].xyz, finalWorld[1].xyz, finalWorld[2].xyz);
-out.vn = normalize(normalWorld * normal);
+out.vn = normalize(normalWorld * ${normVar});
 out.clipPos = scene.viewProjection * worldPos4;
-out.vf = (scene.view * worldPos4).xyz;
+${vfPassthrough}
 ${uvPassthrough}
 ${uv2Passthrough}
 /*VB*/
@@ -193,7 +212,11 @@ _1: f32,
 };
 `;
 
-    const helpers = _disableLighting ? WGSL_FOG : WGSL_FOG + LIGHTING_FN;
+    // Lighting + fog helpers. Fog helper (`calcFogFactor`) is passed in from `std-fog-wgsl`
+    // (dynamic-imported only when the scene has fog), so non-fog Standard scenes emit zero fog
+    // bytes. Helper declaration order between LIGHTING_FN and the fog helper is irrelevant
+    // (neither calls the other; both precede `main`).
+    const helpers = (_disableLighting ? "" : LIGHTING_FN) + (_hasFog ? (config._fogHelper ?? "") : "");
     // reflection, shadow, bump helpers are provided by their respective fragments
 
     // Main fragment body — mirrors old composeFragmentShader exactly
@@ -273,10 +296,7 @@ ${_noColorOutput ? "return;" : _esmShadowOutput ? esmShadowDepthCode : ""}
 ${lightingBlock}
 /*BC*/
 color = vec4<f32>(max(color.rgb, vec3<f32>(0.0)), color.a);
-if (scene.vFogInfos.x > 0.0) {
-let fog = calcFogFactor(input.vf);
-color = vec4<f32>(mix(scene.vFogColor.rgb, color.rgb, fog), color.a);
-}
+${_hasFog ? (config._fogBlock ?? "") : ""}
 /*BA*/
 ${_noColorOutput ? "" : "return color;"}
 }`;

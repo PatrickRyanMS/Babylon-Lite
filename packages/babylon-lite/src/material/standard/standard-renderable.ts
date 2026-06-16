@@ -15,12 +15,12 @@ import { _computeStandardMaterialFeatures, _standardShaderVariantKey } from "./s
 import { acquireTexture, releaseTexture, clearSamplerCache } from "../../resource/gpu-pool.js";
 import { createUniformBuffer } from "../../resource/gpu-buffers.js";
 import { getOrCreateStandardBindings, getOrCreateStandardPipeline, createStandardMeshBindGroup, clearStandardPipelineCache, writeStdMaterialData } from "./standard-pipeline.js";
-import { ESM_SHADOW_OUTPUT, NO_COLOR_OUTPUT, NEEDS_UV, NEEDS_UV2, HAS_OPACITY_TEXTURE, HAS_VERTEX_COLOR, _getStdExts } from "./standard-flags.js";
+import { ESM_SHADOW_OUTPUT, NO_COLOR_OUTPUT, NEEDS_UV, NEEDS_UV2, HAS_OPACITY_TEXTURE, HAS_VERTEX_COLOR, HAS_MORPH_TARGETS, SCENE_HAS_FOG, _getStdExts } from "./standard-flags.js";
 import type { ShaderFragment } from "../../shader/fragment-types.js";
 import type { ShadowGenerator } from "../../shadow/shadow-generator.js";
 import { writeMeshLightSelection } from "../../render/lights-ubo.js";
 import type { Material, MaterialRenderFeatures } from "../material.js";
-import { _computeMeshFeatures, MSH_HAS_INSTANCE_COLOR, MSH_HAS_THIN_INSTANCES, MSH_RECEIVE_SHADOWS } from "../mesh-features.js";
+import { _computeMeshFeatures, MSH_HAS_INSTANCE_COLOR, MSH_HAS_MORPH_TARGETS, MSH_HAS_THIN_INSTANCES, MSH_RECEIVE_SHADOWS } from "../mesh-features.js";
 import { packMat4IntoF32 } from "../../math/pack-mat4-into-f32.js";
 
 /** Scratch buffer for material UBO writes (24 floats = 96 bytes). Reused across
@@ -44,6 +44,10 @@ export interface StdFragmentFactories {
     shadowFragment?: (shadowLights: import("./fragments/std-shadow-fragment.js").ShadowLightSlot[]) => ShaderFragment;
     /** Present only when the scene has at least one culling-enabled thin-instance mesh. */
     cull?: typeof import("../../mesh/thin-instance-cull-binding.js");
+    /** `calcFogFactor` helper WGSL — non-empty only when `scene.fog` (dynamic-imported from std-fog-wgsl). */
+    fogHelper?: string;
+    /** Fog blend block WGSL — non-empty only when `scene.fog`. */
+    fogBlock?: string;
 }
 
 /** Build Renderable(s) + a SceneUniformUpdater for a set of standard meshes.
@@ -53,6 +57,12 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
     const engine = scene.surface.engine;
     const device = engine._device;
     const { tiSync, tiFragment, shadowFragment, cull } = factories;
+    // Fog WGSL strings (empty unless the scene has fog). Threaded into the compose call on a
+    // cache miss; `hasFog` ORs SCENE_HAS_FOG into the per-mesh feature mask so the template
+    // emits the fog varying/helper/block and the pipeline cache key stays fog-distinct.
+    const fogHelper = factories.fogHelper ?? "";
+    const fogBlock = factories.fogBlock ?? "";
+    const hasFog = !!scene.fog;
 
     // Collect per-light shadow info.
     const shadowLights: { lightIndex: number; shadowType: "esm" | "pcf" | "csm"; gen: ShadowGenerator }[] = [];
@@ -74,15 +84,24 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
         const renderFeatures = (mat._renderFeatures ??= { features: _computeStandardMaterialFeatures(mat) }) as MaterialRenderFeatures;
         const isOverride = materialOverride != null;
         const shadowOutput = (renderFeatures.features & (NO_COLOR_OUTPUT | ESM_SHADOW_OUTPUT)) !== 0;
-        // Per-vertex color is gated by a feature bit OR'd into a *local* copy of the cached
-        // material features (never mutate `renderFeatures.features`). Because this bit is both
-        // the pipeline cache key and the StdExt loop gate below, the composed shader and the
-        // key stay consistent with no extra masking. Suppressed for shadow/depth passes.
-        const hasVColor = !shadowOutput && !!mesh._gpu.colorBuffer;
-        const features = renderFeatures.features | (hasVColor ? HAS_VERTEX_COLOR : 0);
         const receiveShadows = !shadowOutput && mesh.receiveShadows && hasSomeShadows;
         const meshFeatures = _computeMeshFeatures(mesh, receiveShadows);
-        // Build per-feature fragment list (deduped via pipeline cache).
+        // Per-vertex color and morph targets are mesh-driven features OR'd into a *local* copy
+        // of the cached material features (never mutate `renderFeatures.features`). Each bit is
+        // both the pipeline cache key and the StdExt loop gate below, so the composed shader and
+        // the key stay consistent with no extra masking. Both are suppressed for shadow/depth
+        // passes (shadow-pass morph not yet wired; m10/m13 don't cast shadows).
+        const hasVColor = !shadowOutput && !!mesh._gpu.colorBuffer;
+        const hasMorph = !shadowOutput && (meshFeatures & MSH_HAS_MORPH_TARGETS) !== 0;
+        // Fog is a scene-driven feature OR'd into the *local* feature mask (never mutate the cached
+        // `renderFeatures.features`), exactly like the morph/vertex-color bits. Suppressed for
+        // shadow/depth passes (they emit no color). The bit both keys the pipeline cache and gates
+        // the template's fog varying/helper/block — keeping the composed shader and key consistent.
+        const meshHasFog = hasFog && !shadowOutput;
+        const features = renderFeatures.features | (hasVColor ? HAS_VERTEX_COLOR : 0) | (hasMorph ? HAS_MORPH_TARGETS : 0) | (meshHasFog ? SCENE_HAS_FOG : 0);
+        // Build per-feature fragment list (deduped via pipeline cache). The morph ext (gated on
+        // HAS_MORPH_TARGETS) composes its vertex-stage fragment here; `composeStandardShader`
+        // derives `_hasMorph` from fragment presence, keeping geometry/depth paths safe.
         const frags: ShaderFragment[] = [];
         for (const ext of _getStdExts().values()) {
             if (features & ext._feature) {
@@ -115,7 +134,7 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
             }
         }
         const esmShadowDepthCode = (features & ESM_SHADOW_OUTPUT) !== 0 ? (mat as StandardMaterialProps & { readonly _esmShadowDepthCode: string })._esmShadowDepthCode : "";
-        const bindings = getOrCreateStandardBindings(engine, features, meshFeatures, frags, shaderKey, esmShadowDepthCode);
+        const bindings = getOrCreateStandardBindings(engine, features, meshFeatures, frags, shaderKey, esmShadowDepthCode, fogHelper, fogBlock);
 
         const meshShadowGens = receiveShadows ? shadowLights.map((sl) => sl.gen) : [];
 
@@ -128,7 +147,7 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
         const matData = new F32(24);
         writeStdMaterialData(matData, mat, textureLevel);
         const materialUBO = createUniformBuffer(engine, matData);
-        const meshBindGroup = createStandardMeshBindGroup(engine, bindings, meshUBO, materialUBO, mat);
+        const meshBindGroup = createStandardMeshBindGroup(engine, bindings, meshUBO, materialUBO, mat, mesh);
 
         // Shadow bind group (group 2) — shared across receiving meshes via shadowBGCache.
         let shadowBindGroup: GPUBindGroup | null = null;

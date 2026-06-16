@@ -32,12 +32,12 @@ const MAD_OVERRIDES: Record<string, { maxMad: number; reason: string }> = {
     m01_cube_phong: { maxMad: 6, reason: "lighting/framing residual" },
     // uvTranslation offset (0.15,0): Lite StandardMaterial has uvScale only (no uOffset/uAng).
     m06_uv_transform: { maxMad: 8, reason: "StandardMaterial has no uOffset/uAng (engine gap)" },
-    // Skin/morph deformation needs the shelved Standard-pipeline deform engine patch; without
-    // it these render at rest/base pose (still track close — deformations are modest).
+    // Morph deformation is active in Standard (m10/m13). Skinning (m09/m12) still renders at
+    // bind pose until the Standard skeleton path lands (next round).
     m09_skinning: { maxMad: 4, reason: "deform engine patch pending — renders at bind pose" },
-    m10_morph: { maxMad: 5, reason: "deform engine patch pending — renders at base pose" },
+    m10_morph: { maxMad: 1.0, reason: "morph deformation active; minor residual vs WebGL golden" },
     m12_skeletal_anim: { maxMad: 5, reason: "deform engine patch pending — renders at bind pose" },
-    m13_morph_anim: { maxMad: 5, reason: "deform engine patch pending — renders at base pose" },
+    m13_morph_anim: { maxMad: 1.2, reason: "morph deformation active; minor residual vs WebGL golden" },
 };
 
 const MODELS = [

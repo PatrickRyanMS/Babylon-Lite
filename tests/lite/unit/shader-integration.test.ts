@@ -14,9 +14,15 @@ import { createSheenFragment } from "../../../packages/babylon-lite/src/material
 import { createIblFragment } from "../../../packages/babylon-lite/src/material/pbr/fragments/ibl-fragment";
 import { createSkeletonFragment } from "../../../packages/babylon-lite/src/material/pbr/fragments/skeleton-fragment";
 import { createMorphFragment } from "../../../packages/babylon-lite/src/material/pbr/fragments/morph-fragment";
+import { createMorphFragment as createSharedMorphFragment } from "../../../packages/babylon-lite/src/shader/fragments/morph-fragment";
+import { composeStandardShader } from "../../../packages/babylon-lite/src/material/standard/standard-pipeline";
+import { stdMorphExt } from "../../../packages/babylon-lite/src/material/standard/fragments/std-morph-fragment";
+import { HAS_DIFFUSE_TEXTURE } from "../../../packages/babylon-lite/src/material/standard/standard-flags";
+import { MSH_HAS_MORPH_TARGETS } from "../../../packages/babylon-lite/src/material/mesh-features";
 import { createThinInstanceFragment } from "../../../packages/babylon-lite/src/shader/fragments/thin-instance-fragment";
 import { createPbrShadowFragment } from "../../../packages/babylon-lite/src/material/pbr/fragments/pbr-shadow-fragment";
 import { createNormalMapFragment } from "../../../packages/babylon-lite/src/material/standard/fragments/normal-map-fragment";
+import { STD_FOG_HELPER, STD_FOG_BLOCK } from "../../../packages/babylon-lite/src/material/standard/std-fog-wgsl";
 import type { PbrTemplateConfig } from "../../../packages/babylon-lite/src/material/pbr/pbr-template";
 
 const defaultPbrConfig: PbrTemplateConfig = {
@@ -148,6 +154,16 @@ describe("PBR template + fragments integration", () => {
         expect(result._vertexWGSL).toContain("morphedNorm");
         expect(result._vertexWGSL).toContain("readMatrixFromRawSampler");
         expect(result._fragmentKey).toBe("morph|skeleton");
+        // Regression guard (scenes 64/66/114/140): PBR morph uses the default ("vertex")
+        // binding style, so its texture + weights UBO land immediately after the mesh UBO (0)
+        // and material UBO (1) — at bindings 2 and 3 — BEFORE any base material bindings.
+        expect(result._vertexWGSL).toContain("@group(1)@binding(2) var morphTargets:texture_2d<f32>");
+        expect(result._vertexWGSL).toContain("@group(1)@binding(3) var<uniform> morph:morphUniforms");
+        const bgl = result._meshBGLDescriptor.entries as unknown as GPUBindGroupLayoutEntry[];
+        const morphTex = bgl.find((e) => e.binding === 2)!;
+        const morphUbo = bgl.find((e) => e.binding === 3)!;
+        expect(morphTex.texture).toBeDefined();
+        expect(morphUbo.buffer).toBeDefined();
     });
 
     it("composes PBR + thin instance + instance color", () => {
@@ -219,7 +235,9 @@ describe("Standard template + fragments integration", () => {
         expect(result._vertexWGSL).toContain("@vertex fn main");
         expect(result._vertexWGSL).toContain("var finalWorld = mesh.world;");
         expect(result._fragmentWGSL).toContain("@fragment fn main");
-        expect(result._fragmentWGSL).toContain("calcFogFactor");
+        // Fog is compile-time gated: with no _hasFog, the template emits no fog helper/varying/block.
+        expect(result._fragmentWGSL).not.toContain("calcFogFactor");
+        expect(result._vertexWGSL).not.toContain("out.vf");
     });
 
     it("composes Standard + diffuse texture", () => {
@@ -252,9 +270,56 @@ describe("Standard template + fragments integration", () => {
             _diffuse: true,
             _needsUV: true,
             _needsUV2: false,
+            _hasFog: true,
+            _fogHelper: STD_FOG_HELPER,
+            _fogBlock: STD_FOG_BLOCK,
         });
         const result = composeShader(template, [createNormalMapFragment()]);
         expect(result._fragmentWGSL).toContain("perturbNormal");
+        // Fog enabled → helper, varying, and blend block are all emitted.
         expect(result._fragmentWGSL).toContain("calcFogFactor");
+        expect(result._vertexWGSL).toContain("out.vf");
+    });
+
+    it("composes Standard + morph targets via fragment-presence gating", () => {
+        // With the (shared) morph fragment present, the vertex shader must read
+        // morphedPos/morphedNorm and bind the morph texture + weights UBO.
+        const withMorph = composeStandardShader(0, MSH_HAS_MORPH_TARGETS, [createSharedMorphFragment()]);
+        expect(withMorph._vertexWGSL).toContain("morphedPos");
+        expect(withMorph._vertexWGSL).toContain("morphedNorm");
+        expect(withMorph._vertexWGSL).toContain("var morphTargets:texture_2d<f32>");
+        expect(withMorph._fragmentKey).toBe("morph");
+
+        // Carrying the mesh-feature bit WITHOUT the fragment (geometry/depth path)
+        // must NOT emit morphedPos — otherwise it would reference an undefined symbol.
+        const noMorph = composeStandardShader(0, MSH_HAS_MORPH_TARGETS, []);
+        expect(noMorph._vertexWGSL).not.toContain("morphedPos");
+        expect(noMorph._vertexWGSL).toContain("vec4<f32>(position, 1.0)");
+    });
+
+    it("Standard morph ext binds its group-1 resources AFTER mat/diffuse/up", () => {
+        // The Standard path wires morph as a StdExt using the "afterBase" binding style, so the
+        // morph texture + weights UBO land at the END of group 1 — after mat (1), diffuse dT/dS
+        // (2/3) and the UV-transform UBO `up` (4) — where the trailing ext-bind loop runs.
+        const frag = stdMorphExt._frag(HAS_DIFFUSE_TEXTURE | MSH_HAS_MORPH_TARGETS);
+        const result = composeStandardShader(HAS_DIFFUSE_TEXTURE, MSH_HAS_MORPH_TARGETS, [frag]);
+        // Base bindings occupy 0..4 (mesh UBO, mat, dT, dS, up); morph follows at 5/6.
+        expect(result._fragmentWGSL).toContain("@group(1)@binding(1) var<uniform> mat:matUniforms");
+        expect(result._fragmentWGSL).toContain("@group(1)@binding(2) var dT:texture_2d<f32>");
+        expect(result._vertexWGSL).toContain("@group(1)@binding(4) var<uniform> up:upUniforms");
+        expect(result._vertexWGSL).toContain("@group(1)@binding(5) var morphTargets:texture_2d<f32>");
+        expect(result._vertexWGSL).toContain("@group(1)@binding(6) var<uniform> morph:morphUniforms");
+        // WGSL @binding numbers must match the BGL entry types: 5 = texture, 6 = uniform buffer.
+        const bgl = result._meshBGLDescriptor.entries as unknown as GPUBindGroupLayoutEntry[];
+        expect(bgl.find((e) => e.binding === 5)!.texture).toBeDefined();
+        expect(bgl.find((e) => e.binding === 6)!.buffer).toBeDefined();
+
+        // The ext's _bind push order must match the BGL: texture first (5), weights UBO next (6).
+        const entries: GPUBindGroupEntry[] = [];
+        const fakeMesh = { morphTargets: { texture: { createView: () => "VIEW" }, weightsBuffer: "BUF" } };
+        const nextB = stdMorphExt._bind!({} as never, entries, 5, fakeMesh as never);
+        expect(nextB).toBe(7);
+        expect(entries[0]).toEqual({ binding: 5, resource: "VIEW" });
+        expect(entries[1]).toEqual({ binding: 6, resource: { buffer: "BUF" } });
     });
 });

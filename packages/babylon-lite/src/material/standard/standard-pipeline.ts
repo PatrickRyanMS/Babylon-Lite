@@ -32,9 +32,11 @@ import {
     NEEDS_UV2,
     NO_COLOR_OUTPUT,
     ESM_SHADOW_OUTPUT,
+    SCENE_HAS_FOG,
     _getStdExtsSorted,
 } from "./standard-flags.js";
 import { MSH_RECEIVE_SHADOWS } from "../mesh-features.js";
+import type { Mesh } from "../../mesh/mesh.js";
 
 // ─── Composer Path (Phase 1) ────────────────────────────────────────
 // Converts feature bitmask → StandardTemplateConfig → ComposedShader.
@@ -42,9 +44,28 @@ import { MSH_RECEIVE_SHADOWS } from "../mesh-features.js";
 // the generic composer, enabling fragment-based extensions in Phase 2.
 
 /** Compose Standard shader via the generic ShaderComposer.
- *  @param fragments - Optional extra fragments (e.g. thin-instance). */
-export function composeStandardShader(features: number, _meshFeatures = 0, fragments: ShaderFragment[] = [], esmShadowDepthCode = ""): ComposedShader {
+ *  @param fragments - Optional extra fragments (e.g. thin-instance).
+ *  @param fogHelper - `calcFogFactor` helper WGSL, supplied (non-empty) only when the scene
+ *      has fog (SCENE_HAS_FOG set). Threaded in from `std-fog-wgsl` so non-fog scenes bundle
+ *      zero fog bytes. Only consulted on a cache miss when composing.
+ *  @param fogBlock - Fog blend block WGSL, supplied alongside `fogHelper`. */
+export function composeStandardShader(
+    features: number,
+    _meshFeatures = 0,
+    fragments: ShaderFragment[] = [],
+    esmShadowDepthCode = "",
+    fogHelper = "",
+    fogBlock = ""
+): ComposedShader {
     const has = (bit: number) => (features & bit) !== 0;
+    // Derive morph state from FRAGMENT PRESENCE, not the mesh-feature bit: the
+    // geometry-output/depth paths carry MSH_HAS_MORPH_TARGETS but compose their
+    // own fragment list WITHOUT the morph fragment. Gating on the bit alone would
+    // make the template emit morphedPos/morphedNorm with nothing defining them.
+    const _hasMorph = fragments.some((f) => f._id === "morph");
+    // Fog is keyed off the SCENE_HAS_FOG bit so the template gate stays consistent with the
+    // pipeline cache key (which hashes the full feature bitmask).
+    const _hasFog = has(SCENE_HAS_FOG);
     const template = createStandardTemplate(
         {
             _diffuse: has(HAS_DIFFUSE_TEXTURE),
@@ -52,8 +73,12 @@ export function composeStandardShader(features: number, _meshFeatures = 0, fragm
             _needsUV2: has(NEEDS_UV2),
             _diffuseUsesUV2: has(DIFFUSE_USES_UV2),
             _disableLighting: has(DISABLE_LIGHTING),
+            _hasMorph,
             _noColorOutput: has(NO_COLOR_OUTPUT),
             _esmShadowOutput: has(ESM_SHADOW_OUTPUT),
+            _hasFog,
+            _fogHelper: fogHelper,
+            _fogBlock: fogBlock,
         },
         esmShadowDepthCode
     );
@@ -120,7 +145,9 @@ export function getOrCreateStandardBindings(
     meshFeatures: number,
     fragments: ShaderFragment[] = [],
     shaderKey = "",
-    esmShadowDepthCode = ""
+    esmShadowDepthCode = "",
+    fogHelper = "",
+    fogBlock = ""
 ): StandardShaderBindings {
     ensureDevice(engine);
     const key = _standardFeatureKey(features, meshFeatures, shaderKey);
@@ -132,7 +159,7 @@ export function getOrCreateStandardBindings(
     const cc = getComposedCache();
     let composed = cc.get(key);
     if (!composed) {
-        composed = composeStandardShader(features, meshFeatures, fragments, esmShadowDepthCode);
+        composed = composeStandardShader(features, meshFeatures, fragments, esmShadowDepthCode, fogHelper, fogBlock);
         cc.set(key, composed);
     }
 
@@ -223,7 +250,8 @@ export function createStandardMeshBindGroup(
     bindings: StandardShaderBindings,
     meshUBO: GPUBuffer,
     materialUBO: GPUBuffer,
-    material: StandardMaterialProps
+    material: StandardMaterialProps,
+    mesh: Mesh
 ): GPUBindGroup {
     const device = engine._device;
     const features = bindings._features;
@@ -233,10 +261,9 @@ export function createStandardMeshBindGroup(
 
     // Sequential numbering matches composer output.
     let nextBinding = 0;
-    const entries: GPUBindGroupEntry[] = [
-        { binding: nextBinding++, resource: { buffer: meshUBO } },
-        { binding: nextBinding++, resource: { buffer: materialUBO } },
-    ];
+    const entries: GPUBindGroupEntry[] = [{ binding: nextBinding++, resource: { buffer: meshUBO } }];
+
+    entries.push({ binding: nextBinding++, resource: { buffer: materialUBO } });
 
     if (hasDiffuseTex) {
         const tex = material.diffuseTexture!;
@@ -270,11 +297,12 @@ export function createStandardMeshBindGroup(
     }
 
     // Fragment-contributed bindings — iterate ext registry in alphabetical id order
-    // to match composer's fragment sort order.
+    // to match composer's fragment sort order. `mesh` is forwarded for mesh-driven exts
+    // (e.g. morph texture + weights); texture exts ignore it.
     const sortedExts = _getStdExtsSorted();
     for (const ext of sortedExts) {
         if (features & ext._feature && ext._bind) {
-            nextBinding = ext._bind(material, entries, nextBinding);
+            nextBinding = ext._bind(material, entries, nextBinding, mesh);
         }
     }
 

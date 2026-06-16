@@ -331,13 +331,7 @@ function _ensureViewResources(view: StandardGeometryMaterialView, engine: Engine
     return res;
 }
 
-function _createGeometryMeshBindGroup(
-    engine: EngineContext,
-    view: StandardGeometryMaterialView,
-    res: StandardGeometryViewResources,
-    _mesh: Mesh,
-    meshUBO: GPUBuffer
-): GPUBindGroup {
+function _createGeometryMeshBindGroup(engine: EngineContext, view: StandardGeometryMaterialView, res: StandardGeometryViewResources, mesh: Mesh, meshUBO: GPUBuffer): GPUBindGroup {
     const source = view.source as StandardMaterialProps;
     const features = res._features;
     let nextBinding = 0;
@@ -354,7 +348,10 @@ function _createGeometryMeshBindGroup(
     }
     for (const used of res._extFragments) {
         if (used._ext._bind) {
-            nextBinding = used._ext._bind(source, entries, nextBinding);
+            // Geometry-output features never OR in HAS_MORPH_TARGETS, so the morph ext is never
+            // in `_extFragments` here; `mesh` is forwarded only for signature parity (texture
+            // exts ignore it).
+            nextBinding = used._ext._bind(source, entries, nextBinding, mesh);
         }
     }
     // Geometry-params `gp` UBO is contributed by the geometry composer as the

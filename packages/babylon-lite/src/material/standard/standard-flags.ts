@@ -1,5 +1,6 @@
 import type { ShaderFragment } from "../../shader/fragment-types.js";
 import type { Texture2D } from "../../texture/texture-2d.js";
+import type { Mesh } from "../../mesh/mesh.js";
 import type { StandardMaterialProps } from "./standard-material.js";
 
 // ─── Feature Flags ──────────────────────────────────────────────────
@@ -29,6 +30,16 @@ export const GEOMETRY_OUTPUT = 1 << 21;
  *  property), OR'd into the local feature bitmask for non-shadow colored meshes so the
  *  shared StdExt loop composes the vertex-color fragment and keys the pipeline correctly. */
 export const HAS_VERTEX_COLOR = 1 << 22;
+/** Mesh has morph targets. Driven off the mesh (not a material property), OR'd into the
+ *  local feature bitmask for non-shadow morphed meshes so the shared StdExt loop composes
+ *  the vertex-stage morph fragment and keys the pipeline correctly. */
+export const HAS_MORPH_TARGETS = 1 << 23;
+/** Scene has fog. Driven off `scene.fog` (not a material property), OR'd into the local
+ *  feature bitmask for non-shadow color meshes so the template emits the fog varying, helper,
+ *  and blend block — and keys the pipeline cache so fog/non-fog variants stay distinct. The
+ *  fog WGSL is dynamic-imported from `std-fog-wgsl.ts` only when the scene has fog, so non-fog
+ *  Standard scenes bundle zero fog bytes (mirrors the PBR fog gate). */
+export const SCENE_HAS_FOG = 1 << 24;
 
 // ─── Standard Material Extension Registry ───────────────────────────
 
@@ -46,8 +57,11 @@ export interface StdExt {
     readonly _feature: number;
     /** @internal */
     _frag(features: number, shadowLights?: ShadowLightSlotLite[]): ShaderFragment;
-    /** @internal Push group-1 bind entries starting at binding `b`; return new b. */
-    _bind?(mat: StandardMaterialProps, entries: GPUBindGroupEntry[], b: number): number;
+    /** @internal Push group-1 bind entries starting at binding `b`; return new b.
+     *  The optional `mesh` arg is supplied by the color/geometry bind-group builders for
+     *  exts that bind mesh-driven resources (e.g. morph texture + weights); texture exts
+     *  ignore it. */
+    _bind?(mat: StandardMaterialProps, entries: GPUBindGroupEntry[], b: number, mesh?: Mesh): number;
     /** @internal Enumerate textures for acquire/release. */
     _textures?(mat: StandardMaterialProps, out: Texture2D[]): void;
 }

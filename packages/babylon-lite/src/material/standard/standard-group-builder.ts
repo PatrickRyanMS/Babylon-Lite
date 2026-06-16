@@ -29,8 +29,20 @@ export const standardGroupBuilder: MeshGroupBuilder = async (scene, meshes) => {
     let tiFragment: any;
     let shadowFragment: any;
     let cull: typeof import("../../mesh/thin-instance-cull-binding.js") | undefined;
+    // Fog WGSL is dynamic-imported only when the scene has fog, so non-fog Standard scenes
+    // bundle zero fog bytes (a static import would defeat tree-shaking — see std-fog-wgsl.ts).
+    let fogHelper = "";
+    let fogBlock = "";
 
     const imports: Promise<any>[] = [];
+    if (scene.fog) {
+        imports.push(
+            import("./std-fog-wgsl.js").then((m) => {
+                fogHelper = m.STD_FOG_HELPER;
+                fogBlock = m.STD_FOG_BLOCK;
+            })
+        );
+    }
     if (hasTI) {
         imports.push(
             import("../../mesh/thin-instance-gpu.js").then((m) => {
@@ -57,6 +69,13 @@ export const standardGroupBuilder: MeshGroupBuilder = async (scene, meshes) => {
             })
         );
     }
+    // Morph targets — wired as a plain StdExt (gated on HAS_MORPH_TARGETS) so it reuses the
+    // shared ext-composition + ext-bind loops in standard-renderable/standard-pipeline, just
+    // like vertex color. Dynamic-imported only when a mesh in this group actually has morph
+    // targets, so non-morph standard scenes never fetch it.
+    if (meshes.some((m) => !!m.morphTargets)) {
+        imports.push(import("./fragments/std-morph-fragment.js").then((m) => _registerStdExt(m.stdMorphExt)));
+    }
     if (meshes.some((m) => !!m._gpu?.colorBuffer)) {
         // Per-vertex color is wired as a plain StdExt (gated on HAS_VERTEX_COLOR) so it
         // reuses the shared ext-composition loop in standard-renderable — no bespoke
@@ -73,7 +92,7 @@ export const standardGroupBuilder: MeshGroupBuilder = async (scene, meshes) => {
     }
 
     const renderableMod = await import("./standard-renderable.js");
-    const result = renderableMod.buildStandardMeshRenderables(scene, meshes, { tiSync, tiFragment, shadowFragment, cull });
+    const result = renderableMod.buildStandardMeshRenderables(scene, meshes, { tiSync, tiFragment, shadowFragment, cull, fogHelper, fogBlock });
     // Wire the per-mesh rebuild closure used by material swap + per-pass override.
     standardGroupBuilder._rebuildSingle = result.rebuildSingle;
     return result;

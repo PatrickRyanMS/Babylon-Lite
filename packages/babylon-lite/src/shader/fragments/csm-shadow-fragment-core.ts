@@ -30,7 +30,8 @@ export interface CsmShadowLightSlot {
 export interface CsmShadowFragmentOptions {
     /** WGSL expression yielding the fragment world position (vec3). Default `input.vp` (Standard). */
     worldPosExpr?: string;
-    /** WGSL expression yielding the camera view-space z used for cascade selection. Default `input.vf.z` (Standard). */
+    /** WGSL expression yielding the camera view-space z used for cascade selection.
+     *  Default `input.vf.z` (legacy fallback; both Standard and PBR pass an explicit expr). */
     viewZExpr?: string;
     /** Fragment slot to emit the per-light shadow code into. Default `AD` (Standard). */
     outputSlot?: "AD" | "AS";
@@ -45,7 +46,7 @@ export interface CsmShadowFragmentOptions {
  * selects the cascade and the world position is transformed by the selected
  * cascade matrix in the fragment shader. The exact varying expressions and the
  * output slot are supplied per material family via {@link CsmShadowFragmentOptions}
- * (defaults match Standard: `input.vp` / `input.vf.z` / slot `AD`).
+ * (Standard passes `input.vp` / `(scene.view * vec4(input.vp, 1.0)).z` / slot `AD`).
  */
 export function createCsmShadowFragment(id: string, shadowLights: CsmShadowLightSlot[], opts: CsmShadowFragmentOptions = {}): ShaderFragment {
     const worldPosExpr = opts.worldPosExpr ?? "input.vp";
