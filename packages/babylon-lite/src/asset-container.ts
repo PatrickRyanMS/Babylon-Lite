@@ -1,6 +1,7 @@
 import type { SceneNode } from "./scene/scene-node.js";
 import type { LightBase } from "./light/types.js";
 import type { AnimationGroup } from "./animation/animation-group.js";
+import type { EngineContext } from "./engine/engine.js";
 import type { MaterialVariantData } from "./loader-gltf/material-variants.js";
 import type { Mesh } from "./mesh/mesh.js";
 
@@ -16,6 +17,9 @@ export interface AssetContainer {
     entities: Array<SceneNode | LightBase>;
     /** Animation groups from the file. addToScene() registers them with the scene-owned AnimationManager by default. */
     animationGroups?: AnimationGroup[];
+    /** @internal Per-frame stepper that advances `animationGroups`. Built by the loader inside the
+     *  dynamically-loaded animation chunk; addToScene() pushes it into the scene's render loop. */
+    _animationStep?: (deltaMs: number, engine?: EngineContext) => void;
     /** Scene background color declared in the file. addToScene() applies it to scene.clearColor. */
     clearColor?: GPUColorDict;
     /** Camera parsed from the file. addToScene() sets it as scene.camera when present. */
