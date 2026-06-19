@@ -86,9 +86,6 @@ export function goToFrame(group: AnimationGroup, frame: number, engine?: EngineC
     }
 }
 
-/** @internal Advance animation by deltaMs. Called by the engine each frame. */
-export { tickAnimation } from "./animation-tick.js";
-
 /** Create AnimationGroup(s) from parsed glTF animation data.
  *  Returns one group per animation clip. */
 export function createAnimationGroups(animData: GltfAnimationData): AnimationGroup[] {
