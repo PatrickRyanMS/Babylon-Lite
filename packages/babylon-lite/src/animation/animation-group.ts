@@ -6,6 +6,7 @@ import type { AnimationClip, AnimationSampler, GltfAnimationData, NodeRest, Skel
 import { PATH_POINTER, PATH_TRANSLATION, PATH_ROTATION, PATH_SCALE } from "./types.js";
 import { createAnimationController } from "../skeleton/skeleton-updater.js";
 import type { AnimationController } from "../skeleton/skeleton-updater.js";
+import { syncControllerFromGroup } from "./animation-tick.js";
 
 const DEFAULT_FRAME_RATE = 60;
 
@@ -86,20 +87,7 @@ export function goToFrame(group: AnimationGroup, frame: number, engine?: EngineC
 }
 
 /** @internal Advance animation by deltaMs. Called by the engine each frame. */
-export function tickAnimation(group: AnimationGroup, deltaMs: number, engine?: EngineContext): void {
-    if (!group._stopped && group._ctrl) {
-        syncControllerFromGroup(group, group._ctrl);
-        group._ctrl.tick(deltaMs, engine);
-        group.currentFrame = group._ctrl.time;
-    }
-}
-
-function syncControllerFromGroup(group: AnimationGroup, ctrl: AnimationController): void {
-    ctrl.time = group.currentFrame;
-    ctrl.playing = group.isPlaying;
-    ctrl.speedRatio = group.speedRatio;
-    ctrl.loop = group.loopAnimation;
-}
+export { tickAnimation } from "./animation-tick.js";
 
 /** Create AnimationGroup(s) from parsed glTF animation data.
  *  Returns one group per animation clip. */

@@ -165,7 +165,7 @@
         "slug": "scene16-thin-instances",
         "name": "Scene 16 — Thin Instances",
         "maxMad": 0.01,
-        "maxRawKB": 47.8,
+        "maxRawKB": 48.0,
         "description": "64,000 colored cubes via thin instances. Per-instance color, disableLighting, emissive-only rendering.",
         "tags": ["std", "procedural"],
         "compatParity": true
@@ -326,7 +326,7 @@
         "slug": "scene32-unlit",
         "name": "Scene 32 — KHR_materials_unlit",
         "maxMad": 0.01,
-        "maxRawKB": 78.1,
+        "maxRawKB": 78.3,
         "description": "UnlitTest.glb (KHR_materials_unlit) against default IBL environment. Base color output directly with no lighting. Matches PG #YG3BBF#53.",
         "tags": ["pbr", "gltf", "env", "unlit"],
         "skipPerf": true,
@@ -359,7 +359,7 @@
         "slug": "scene35-gltf-instancing",
         "name": "Scene 35 — EXT_mesh_gpu_instancing",
         "maxMad": 0.02,
-        "maxRawKB": 81.4,
+        "maxRawKB": 81.6,
         "description": "SimpleInstancing.glb (EXT_mesh_gpu_instancing) — 5×5×5 grid of 125 unit cubes driven by per-instance TRS accessors. Default IBL env. Matches PG #YG3BBF#57.",
         "tags": ["pbr", "gltf", "env", "gpu-instancing"],
         "compatParity": true
@@ -760,7 +760,7 @@
         "slug": "scene73-wheel-nme-viewport",
         "name": "Scene 73 — Wheel PBR vs NME Viewports",
         "maxMad": 0.05,
-        "maxRawKB": 141.5,
+        "maxRawKB": 141.7,
         "description": "CarbonFiberWheel.glb rendered twice on one canvas through two independent Babylon Lite scenes with split camera viewports: native glTF PBR clearcoat material on the left and checked-in C3NEY1#4 NME material on the right.",
         "tags": ["pbr", "nme", "gltf", "env", "clearcoat", "viewport"]
     },
@@ -1895,7 +1895,7 @@
         "name": "Scene 229 — Triangle Without Indices",
         "maxMad": 1,
         "maxRegionMad": 0.05,
-        "maxRawKB": 66,
+        "maxRawKB": 66.2,
         "description": "Minimal glTF tutorial asset whose single triangle primitive omits `indices`. Verifies Lite expands non-indexed triangle primitives to identity indices before GPU upload so the existing indexed draw path remains fast and unchanged.",
         "tags": ["pbr", "gltf", "non-indexed"],
         "skipPerf": true
