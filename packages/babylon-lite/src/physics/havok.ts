@@ -42,6 +42,18 @@ export const enum PhysicsMotionType {
     DYNAMIC = 2,
 }
 
+/**
+ * How a moved transform node is propagated to its physics body before each step.
+ * `DISABLED` skips the sync, `TELEPORT` snaps the body to the node (`HP_Body_SetQTransform`),
+ * and `ACTION` sets the body's velocity so it reaches the node (`HP_Body_SetTargetQTransform`,
+ * dragging resting bodies via friction). Values match Babylon.js `PhysicsPrestepType`.
+ */
+export const enum PhysicsPrestepType {
+    DISABLED = 0,
+    TELEPORT = 1,
+    ACTION = 2,
+}
+
 /** Type of Havok Physics V2 constraint. */
 export const enum PhysicsConstraintType {
     BALL_AND_SOCKET = 1,
@@ -99,6 +111,13 @@ export interface PhysicsAggregateOptions {
     center?: Vec3;
     startAsleep?: boolean;
     isTriggerShape?: boolean;
+    /**
+     * Optional pre-built shape. When provided, it is used directly and the
+     * primitive-shape build path is skipped. This lets callers supply
+     * mesh/convex-hull shapes (built via `createPhysicsShape`) without pulling
+     * the mesh-shape code into `createPhysicsAggregate` itself.
+     */
+    shape?: PhysicsShape;
 }
 
 /** Mass properties applied to a physics body. Omitted fields keep Havok's shape-derived values. */
@@ -138,6 +157,8 @@ export interface PhysicsBody {
     /** @internal */ readonly _world: PhysicsWorld;
     /** @internal */ _shape?: PhysicsShape | null;
     /** @internal */ _preStep: boolean;
+    /** @internal How a moved node is propagated to the body pre-step (TELEPORT by default). */
+    _prestepType: PhysicsPrestepType;
     readonly node: SceneNode;
     readonly motionType: PhysicsMotionType;
     /** @internal The floating-origin region this body lives in; set only under floating origin. */
@@ -178,6 +199,10 @@ export interface PhysicsWorld {
     _gravity: number[];
     /** @internal Floating-origin runtime; present only after `enableHavokFloatingOrigin` is called. */
     _fo?: HavokFloatingOriginContext;
+    /** @internal Callbacks run after each physics step (post body→node sync, pre-render). */
+    _afterStep?: ((timestep: number) => void)[];
+    /** @internal Lazily-created Havok query collector, cached by the standalone `physics/havok-queries.ts` module. */
+    _queryCollector?: any;
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────
@@ -252,11 +277,17 @@ function _stepWorld(world: PhysicsWorld, deltaMs: number): void {
         return;
     }
 
-    // Pre-step: sync ANIMATED bodies from node → Havok
+    // Pre-step: sync moved nodes into Havok. A body syncs only when its prestep type is not
+    // DISABLED and it is either ANIMATED (kinematic) or explicitly pre-stepped. TELEPORT snaps the
+    // body to the node; ACTION sets a velocity toward it (so resting bodies are dragged via friction).
     for (let i = 0; i < bodies.length; i++) {
         const b = bodies[i]!;
-        if (b.motionType === (PhysicsMotionType.ANIMATED as number) || b._preStep) {
-            _syncNodeToBody(hknp, b);
+        if (b._prestepType !== PhysicsPrestepType.DISABLED && (b.motionType === (PhysicsMotionType.ANIMATED as number) || b._preStep)) {
+            if (b._prestepType === PhysicsPrestepType.ACTION) {
+                _syncNodeToBodyTarget(hknp, b);
+            } else {
+                _syncNodeToBody(hknp, b);
+            }
         }
     }
 
@@ -269,6 +300,28 @@ function _stepWorld(world: PhysicsWorld, deltaMs: number): void {
             _syncBodyToNode(hknp, b);
         }
     }
+
+    // After-step hooks run once body→node sync is complete, before rendering. This mirrors
+    // Babylon.js, where physics is advanced inside `scene.animate()` (before render) and
+    // post-step scene logic runs in `onAfterRenderObservable`.
+    if (world._afterStep) {
+        const cbs = world._afterStep;
+        for (let i = 0; i < cbs.length; i++) {
+            cbs[i]!(world._timestep);
+        }
+    }
+}
+
+/**
+ * Registers a callback to run after each physics step, once dynamic body transforms have been
+ * synced back to their nodes and before the frame is rendered. Use this for per-step logic that
+ * must observe (or react to) the freshly-integrated state — e.g. tracking a marker to a body's
+ * post-step pose, or applying a force whose effect should integrate on the next step.
+ * @param world - The physics world to hook.
+ * @param cb - Callback invoked with the world timestep (seconds) after each step.
+ */
+export function onPhysicsAfterStep(world: PhysicsWorld, cb: (timestep: number) => void): void {
+    (world._afterStep ??= []).push(cb);
 }
 
 function _syncBodyToNode(hknp: any, body: PhysicsBody): void {
@@ -285,6 +338,19 @@ function _syncNodeToBody(hknp: any, body: PhysicsBody): void {
     const p = node.position;
     const q = node.rotationQuaternion;
     hknp.HP_Body_SetQTransform(body._hkBody, [
+        [p.x, p.y, p.z],
+        [q.x, q.y, q.z, q.w],
+    ]);
+}
+
+// ACTION prestep: instead of snapping the body, set its target transform so Havok derives a
+// velocity that carries the body to the node over the step. Resting bodies stacked on top are then
+// dragged along by friction rather than tunneled through.
+function _syncNodeToBodyTarget(hknp: any, body: PhysicsBody): void {
+    const node = body.node;
+    const p = node.position;
+    const q = node.rotationQuaternion;
+    hknp.HP_Body_SetTargetQTransform(body._hkBody, [
         [p.x, p.y, p.z],
         [q.x, q.y, q.z, q.w],
     ]);
@@ -392,6 +458,7 @@ export function createPhysicsBody(world: PhysicsWorld, node: SceneNode, motionTy
         _hkBody: hkBody,
         _shape: null,
         _preStep: false,
+        _prestepType: PhysicsPrestepType.TELEPORT,
         _world: world,
         node,
         motionType,
@@ -423,6 +490,22 @@ export function createPhysicsBody(world: PhysicsWorld, node: SceneNode, motionTy
  */
 export function setPhysicsBodyPreStep(body: PhysicsBody, enabled: boolean): void {
     body._preStep = enabled;
+}
+
+/**
+ * Sets how a moved transform node is propagated to its physics body before each step.
+ * `TELEPORT` snaps the body to the node, `ACTION` sets a velocity toward it (so resting bodies are
+ * dragged along by friction), and `DISABLED` skips the pre-step sync entirely. Setting any type
+ * other than `DISABLED` automatically enables prestep syncing for the body (equivalent to
+ * {@link setPhysicsBodyPreStep}), so STATIC/DYNAMIC bodies are synced without an extra call.
+ * @param body - The physics body to update.
+ * @param type - The prestep behaviour to apply.
+ */
+export function setPhysicsBodyPrestepType(body: PhysicsBody, type: PhysicsPrestepType): void {
+    body._prestepType = type;
+    if (type !== PhysicsPrestepType.DISABLED) {
+        body._preStep = true;
+    }
 }
 
 /**
@@ -882,18 +965,29 @@ export function setPhysicsShapeMaterial(world: PhysicsWorld, shape: PhysicsShape
 // ─── Mass ────────────────────────────────────────────────────────────
 
 /**
- * Sets a body's mass and a matching diagonal inertia tensor.
+ * Sets a body's mass, preserving the shape-derived inertia tensor, centre of mass, and inertia
+ * orientation (matching Babylon.js `HavokPlugin` — only the mass scalar is overridden). A body with
+ * no shape attached yet has no inertia tensor to derive, so it falls back to an isotropic inertia
+ * proportional to the mass until a shape is set.
  * @param world - The physics world.
  * @param body - The body to update.
  * @param mass - Mass in kilograms.
- * @param centerOfMass - Optional body-local centre of mass (defaults to the origin). Use this when the
- *   collision shape is offset from the body's reference frame (e.g. a prop whose body origin sits at
- *   its base but whose shape is centred on its middle) so it tumbles around its real centre.
+ * @param centerOfMass - Optional body-local centre of mass override. When omitted, the shape-derived
+ *   centre of mass is preserved. Use this when the collision shape is offset from the body's reference
+ *   frame (e.g. a prop whose body origin sits at its base but whose shape is centred on its middle)
+ *   so it tumbles around its real centre.
  */
 export function setPhysicsBodyMass(world: PhysicsWorld, body: PhysicsBody, mass: number, centerOfMass?: Vec3): void {
-    const com = centerOfMass ?? { x: 0, y: 0, z: 0 };
-    // massProperties: [centerOfMass[3], mass, inertia[3], inertiaOrientation[4]]
-    const massProps = [[com.x, com.y, com.z], mass, [mass, mass, mass], [0, 0, 0, 1]];
+    // Match Babylon.js HavokPlugin._internalUpdateMassProperties: for a body with a shape, start from
+    // the shape-derived mass properties (correct anisotropic inertia tensor + centre of mass +
+    // orientation) and override only the mass scalar. Writing a placeholder isotropic inertia would
+    // make constrained/torqued bodies rotate at the wrong rate and break physics parity. A shape-less
+    // body has no inertia to derive, so keep the previous mass-proportional isotropic fallback.
+    const massProps = body._shape ? buildMassProperties(world, body) : [[0, 0, 0], mass, [mass, mass, mass], [0, 0, 0, 1]];
+    massProps[1] = mass;
+    if (centerOfMass) {
+        massProps[0] = [centerOfMass.x, centerOfMass.y, centerOfMass.z];
+    }
     world._hknp.HP_Body_SetMassProperties(body._hkBody, massProps);
 }
 
@@ -1101,13 +1195,19 @@ export function releasePhysicsShape(world: PhysicsWorld, shape: PhysicsShape): v
 export function createPhysicsAggregate(world: PhysicsWorld, node: Mesh, type: PhysicsShapeType, options: PhysicsAggregateOptions): PhysicsAggregate {
     const motionType = options.mass === 0 ? PhysicsMotionType.STATIC : PhysicsMotionType.DYNAMIC;
 
-    // Build shape parameters, auto-sizing from bounding box if needed
-    const shapeParams = _buildShapeParams(node, type, options);
-    const hkShape = createPrimitivePhysicsShapeHandle(world._hknp, type, shapeParams);
-    if (hkShape === null) {
-        throw new Error("createPhysicsAggregate supports only primitive physics shapes.");
+    // Use a caller-supplied pre-built shape if present (e.g. a mesh/convex-hull
+    // shape built via createPhysicsShape); otherwise build a primitive shape.
+    // Reading options.shape adds no mesh code to this function.
+    let shape = options.shape;
+    if (!shape) {
+        // Build shape parameters, auto-sizing from bounding box if needed
+        const shapeParams = _buildShapeParams(node, type, options);
+        const hkShape = createPrimitivePhysicsShapeHandle(world._hknp, type, shapeParams);
+        if (hkShape === null) {
+            throw new Error("createPhysicsAggregate supports only primitive physics shapes.");
+        }
+        shape = { _hkShape: hkShape, _type: type };
     }
-    const shape: PhysicsShape = { _hkShape: hkShape, _type: type };
 
     // Create body
     const body = createPhysicsBody(world, node, motionType, options.startAsleep);

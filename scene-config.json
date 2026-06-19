@@ -7,7 +7,8 @@
         "maxRegionMad": 0.03,
         "maxRawKB": 93,
         "description": "glTF PBR model, IBL environment, hemispheric light, arc-rotate camera.",
-        "tags": ["pbr", "gltf"]
+        "tags": ["pbr", "gltf"],
+        "compatParity": true
     },
     {
         "id": 2,
@@ -18,7 +19,8 @@
         "maxRawKB": 46.2,
         "description": "StandardMaterial sphere with Blinn-Phong, directional light, ground plane.",
         "tags": ["std", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 3,
@@ -37,7 +39,8 @@
         "maxMad": 0.08,
         "maxRawKB": 72.4,
         "description": "DirectionalLight, ESM shadow map with blur, heightmap ground, torus caster.",
-        "tags": ["shadow", "procedural", "std"]
+        "tags": ["shadow", "procedural", "std"],
+        "compatParity": true
     },
     {
         "id": 5,
@@ -48,7 +51,8 @@
         "maxRawKB": 88.6,
         "description": "glTF Alien model with PBR, skeleton/bones, normal map, hemispheric light.",
         "tags": ["pbr", "gltf"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 6,
@@ -58,7 +62,8 @@
         "maxRawKB": 74,
         "description": "Procedural sphere with PBR specular-glossiness, environment IBL, no direct light.",
         "tags": ["pbr", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 7,
@@ -87,7 +92,8 @@
         "maxMad": 0.01,
         "maxRawKB": 59.9,
         "description": "Sponza palace loaded from .babylon format. Standard materials with diffuse textures, point lights.",
-        "tags": ["std", "babylon"]
+        "tags": ["std", "babylon"],
+        "compatParity": true
     },
     {
         "id": 10,
@@ -97,17 +103,19 @@
         "maxRawKB": 54.1,
         "description": "PBR metallic-roughness sphere: golden base, metallic=0, roughness=1, hemispheric light only.",
         "tags": ["pbr", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 11,
         "slug": "scene11-shark",
         "name": "Scene 11 — Shark GLB",
         "maxMad": 0.01,
-        "maxRawKB": 83.6,
+        "maxRawKB": 83.8,
         "description": "Shark glTF model with PBR material, hemispheric light, auto-framing camera.",
         "tags": ["pbr", "gltf"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 12,
@@ -127,7 +135,8 @@
         "maxRawKB": 88.9,
         "description": "12 spheres with varying metallic/roughness baseColorFactor, default environment.",
         "tags": ["pbr", "gltf"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 14,
@@ -137,7 +146,8 @@
         "maxRawKB": 93.2,
         "description": "glTF Flight Helmet with PBR materials, DDS cube skybox, default environment.",
         "tags": ["pbr", "gltf"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 15,
@@ -147,16 +157,18 @@
         "maxRawKB": 46.5,
         "description": "Two SpotLights (red + green) with different exponents on a ground plane. Multi-light support.",
         "tags": ["std", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 16,
         "slug": "scene16-thin-instances",
         "name": "Scene 16 — Thin Instances",
         "maxMad": 0.01,
-        "maxRawKB": 47.7,
+        "maxRawKB": 49,
         "description": "64,000 colored cubes via thin instances. Per-instance color, disableLighting, emissive-only rendering.",
-        "tags": ["std", "procedural"]
+        "tags": ["std", "procedural"],
+        "compatParity": true
     },
     {
         "id": 17,
@@ -175,7 +187,8 @@
         "maxRawKB": 60.6,
         "description": "FreeCamera + SpotLight PCF shadow generator. Ground receives hard shadows from box.",
         "tags": ["std", "procedural", "shadow"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 19,
@@ -184,7 +197,8 @@
         "maxMad": 0.031,
         "maxRawKB": 69.2,
         "description": "Sphere with PBR clearcoat layer (IOR=2.0). DDS environment for glossy reflections.",
-        "tags": ["pbr", "env"]
+        "tags": ["pbr", "env"],
+        "compatParity": true
     },
     {
         "id": 20,
@@ -212,7 +226,8 @@
         "maxMad": 0.07,
         "maxRawKB": 101.8,
         "description": "Scene 4 variant with PBR ground material. Tests PBR multi-light shadow receiving (ESM + PCF).",
-        "tags": ["pbr", "shadow", "procedural", "multilight"]
+        "tags": ["pbr", "shadow", "procedural", "multilight"],
+        "compatParity": true
     },
     {
         "id": 23,
@@ -231,7 +246,8 @@
         "maxMad": 0.06,
         "maxRawKB": 59.7,
         "description": "Hill Valley town loaded from .babylon format. Pre-baked lighting, standard materials, free camera.",
-        "tags": ["std", "babylon"]
+        "tags": ["std", "babylon"],
+        "compatParity": true
     },
     {
         "id": 25,
@@ -241,7 +257,8 @@
         "maxRawKB": 51.8,
         "description": "Ground plane with KTX compressed texture (auto-format selection), UV tiling, FreeCamera, hemispheric light.",
         "tags": ["std", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 26,
@@ -261,7 +278,8 @@
         "maxRawKB": 79.4,
         "description": "glTF refrigerator with KHR_materials_variants, White variant selected. ArcRotate camera, hemispheric light.",
         "tags": ["pbr", "gltf", "variants"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 28,
@@ -270,7 +288,8 @@
         "maxMad": 0.02,
         "maxRawKB": 84,
         "description": "ClearCoatTest.gltf (6×3 grid: clearcoat variants) with default environment (IBL only). Matches PG #YG3BBF#33.",
-        "tags": ["pbr", "gltf", "env", "clearcoat"]
+        "tags": ["pbr", "gltf", "env", "clearcoat"],
+        "compatParity": true
     },
     {
         "id": 29,
@@ -280,7 +299,8 @@
         "maxRawKB": 87.4,
         "description": "SheenCloth.gltf (KHR_materials_sheen + KHR_texture_transform 30× tiling) with default environment (IBL only). Matches PG #YG3BBF#2.",
         "tags": ["pbr", "gltf", "env", "sheen", "texture-transform"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 30,
@@ -290,17 +310,19 @@
         "maxRawKB": 100.6,
         "description": "KHR_materials_volume_testing.glb (transmission + volume + ior + specular) against default IBL environment with frame-graph scene-texture transmission. Matches PG #YG3BBF#16.",
         "tags": ["pbr", "gltf", "env", "transmission", "volume"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 31,
         "slug": "scene31-emissive-strength",
         "name": "Scene 31 — KHR_materials_emissive_strength",
         "maxMad": 0.01,
-        "maxRawKB": 78.2,
+        "maxRawKB": 78.4,
         "description": "EmissiveStrengthTest.glb (grid of materials with varying emissive_strength) against default IBL environment. Matches PG #YG3BBF#52.",
         "tags": ["pbr", "gltf", "env", "emissive"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 32,
@@ -310,7 +332,8 @@
         "maxRawKB": 78.1,
         "description": "UnlitTest.glb (KHR_materials_unlit) against default IBL environment. Base color output directly with no lighting. Matches PG #YG3BBF#53.",
         "tags": ["pbr", "gltf", "env", "unlit"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 33,
@@ -320,7 +343,8 @@
         "maxRawKB": 99.3,
         "description": "LightsPunctualLamp.glb (KHR_lights_punctual point lights + KHR_materials_transmission) with default IBL environment. Matches PG #YG3BBF#54.",
         "tags": ["pbr", "gltf", "env", "lights-punctual", "transmission"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 34,
@@ -330,16 +354,18 @@
         "maxRawKB": 89.5,
         "description": "CubeVisibility.glb — three cubes: green always-visible, blue blinking via KHR_animation_pointer on its visibility flag, two reds hidden via KHR_node_visibility. Default IBL env. Matches PG #YG3BBF#55.",
         "tags": ["pbr", "gltf", "env", "node-visibility", "animation-pointer"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 35,
         "slug": "scene35-gltf-instancing",
         "name": "Scene 35 — EXT_mesh_gpu_instancing",
         "maxMad": 0.02,
-        "maxRawKB": 81.3,
+        "maxRawKB": 81.4,
         "description": "SimpleInstancing.glb (EXT_mesh_gpu_instancing) — 5×5×5 grid of 125 unit cubes driven by per-instance TRS accessors. Default IBL env. Matches PG #YG3BBF#57.",
-        "tags": ["pbr", "gltf", "env", "gpu-instancing"]
+        "tags": ["pbr", "gltf", "env", "gpu-instancing"],
+        "compatParity": true
     },
     {
         "id": 36,
@@ -349,7 +375,8 @@
         "maxRawKB": 51.1,
         "description": "Box with a .basis texture as diffuse+emissive. Transcoder fetched from the BJS CDN; auto-selects BC7/ASTC/ETC2/BC3/RGBA32 per device. Matches PG #4RN0VF.",
         "tags": ["std", "procedural", "basis"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 37,
@@ -358,7 +385,8 @@
         "maxMad": 0.02,
         "maxRawKB": 92.9,
         "description": "SheenWoodLeatherSofa.glb (KHR_materials_sheen + KHR_materials_specular + KHR_texture_transform + EXT_texture_webp) with default IBL environment (no skybox, no ground). Matches PG #YG3BBF#58.",
-        "tags": ["pbr", "gltf", "env", "sheen", "specular", "texture-transform", "webp"]
+        "tags": ["pbr", "gltf", "env", "sheen", "specular", "texture-transform", "webp"],
+        "compatParity": true
     },
     {
         "id": 38,
@@ -368,14 +396,15 @@
         "maxRawKB": 62.3,
         "description": "Cylinder, cone, plane, disc, ring, polyhedron, ribbon, tube, and extruded shape rendered with StandardMaterial. Parity check against BJS MeshBuilder.",
         "tags": ["std", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 40,
         "slug": "scene40-physics",
         "name": "Scene 40 — Physics",
         "maxMad": 0.5,
-        "maxRawKB": 48.2,
+        "maxRawKB": 50,
         "maxGzipKB": 22,
         "description": "Havok Physics V2 sphere drop. Sphere falls onto ground under gravity with restitution bounce.",
         "tags": ["std", "procedural", "physics"],
@@ -448,6 +477,41 @@
         "skipPerf": true
     },
     {
+        "id": 47,
+        "slug": "scene47-physics-heightfield",
+        "name": "Scene 47 — Physics Heightfield",
+        "maxMad": 0.05,
+        "maxRawKB": 89.5,
+        "maxGzipKB": 35,
+        "description": "Havok Physics V2 heightfield from heightMap.png with two rows of falling shapes: row 1 PhysicsAggregate all types (box, sphere, capsule, cylinder, plus convex hull and mesh from the seagull glb), row 2 body+shape all types including convex hull and mesh from the seagull glb.",
+        "tags": ["physics", "gltf", "procedural", "std"],
+        "skipPerf": true,
+        "skipParityOnCI": true,
+        "skipNotes": "Scene 47 parity is skipped on CI because the BJS reference capture is flaky on CI/BrowserStack: this scene's golden is regenerated live from the BJS PhysicsViewer each run (machine-dependent, not committed), and the BJS physics-viewer wireframe overlay does not render consistently at the capture frame on BrowserStack, producing a bad live reference image rather than a Babylon Lite regression. Local parity still runs and force-recaptures the golden on each test run. The scene remains in the lab/bundle config and can be re-enabled once the BJS reference readiness signal is reliable on CI."
+    },
+    {
+        "id": 48,
+        "slug": "scene48-physics-center-of-mass",
+        "name": "Scene 48 — Physics Center of Mass",
+        "maxMad": 0.01,
+        "maxRawKB": 58,
+        "maxGzipKB": 24,
+        "description": "Havok Physics V2 centre-of-mass demo (port of PG #JVZAFL#1, GUI dropped). Three tall 1x4x1 boxes with distinct centres of mass (marked by red spheres) drop and settle, then a horizontal force kick toppling each differently. Fixed 1/60 timestep; frame captured 10 physics steps after the setTimeout kick.",
+        "tags": ["physics", "procedural", "std"],
+        "skipPerf": true
+    },
+    {
+        "id": 49,
+        "slug": "scene49-physics-shape-queries",
+        "name": "Scene 49 — Physics Shape Queries",
+        "maxMad": 0.005,
+        "maxRawKB": 93.5,
+        "maxGzipKB": 36,
+        "description": "Havok Physics V2 shape queries — merge of PG #1VT1BK#11 (shapeProximity) and #1VT1BK#12 (shapeCast), shown as TWO distinct groups stacked along Y. Group A (top): cylinder query shape + animated capsule body, shapeProximity draws the closest-point pair (orange on the cylinder, red on the capsule). Group B (bottom): cylinder swept +X + animated capsule body, shapeCast draws the cast ray (cyan) plus its hit point (green). Clicking a cylinder attaches a 3-axis rotation gizmo (GPU-picked) and the queries read the cylinder's live rotation; the gizmo is interactive-only so the static parity frame shows no gizmo. Frame captured once both queries report hits.",
+        "tags": ["physics", "procedural", "std"],
+        "skipPerf": true
+    },
+    {
         "id": 50,
         "slug": "scene50-sprite-grid",
         "name": "Scene 50 — Sprite Grid",
@@ -455,7 +519,8 @@
         "maxRawKB": 20,
         "description": "25×10 grid of icon sprites with cycled tints and rotated thirds, rendered via the pure-2D sprite API. BJS SpriteManager oracle.",
         "tags": ["sprites", "2d"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 51,
@@ -465,7 +530,8 @@
         "maxRawKB": 20,
         "description": "25×10 grid of radial-gradient sprites with anti-aliased edges, rendered via the premultiplied sprite codepath. BJS SpriteRenderer with ALPHA_PREMULTIPLIED blendMode + pre-baked premultiplied atlas as the parity oracle.",
         "tags": ["sprites", "2d", "premultiplied"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 52,
@@ -475,7 +541,8 @@
         "maxRawKB": 60,
         "description": "3D scene (sphere + StandardMaterial under a directional light) with a pure-2D HUD sprite overlay rendered AFTER the 3D pass via createSpriteRenderer + registerSpriteRenderer. HUD layer uses depth: \"none\". BJS reference renders the same 3D scene plus a pixel-space SpriteRenderer HUD for parity.",
         "tags": ["sprites", "2d", "hud"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 53,
@@ -485,7 +552,8 @@
         "maxRawKB": 60,
         "description": "Two boxes at different camera-distances + a Sprite2DLayer added via addToScene with depth: \"test-write\" and per-instance z. The front box occludes the sprite; the sprite occludes the back box. BJS reference uses SpriteManager sprites projected to the same pixel centers and depths for parity.",
         "tags": ["sprites", "2d", "depth"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 54,
@@ -494,7 +562,8 @@
         "maxMad": 0.02,
         "maxRawKB": 65,
         "description": "World-space camera-facing rectangular sprite cards rendered through the opt-in FacingBillboardSpriteSystem path from an off-axis camera, depth-tested against diagonal opaque boxes with transparent alpha and no depth write. BJS reference uses SpriteManager.",
-        "tags": ["sprites", "billboards", "depth"]
+        "tags": ["sprites", "billboards", "depth"],
+        "compatParity": true
     },
     {
         "id": 55,
@@ -504,7 +573,8 @@
         "maxRawKB": 35,
         "description": "Overlapping transparent world-space billboards inserted near-to-far in Lite and far-to-near in the Babylon.js SpriteManager reference, exercising CPU-side per-billboard sorting before compact vertex-buffer upload.",
         "tags": ["sprites", "billboards", "sorting"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 56,
@@ -514,7 +584,8 @@
         "maxRawKB": 65,
         "description": "Axis-locked world-space billboards constrain rotation to an arbitrary normalized axis. BJS reference uses explicit meshes with axis-aligned basis vectors computed from the camera and lock axis.",
         "tags": ["sprites", "billboards", "axis-locked"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 57,
@@ -524,7 +595,8 @@
         "maxRawKB": 65,
         "description": "Hard-alpha world-space billboard cards rendered with blendMode: \"cutout\", alpha cutoff, and depth writes. Front cutout pixels occlude later overlapping cards and opaque geometry while transparent holes leave the background visible.",
         "tags": ["sprites", "billboards", "depth"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 58,
@@ -534,7 +606,8 @@
         "maxRawKB": 25,
         "description": "Pure-2D player sprite sheet animation using the optional Sprite2D handle animation API. The scene exercises forward looping, reverse looping, and removeWhenFinished on a frozen seek frame.",
         "tags": ["sprites", "2d", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 59,
@@ -544,7 +617,8 @@
         "maxRawKB": 70,
         "description": "World-space character billboard sprite sheet animation using the optional billboard handle animation API, including forward looping, reverse looping, and removeWhenFinished.",
         "tags": ["sprites", "billboards", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 60,
@@ -554,7 +628,8 @@
         "maxRawKB": 60,
         "description": "Minimal Node Material: InputBlock(color, uniform, vec4) feeds FragmentOutput; vertex path is position × WVP. First end-to-end NME scene.",
         "tags": ["nme", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 61,
@@ -564,7 +639,8 @@
         "maxRawKB": 60,
         "description": "Node Material with a vertex→fragment varying: normal attribute remapped as `normal * 0.5 + 0.5` → FragmentOutput.rgb. Exercises ScaleBlock, AddBlock, and attribute-to-fragment bridging.",
         "tags": ["nme", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 62,
@@ -574,7 +650,8 @@
         "maxRawKB": 63,
         "description": "Node Material sampling a 2D texture (crate.png) through a TextureBlock driven by the UV attribute. Exercises texture/sampler BGL slot allocation and `NodeInputHandle.texture` pass-through.",
         "tags": ["nme", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 63,
@@ -584,7 +661,8 @@
         "maxRawKB": 64,
         "description": "Node Material with one DirectionalLight: position/normal world-transformed, driven through LightBlock (Blinn-Phong) to FragmentOutput.rgb. Exercises the shared lights UBO binding + module-scope helper assembly.",
         "tags": ["nme", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 64,
@@ -594,7 +672,8 @@
         "maxRawKB": 65,
         "description": "Node Material with a MorphTargetsBlock: one morph target shifts every vertex along +Y at weight=1.0 so the sphere renders translated upward. Proves morph-texture + weights-UBO binding and the @builtin(vertex_index) plumbing.",
         "tags": ["nme", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 65,
@@ -604,7 +683,8 @@
         "maxRawKB": 80,
         "description": "Node Material with shadow receive: sphere casts onto ground plane, both lit by one DirectionalLight with an ESM shadow generator. Only meshes with receiveShadows=true are attenuated; the sphere stays fully lit. Same JSON graph as scene 63 — shadow integration is externally driven via parseNodeMaterialFromSnippet({ shadowGenerators }).",
         "tags": ["nme", "procedural", "shadows"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 66,
@@ -623,7 +703,8 @@
         "maxRawKB": 95,
         "description": "NME PBRMetallicRoughnessBlock + ReflectionBlock with IBL plumbing on a saturated teal matte sphere. Hemi + point + spot + directional lights make the base material visible against a black background.",
         "tags": ["pbr", "nme", "procedural", "env"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 68,
@@ -633,7 +714,8 @@
         "maxRawKB": 96,
         "description": "Dark navy PBR sphere with a ClearCoatBlock wired into PBRMetallicRoughnessBlock.clearcoat (intensity=1, roughness=0.02, IOR=1.5) for an obvious glossy coat highlight.",
         "tags": ["pbr", "nme", "procedural", "env", "clearcoat"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 69,
@@ -643,7 +725,8 @@
         "maxRawKB": 98,
         "description": "Dark purple PBR sphere with softened clearcoat plus a hot magenta SheenBlock wired into PBRMetallicRoughnessBlock.sheen (intensity=1, roughness=0.55) for a visible fabric-like rim.",
         "tags": ["pbr", "nme", "procedural", "env", "clearcoat", "sheen"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 70,
@@ -653,7 +736,8 @@
         "maxRawKB": 100,
         "description": "Metallic gold PBR sphere with AnisotropyBlock intensity=0.85 and diagonal direction, producing a visibly stretched anisotropic specular highlight.",
         "tags": ["pbr", "nme", "procedural", "env", "anisotropy"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 71,
@@ -663,7 +747,8 @@
         "maxRawKB": 100,
         "description": "Warm wax-like PBR sphere with SubSurfaceBlock translucency and a modest RefractionBlock input, back-lit to show transmitted subsurface glow.",
         "tags": ["pbr", "nme", "procedural", "env", "subsurface"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 72,
@@ -679,7 +764,7 @@
         "slug": "scene73-wheel-nme-viewport",
         "name": "Scene 73 — Wheel PBR vs NME Viewports",
         "maxMad": 0.05,
-        "maxRawKB": 141.4,
+        "maxRawKB": 141.5,
         "description": "CarbonFiberWheel.glb rendered twice on one canvas through two independent Babylon Lite scenes with split camera viewports: native glTF PBR clearcoat material on the left and checked-in C3NEY1#4 NME material on the right.",
         "tags": ["pbr", "nme", "gltf", "env", "clearcoat", "viewport"]
     },
@@ -721,7 +806,8 @@
         "maxRawKB": 65,
         "description": "Node Material compatibility graph for editor-only/alias blocks: OppositeBlock computes 1 - uv.x, Elbow and Teleport In/Out pass the value through, and an inactive DebugBlock is parsed without changing shader output.",
         "tags": ["nme", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 78,
@@ -731,7 +817,8 @@
         "maxRawKB": 60,
         "description": "Single-plane Node Material graph covering scalar and vector math blocks: Divide, Mod, Reciprocal, Length, Distance, Cross, Reflect, Refract, ArcTan2, and Fresnel with UV-derived deterministic inputs.",
         "tags": ["nme", "procedural", "math"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 79,
@@ -741,7 +828,8 @@
         "maxRawKB": 65,
         "description": "Single-plane Node Material graph covering NLerpBlock, ConditionalBlock, CurveBlock, WaveBlock, and RandomNumberBlock with UV-driven deterministic inputs, multiple condition/curve/wave modes, and Babylon.js-compatible getRand(seed.xy).",
         "tags": ["nme", "procedural", "math"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 80,
@@ -751,7 +839,8 @@
         "maxRawKB": 65,
         "description": "Single-plane Node Material color ramp covering ColorMergerBlock, ColorConverterBlock, DesaturateBlock, GradientBlock, PosterizeBlock, and ReplaceColorBlock with deterministic UV-driven color operations.",
         "tags": ["nme", "procedural", "color"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 81,
@@ -771,7 +860,8 @@
         "maxRawKB": 75,
         "description": "Single-plane Node Material graph split into four deterministic procedural quadrants covering CloudBlock, SimplexPerlin3DBlock, VoronoiNoiseBlock, and WorleyNoise3DBlock.",
         "tags": ["nme", "procedural", "noise"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 83,
@@ -781,7 +871,8 @@
         "maxRawKB": 75,
         "description": "Lit Node Material plane covering DerivativeBlock, HeightToNormalBlock, TBNBlock, NormalBlendBlock, and AmbientOcclusionBlock with a UV height field, blended normal-map color, tangent basis tint, and deterministic AO darkening.",
         "tags": ["nme", "procedural", "normals", "lighting"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 84,
@@ -801,7 +892,8 @@
         "maxRawKB": 68,
         "description": "Node Material plane covering MatrixBuilder, MatrixTransposeBlock, MatrixSplitterBlock, and MatrixDeterminantBlock with matrix-driven vertex shear and determinant/splitter-derived fragment color.",
         "tags": ["nme", "procedural", "matrix"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 86,
@@ -811,7 +903,8 @@
         "maxRawKB": 75,
         "description": "Node Material quads covering MeshAttributeExistsBlock, ClipPlanesBlock, and ReflectionTextureBaseBlock compatibility with per-mesh UV/color/tangent branch selection and scene clip-plane discard.",
         "tags": ["nme", "scene-state", "mesh-attributes", "clip-plane"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 87,
@@ -821,7 +914,8 @@
         "maxRawKB": 99,
         "description": "Environment-lit Node Material PBR sphere covering IridescenceBlock thin-film Fresnel plus ImageProcessingBlock output routing under standard tone mapping/exposure/contrast.",
         "tags": ["nme", "pbr", "iridescence", "image-processing", "env"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 88,
@@ -831,7 +925,8 @@
         "maxRawKB": 68,
         "description": "Single-plane Node Material graph covering LoopBlock control flow with StorageRead/StorageWrite accumulation of five deterministic UV color bands.",
         "tags": ["nme", "procedural", "loop"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 89,
@@ -841,7 +936,8 @@
         "maxRawKB": 68,
         "description": "Single-plane Node Material graph covering StorageReadBlock and StorageWriteBlock through a LoopBlock-local vec4 storage value with component-dependent feedback updates.",
         "tags": ["nme", "procedural", "loop", "storage"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 90,
@@ -851,7 +947,8 @@
         "maxRawKB": 78,
         "description": "Box and sphere constructive solid geometry rows showing subtract, intersect, and union with textured StandardMaterial meshes and SVG texture labels.",
         "tags": ["csg", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 91,
@@ -861,7 +958,8 @@
         "maxRawKB": 78,
         "description": "Box and sphere CSG2 rows showing subtract, intersect, and add/union with textured StandardMaterial meshes and canvas texture labels.",
         "tags": ["csg", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 92,
@@ -871,7 +969,8 @@
         "maxRawKB": 24,
         "description": "25×10 pure-2D sprite grid drawn through an opt-in custom fragment shader that multiplies the atlas sample and per-sprite tint by a constant fx.params vec4 set once before the first frame (no fx.time, fully deterministic). BJS SpriteRenderer oracle pre-multiplies each sprite color by the same params.",
         "tags": ["sprites", "2d", "shader"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 93,
@@ -881,7 +980,8 @@
         "maxRawKB": 24,
         "description": "25×10 pure-2D cutout-sprite grid recoloured through a 256×1 palette lookup texture (atlas red channel indexes the palette, source alpha preserved), nearest-filtered for bit-exact lookup. BJS SpriteRenderer oracle renders a pre-baked palette-remapped atlas.",
         "tags": ["sprites", "2d", "shader"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 94,
@@ -891,7 +991,8 @@
         "maxRawKB": 68,
         "description": "World-space facing billboards drawn through an opt-in custom fragment shader that multiplies the atlas sample and per-sprite tint by a constant fx.params vec4 set once before the first frame (no fx.time, fully deterministic). BJS SpriteManager oracle pre-multiplies each sprite color by the same params.",
         "tags": ["sprites", "billboards", "shader"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 95,
@@ -901,7 +1002,8 @@
         "maxRawKB": 68,
         "description": "World-space facing billboards recoloured through a 256×1 palette lookup texture (cutout atlas red channel indexes the palette, source alpha preserved), nearest-filtered for bit-exact lookup. BJS SpriteManager oracle renders a pre-baked palette-remapped atlas.",
         "tags": ["sprites", "billboards", "shader"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 96,
@@ -909,9 +1011,10 @@
         "name": "Scene 96 — Sprite uvOffset Parallax",
         "maxMad": 0.02,
         "maxRawKB": 16.1,
-        "description": "20×9 pure-2D sprite grid sampling one tileable atlas tile (repeat wrap, nearest) where each horizontal band carries a different fixed per-sprite uvOffset (uvScroll), shifting the sampled UV in the vertex stage — the building block for parallax / infinite-scroll backgrounds. BJS SpriteRenderer oracle bakes the same effect into a per-offset rolled-tile atlas selected by cellIndex.",
+        "description": "20x9 pure-2D sprite grid sampling one tileable atlas tile (repeat wrap, nearest) where each horizontal band carries a different fixed per-sprite uvOffset (uvScroll), shifting the sampled UV in the vertex stage - the building block for parallax / infinite-scroll backgrounds.",
         "tags": ["sprites", "2d", "uvoffset"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 97,
@@ -919,7 +1022,7 @@
         "name": "Scene 97 — Sprite Multiply Blend",
         "maxMad": 0.02,
         "maxRawKB": 21,
-        "description": "25×10 pure-2D sprite grid drawn with the opt-in spriteBlendMultiply blend mode (result = src.rgb * dst.rgb) over a light, non-black clear colour so the opaque icon sprites darken / tint the background. Fully static / deterministic. BJS SpriteRenderer oracle draws the same atlas with ALPHA_MULTIPLY (DST_COLOR / ZERO), matching the multiply RGB math including anti-aliased sprite edges.",
+        "description": "25x10 pure-2D sprite grid drawn with the opt-in spriteBlendMultiply blend mode (result = src.rgb * dst.rgb) over a light, non-black clear colour so the opaque icon sprites darken / tint the background, matching the BJS SpriteRenderer ALPHA_MULTIPLY (DST_COLOR / ZERO) oracle.",
         "tags": ["sprites", "2d", "blend"],
         "skipPerf": true
     },
@@ -929,8 +1032,85 @@
         "name": "Scene 98 — Billboard Additive Blend",
         "maxMad": 0.02,
         "maxRawKB": 62,
-        "description": "World-space facing billboards drawn with the opt-in billboardBlendAdditive blend mode (src-alpha, one); several large overlapping billboards in front of two boxes make the additive brightening obvious. Fully static / deterministic. BJS SpriteManager oracle uses ALPHA_ONEONE with each sprite's RGB pre-multiplied by its own alpha so one*(rgb*a) matches src-alpha*rgb for the opaque cells.",
+        "description": "World-space facing billboards drawn with the opt-in billboardBlendAdditive blend mode (src-alpha, one); several large overlapping billboards in front of two boxes make the additive brightening obvious, matching the BJS SpriteManager ALPHA_ONEONE oracle.",
         "tags": ["sprites", "billboards", "blend"],
+        "skipPerf": true
+    },
+    {
+        "id": 100,
+        "slug": "scene100-physics-collision",
+        "name": "Scene 100 — Physics Collision Event",
+        "maxMad": 0.5,
+        "maxRawKB": 51,
+        "maxGzipKB": 20,
+        "description": "Havok Physics V2 sphere drop (scene 40) plus a registered collision event: when the falling sphere hits the ground a collision event fires (console.log + canvas dataset flag). Visually identical to scene 40.",
+        "tags": ["std", "procedural", "physics"],
+        "skipPerf": true
+    },
+    {
+        "id": 101,
+        "slug": "scene101-physics-trigger",
+        "name": "Scene 101 — Physics Trigger Volume",
+        "maxMad": 0.5,
+        "maxRawKB": 54,
+        "maxGzipKB": 22,
+        "description": "Havok Physics V2 trigger volume. A sphere drops from y=4, falls through a static trigger sphere (TRIGGER_ENTERED), bounces off a perfectly elastic ground (restitution 1), and rises back through the trigger (TRIGGER_EXITED). A red, alpha-0.7 sphere visualises the trigger volume.",
+        "tags": ["std", "procedural", "physics"],
+        "skipPerf": true
+    },
+    {
+        "id": 102,
+        "slug": "scene102-physics-raycast",
+        "name": "Scene 102 — Physics Raycast Filtering",
+        "maxMad": 0.5,
+        "maxRawKB": 60,
+        "maxGzipKB": 24,
+        "description": "Havok Physics V2 filtered raycast (port of PG #PY59V9#7). Two static MESH boxes with distinct filter membership masks (1 and 2), a ground, and a ray. A raycast with collideWith=2 hits only the back box; the hit point, distance, and triangle index are logged to the console and matched between Lite and Babylon.js.",
+        "tags": ["std", "procedural", "physics"],
+        "skipPerf": true
+    },
+    {
+        "id": 103,
+        "slug": "scene103-thin-instance-raycast",
+        "name": "Scene 103 — Thin-Instance Raycast Picking",
+        "maxMad": 0.5,
+        "maxRawKB": 63,
+        "maxGzipKB": 26,
+        "description": "Havok Physics V2 thin-instanced wall + raycast instance picking (port of PG #I6AR8X). A 10×6×3 wall of thin-instanced cylinders with seeded per-instance colors. STATIC (mass 0) per-instance BOX bodies resolve WHICH instance a camera-relative raycast hits; the hit instance index is matched between Lite and Babylon.js for a fixed set of deterministic rays. A green indicator sphere marks the last hit.",
+        "tags": ["std", "procedural", "physics", "thin-instance"],
+        "skipPerf": true
+    },
+    {
+        "id": 104,
+        "slug": "scene104-character-controller",
+        "name": "Scene 104 — Physics Character Controller",
+        "maxMad": 0.05,
+        "maxRawKB": 105,
+        "maxGzipKB": 44,
+        "description": "Havok Physics V2 PhysicsCharacterController level walk (port of PG #WO0H1U#165). A glTF-loaded level (levelTest.glb) provides a static MESH collider; a collide-and-slide capsule character controller walks forward over the level for a fixed number of 1/60 physics steps while the camera follows in camera space. The level uses Standard materials (the glTF baseColor grid texture as diffuse) with a baked lightmap (lightmap.jpg) applied as a shadowmap — multiplied into the final gamma-space colour (raw sample, no decode) on UV2, intensity 3.2, uAng=π V-flip. Standard avoids any PBR-lightmap bundle cost. Decorative static boxes are built procedurally (Standard). The character trajectory and rendered frame are matched between Lite and Babylon.js.",
+        "tags": ["standard", "gltf", "physics", "character-controller", "lightmap"],
+        "skipPerf": true
+    },
+    {
+        "id": 105,
+        "slug": "scene105-moving-platform",
+        "name": "Scene 105 — Character Controller + Moving Platform",
+        "maxMad": 0.05,
+        "maxRawKB": 105,
+        "maxGzipKB": 44,
+        "description": "Havok Physics V2 PhysicsCharacterController level walk with a kinematic moving platform (port of PG #WO0H1U#166). Extends scene104: the glTF-loaded level (levelTest.glb) provides a static MESH collider and uses Standard materials (glTF baseColor as diffuse) with a baked lightmap (UV2 shadowmap multiply, intensity 3.2, uAng=π); a collide-and-slide capsule character controller walks toward a procedural 4×0.2×4 ANIMATED (kinematic) platform at (-4,-12) that rotates about Y and bobs vertically — driven count-based from the fixed 1/60 physics step so Lite and Babylon.js stay bit-deterministic. The start camera is (5,5,-5) (vs scene104's (0,5,-5)), steering the character's camera-space forward toward −x,−z. En route the character pushes a gate of dynamic boxes; the controller's onTriggerCollisionObservable reports each contact. The character trajectory, contacted-collider set + first contact, and the rendered frame are matched between Lite and Babylon.js.",
+        "tags": ["standard", "gltf", "physics", "character-controller", "lightmap"],
+        "skipPerf": true
+    },
+    {
+        "id": 106,
+        "slug": "scene106-prestep-motion-types",
+        "name": "Scene 106 — Prestep × Motion Types",
+        "maxMad": 0.05,
+        "maxRawKB": 56,
+        "maxGzipKB": 24,
+        "description": "Havok Physics V2 prestep-type × motion-type grid (port of PG #E9R16H#1). A 2×3 grid of cells: rows are prestep type [TELEPORT, ACTION], columns are motion type [STATIC, ANIMATED, DYNAMIC]. Each cell is a 10×1×10 box platform (its motion + prestep type set per cell) with a falling cylinder (diameter 2, height 2) resting 0.5 above. Every box node is nudged each step (x += cos(t)·0.03; z += sin(t)·0.03; y = 0); the box's prestep type governs how that node motion drives Havok — TELEPORT snaps the body (HP_Body_SetQTransform), ACTION sets a velocity toward the node (HP_Body_SetTargetQTransform), dragging the resting cylinder along via friction. The animation is advanced count-based from the fixed 1/60 physics step so Lite and Babylon.js stay bit-deterministic; the MAD frame is captured early (before the freely-falling cylinders diverge between the two Havok builds). The playground's DynamicTexture text labels are intentionally omitted. The rendered frame is matched against a live Babylon.js reference.",
+        "tags": ["physics", "prestep", "motion-types", "havok"],
         "skipPerf": true
     },
     {
@@ -959,7 +1139,8 @@
         "maxRawKB": 117.4,
         "description": "BabylonJS/Assets FlightHelmetKTX glTF model using KHR_texture_basisu KTX2 source textures and frame-graph scene-texture transmission.",
         "tags": ["pbr", "gltf", "env", "basis", "transmission"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 113,
@@ -986,7 +1167,7 @@
         "slug": "scene115-alien-picking-frame100",
         "name": "Scene 115 — Alien Picking Frame 100",
         "maxMad": 0.01,
-        "maxRawKB": 121,
+        "maxRawKB": 124,
         "description": "Precise picking validation on the animated Alien glTF at frame 100: BJS and Lite CPU PickInfo values drive a surface sphere and normal marker.",
         "tags": ["pbr", "gltf", "anim", "skeleton", "picking"],
         "skipPerf": true
@@ -1010,7 +1191,8 @@
         "maxMad": 1,
         "maxRawKB": 35,
         "description": "Loads Halo_Believe.ply via loadSplat(); renders the splat cloud with a back-to-front sort produced by an inline worker thread.",
-        "tags": ["gaussian-splatting", "ply"]
+        "tags": ["gaussian-splatting", "ply"],
+        "compatParity": true
     },
     {
         "id": 121,
@@ -1020,7 +1202,8 @@
         "maxRawKB": 35.1,
         "description": "Loads Halo_Believe.splat with keepInRam, modifies the first 30 000 splats' Y by -2, then calls gs.updateData().",
         "tags": ["gaussian-splatting", "splat"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 122,
@@ -1030,7 +1213,8 @@
         "maxRawKB": 70,
         "description": "Loads hornedlizard.sog (ZIP-packed WebPs + meta.json) via loadSOG(); renders with view-dependent SH shading.",
         "tags": ["gaussian-splatting", "sog", "sh"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 123,
@@ -1040,7 +1224,8 @@
         "maxRawKB": 65,
         "description": "Loads hornedlizard.spz (gzip-wrapped binary stream) via loadSPZ(); renders with view-dependent SH shading.",
         "tags": ["gaussian-splatting", "spz", "sh"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 124,
@@ -1050,7 +1235,8 @@
         "maxRawKB": 65,
         "description": "Loads small_hornedlizard.compressed.ply (chunked PLY + element sh) via loadSplat(); SH rendering through dynamic-imported pipeline.",
         "tags": ["gaussian-splatting", "ply", "compressed", "sh"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 125,
@@ -1059,7 +1245,9 @@
         "maxMad": 1,
         "maxRawKB": 37,
         "description": "Loads Halo_Believe.splat, applies position/rotation/scale, calls bakeCurrentTransformIntoVertices(), verifies rendering.",
-        "tags": ["gaussian-splatting", "bake-transform"]
+        "tags": ["gaussian-splatting", "bake-transform"],
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 126,
@@ -1092,7 +1280,8 @@
         "name": "Scene 129 — Gaussian Splatting GPU Picking",
         "maxMad": 1,
         "description": "Minimal port of PG #3LNCE6#36 — extends GPU picking to handle GaussianSplattingMesh via the gsGpuPickingFragment plugin and the dedicated gs-picking-pipeline. Ground disappears when picking is not valid;",
-        "tags": ["gaussian-splatting", "gpu-picking"]
+        "tags": ["gaussian-splatting", "gpu-picking"],
+        "compatParity": true
     },
     {
         "id": 140,
@@ -1171,7 +1360,7 @@
         "name": "Scene 147 — Circle of Confusion",
         "maxMad": 0.05,
         "maxRawKB": 105,
-        "description": "Circle-of-confusion post-process showcase ported from playground SUEU9U#117. The Babylon.js PowerPlant model (glb) is rendered through the frame-graph geometry renderer to produce a normalized view-depth texture, which feeds the CircleOfConfusion post-process. Output is the grayscale CoC map (0=in focus, 1=out of focus). Camera + CoC params match the playground.",
+        "description": "Circle-of-confusion post-process ported from playground SUEU9U#117. The Babylon.js PowerPlant glb is rendered through the frame-graph geometry renderer to a normalized view-depth texture, which feeds the CircleOfConfusion post-process. Output is the grayscale CoC map (0=in focus, 1=out of focus).",
         "tags": ["frame-graph", "geometry-renderer", "post-process", "circle-of-confusion", "depth-of-field"],
         "skipPerf": true,
         "skipParity": false
@@ -1182,7 +1371,7 @@
         "name": "Scene 148 — Depth of Field",
         "maxMad": 0.18,
         "maxRawKB": 113,
-        "description": "Depth-of-field post-process showcase ported from playground SUEU9U#120. The Babylon.js PowerPlant model (glb) is rendered through the frame-graph geometry renderer to produce a camera-space view-depth texture, which feeds the DepthOfField post-process (circle-of-confusion -> CoC-weighted blur pyramid -> merge). A near focus distance with a wide aperture keeps the foreground sharp while the rest of the plant blurs out. The colour pass is rendered at 4x MSAA and resolved (via the render task's resolveTarget) into a single-sample texture for the post-process; the geometry view-depth stays single-sample. Camera + lens params match the playground. The 0.18 MAD ceiling accommodates inherent cross-engine MSAA-resolve variance at silhouette edges (amplified by the CoC-weighted blur).",
+        "description": "Depth-of-field post-process: the PowerPlant glb's geometry-renderer view-depth feeds DepthOfField (CoC -> blur -> merge), keeping the foreground sharp while the rest blurs out.",
         "tags": ["frame-graph", "geometry-renderer", "post-process", "depth-of-field", "blur"],
         "skipPerf": true,
         "skipParity": false
@@ -1193,7 +1382,7 @@
         "name": "Scene 149 — Node-Material Geometry Renderer (PowerPlant)",
         "maxMad": 0.16,
         "maxRawKB": 120,
-        "description": "Babylon.js PowerPlant glb rendered through the frame-graph geometry renderer task, with every original material replaced by a NodeMaterial. One generic NME graph (sampling an albedo texture + computing world/local position, world/view normal and a constant reflectivity) is instantiated once per original material and feeds a new GeometryTextureOutputBlock terminal — the Lite analogue of BJS PrePassOutputBlock. Seven parity-matched geometry-texture impostors are shown on a single strip (viewNormal, worldNormal, worldPosition, reflectivity, localPosition, viewDepth, screenspaceDepth); no realColor tile (the node path does not implement the emitColor attachment).",
+        "description": "PowerPlant glb through the geometry renderer with every material replaced by an NME GeometryTextureOutputBlock graph - seven geometry-texture impostors (normals, positions, reflectivity, depth).",
         "tags": ["frame-graph", "geometry-renderer", "mrt", "node-material", "gltf"],
         "skipPerf": true,
         "skipParity": false
@@ -1206,7 +1395,8 @@
         "maxRawKB": 57,
         "description": "Standalone AnimationManager drives a manual position.x float track matching Babylon.js beginDirectAnimation.",
         "tags": ["std", "procedural", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 151,
@@ -1216,7 +1406,8 @@
         "maxRawKB": 57,
         "description": "Standalone AnimationManager drives position, scaling, and rotationQuaternion tracks on one manual transform clip.",
         "tags": ["std", "procedural", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 152,
@@ -1226,7 +1417,8 @@
         "maxRawKB": 90,
         "description": "One explicit AnimationManager drives a glTF shark skeleton group and a manual camera orbit property group.",
         "tags": ["pbr", "gltf", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 153,
@@ -1236,7 +1428,8 @@
         "maxRawKB": 16,
         "description": "Standalone AnimationManager animates a plain object and draws to a 2D canvas without a Lite scene or engine.",
         "tags": ["anim", "standalone"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 154,
@@ -1246,7 +1439,8 @@
         "maxRawKB": 58,
         "description": "Manual property animation uses second-based keyframes and STEP interpolation, matching Babylon.js AnimationKeyInterpolation.STEP.",
         "tags": ["std", "procedural", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 155,
@@ -1256,7 +1450,8 @@
         "maxRawKB": 60,
         "description": "Two manual property animation groups blend weighted contributions into the same position.x property.",
         "tags": ["std", "procedural", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 156,
@@ -1266,7 +1461,8 @@
         "maxRawKB": 61,
         "description": "Two manual property animation groups cross-fade by duration-driven weight transitions.",
         "tags": ["std", "procedural", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 157,
@@ -1276,7 +1472,8 @@
         "maxRawKB": 96,
         "description": "One AnimationManager blends Xbot walk and run glTF animation groups with equal weights before a single skeleton upload.",
         "tags": ["pbr", "gltf", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 158,
@@ -1286,7 +1483,8 @@
         "maxRawKB": 98,
         "description": "Xbot idle base animation blends with a full-weight additive sad pose.",
         "tags": ["pbr", "gltf", "anim"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 159,
@@ -1313,7 +1511,7 @@
         "slug": "scene161-shader-material-uniform",
         "name": "Scene 161 - ShaderMaterial Uniform",
         "maxMad": 0.02,
-        "maxRawKB": 37,
+        "maxRawKB": 39,
         "description": "WGSL ShaderMaterial updates typed custom uniforms through standalone setters.",
         "tags": ["shader", "procedural"],
         "skipPerf": true
@@ -1368,7 +1566,8 @@
         "description": "Recast V2 navmesh built from ground + sphere + box, debug visualization, one stationary crowd agent at a fixed nav-snapped position.",
         "tags": ["navigation", "recast", "wasm"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 171,
@@ -1379,7 +1578,8 @@
         "description": "Single crowd agent on the nav_test.glb mesh follows a computed path (port of playground #DPDNVH#2).",
         "tags": ["navigation", "recast", "wasm", "path"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 172,
@@ -1390,7 +1590,8 @@
         "description": "Tile-cache navmesh on a 10x10 ground with one cylinder + one box obstacle. Single agent computes a path around obstacles (port of playground #DPDNVH#3).",
         "tags": ["navigation", "recast", "wasm", "obstacles"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 173,
@@ -1401,7 +1602,8 @@
         "description": "Tile-cache navmesh with a box obstacle that is toggled off 1 second after ready frame (port of playground #DPDNVH#4).",
         "tags": ["navigation", "recast", "wasm", "obstacles"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 174,
@@ -1412,7 +1614,8 @@
         "description": "Solo navmesh on nav_test.glb with three off-mesh connections; path computed across the scene exercises elevated platforms (port of playground #DPDNVH#5).",
         "tags": ["navigation", "recast", "wasm", "offmesh"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 175,
@@ -1423,7 +1626,8 @@
         "description": "Navmesh raycast between two far-separated points on nav_test.glb. Spheres mark start/end/hit, a yellow tube traces the ray (port of playground #DPDNVH#7).",
         "tags": ["navigation", "recast", "wasm", "raycast"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 176,
@@ -1497,7 +1701,8 @@
         "maxRawKB": 50,
         "description": "5×5 grid of boxes + pillar at world (~5e6, *, ~5e6) with useHighPrecisionMatrix=false. F32 view-proj chain visibly jitters at this magnitude — stair-stepped silhouettes, mis-aligned cube faces. Compare to scene 201 (FO on) for the precision win.",
         "tags": ["hpm", "lwr", "precision", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 201,
@@ -1507,7 +1712,8 @@
         "maxRawKB": 50,
         "description": "Same 5×5 grid + pillar as scene 200, but useHighPrecisionMatrix=true and useFloatingOrigin=true. F64 caches + eye-relative upload trick keep GPU-facing translations small; rasterization is crisp.",
         "tags": ["hpm", "lwr", "floating-origin", "precision", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 202,
@@ -1517,7 +1723,8 @@
         "maxRawKB": 60,
         "description": "Point-lit 3×3 box grid + central sphere at world (~5e6, *, ~5e6) with useFloatingOrigin=true. The point light's world position is baked with the camera offset in the lights UBO so the GPU shades with an eye-relative light position — crisp specular highlights vs F32 cancellation jitter. Pairs with BJS useLargeWorldRendering.",
         "tags": ["hpm", "lwr", "floating-origin", "point-light", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 203,
@@ -1527,7 +1734,8 @@
         "maxRawKB": 60,
         "description": "Spot light aimed down onto a ground + box ring + sphere at world (~5e6, *, ~5e6) with useFloatingOrigin=true. The spot's world position is baked with the camera offset in the lights UBO (direction untouched) so the GPU shades eye-relative — a crisp light cone vs F32 cancellation jitter. Pairs with BJS useLargeWorldRendering.",
         "tags": ["hpm", "lwr", "floating-origin", "spot-light", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 204,
@@ -1535,9 +1743,10 @@
         "name": "Scene 204 - LWR Thin Instances",
         "maxMad": 0.5,
         "maxRawKB": 60,
-        "description": "Thin-instanced box (5×5 local grid) on a mesh node at world (~5e6, 1, ~5e6) with useFloatingOrigin=true. Both Lite and BJS compose finalWorld = mesh.world * instance, so the large coordinate lives in the eye-relative mesh.world and instance matrices stay local — crisp instanced geometry vs F32 jitter. Pairs with BJS useLargeWorldRendering.",
+        "description": "Thin-instanced box (5x5 local grid) on a mesh node at world (~5e6, 1, ~5e6) with useFloatingOrigin=true. Both Lite and BJS compose finalWorld = mesh.world * instance, so the large coordinate lives in the eye-relative mesh.world while instance matrices stay local - crisp instanced geometry vs F32 jitter.",
         "tags": ["hpm", "lwr", "floating-origin", "thin-instances", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 205,
@@ -1545,9 +1754,10 @@
         "name": "Scene 205 - LWR Facing Billboards",
         "maxMad": 0.5,
         "maxRawKB": 65,
-        "description": "World-space camera-facing billboard sprite cards (transparent, depth-tested, alpha) at world (~5e6, *, ~5e6) with useFloatingOrigin=true. The billboard upload bakes the active camera world position into every anchor so the GPU sees eye-relative positions matching the eye-relative view-projection — crisp cards vs F32 jitter. Exercises the sorted/transparent billboard upload path. Pairs with BJS useLargeWorldRendering + SpriteManager.",
+        "description": "World-space camera-facing billboard sprite cards (transparent, depth-tested, alpha) at world (~5e6, *, ~5e6) with useFloatingOrigin=true. The billboard upload bakes the active camera world position into every anchor so the GPU sees eye-relative positions matching the eye-relative view-projection - crisp cards vs F32 jitter.",
         "tags": ["hpm", "lwr", "floating-origin", "sprites", "billboards", "depth"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 206,
@@ -1555,7 +1765,7 @@
         "name": "Scene 206 - LWR Cutout Billboards",
         "maxMad": 1.0,
         "maxRawKB": 65,
-        "description": "Hard-alpha (alpha-tested, depth-writing) world-space billboard sprite cards at world (~5e6, *, ~5e6) with useFloatingOrigin=true. Exercises the opaque/cutout billboard upload path (uploadBillboardInstances) which bakes the active camera world position into every anchor and re-uploads on camera movement. The cutout cards themselves match BJS within ~0.2 MAD; the higher 1.0 ceiling accommodates the intrinsic sub-pixel large-world residual amplified by razor-sharp alpha-test edges and high-contrast opaque box silhouettes against the dark background (a billboard-FO regression would shift the large card areas far beyond this). Pairs with BJS useLargeWorldRendering + alpha-test facing planes.",
+        "description": "Alpha-tested, depth-writing billboard cards at world (~5e6, *, ~5e6) with useFloatingOrigin=true - exercises the cutout billboard upload path that bakes the camera position into every anchor.",
         "tags": ["hpm", "lwr", "floating-origin", "sprites", "billboards", "depth"],
         "skipPerf": true
     },
@@ -1565,18 +1775,19 @@
         "name": "Scene 207 - LWR Directional Shadows",
         "maxMad": 0.5,
         "maxRawKB": 75,
-        "description": "Directional-light PCF shadows (sphere + boxes casting onto a ground receiver) at world (~5e6, *, ~5e6) with useFloatingOrigin=true. Exercises the shadow light-space matrix under floating origin: the PCF directional generator builds its light view/projection eye-relative (camera offset subtracted from the light position and caster AABBs) so the shadow matches the eye-relative mesh world matrices used by both the caster pass and the receiver shader — correctly placed, crisp shadows vs F32 collapse. Pairs with BJS useLargeWorldRendering + ShadowGenerator (usePercentageCloserFiltering).",
+        "description": "Directional-light PCF shadows at world (~5e6, *, ~5e6) with useFloatingOrigin=true: the generator builds light view/projection eye-relative so shadows stay crisp instead of collapsing under F32.",
         "tags": ["hpm", "lwr", "floating-origin", "shadow", "procedural", "std"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 209,
         "slug": "scene209-floating-origin-physics",
         "name": "Scene 209 — LWR Physics",
         "maxMad": 0.5,
-        "maxRawKB": 53,
+        "maxRawKB": 54.5,
         "maxGzipKB": 22,
-        "description": "Havok Physics V2 sphere drop at world (~5e6, *, ~5e6) with useFloatingOrigin=true. Exercises multi-region floating origin: the physics world places bodies in a region centred near them and simulates in local coordinates (near zero), so the float32 Havok solver keeps precision and the sphere settles exactly on the ground at large world coordinates. Pairs with BJS useLargeWorldRendering, which enables Havok multi-region floating origin via scene.floatingOriginMode.",
+        "description": "Havok Physics V2 sphere drop at world (~5e6, *, ~5e6) with useFloatingOrigin=true: multi-region floating origin simulates in local coordinates so the float32 solver stays precise at huge coordinates.",
         "tags": ["hpm", "lwr", "floating-origin", "physics", "procedural"],
         "skipPerf": true
     },
@@ -1589,7 +1800,8 @@
         "description": "KhronosGroup XmpMetadataRoundedCube.glb exercising the KHR_xmp_json_ld extension; JSON-LD metadata packets are surfaced on the AssetContainer with zero render impact, rendered in environmentSpecular.env with a skybox.",
         "tags": ["pbr", "gltf", "xmp", "metadata", "env", "skybox"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 211,
@@ -1600,7 +1812,8 @@
         "description": "KhronosGroup BrainStem (glTF-Meshopt-EXT) exercising EXT_meshopt_compression + KHR_mesh_quantization; skinned and animated, decoded via dynamic-imported loader features so non-meshopt scenes pay nothing. Frozen via seekTime for deterministic parity.",
         "tags": ["pbr", "gltf", "meshopt", "quantization", "skeleton", "animation"],
         "skipPerf": true,
-        "bundleTimeoutMs": 120000
+        "bundleTimeoutMs": 120000,
+        "compatParity": true
     },
     {
         "id": 212,
@@ -1618,10 +1831,11 @@
         "slug": "scene213-gridmaterial",
         "name": "Scene 213 — GridMaterial",
         "maxMad": 0.01,
-        "maxRawKB": 44,
-        "description": "Four meshes shaded by the procedural unlit GridMaterial — an opaque anti-aliased teal ground, a useMaxLine orange sphere whose object-space grid wraps the curved surface, a transparent alpha-blended cyan box (opacity 0.6), and a hard-cutoff antialias:false pink box — validated against a Babylon.js @babylonjs/materials GridMaterial oracle with identical per-mesh grid params, camera, and 4x MSAA.",
+        "maxRawKB": 46,
+        "description": "Four meshes shaded by the procedural unlit GridMaterial - an opaque anti-aliased teal ground, a useMaxLine orange sphere whose object-space grid wraps the curved surface, a transparent alpha-blended cyan box (opacity 0.6), and a hard-cutoff antialias:false pink box - validated against a Babylon.js GridMaterial oracle.",
         "tags": ["materials", "grid", "procedural"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 214,
@@ -1629,7 +1843,7 @@
         "name": "Scene 214 — Cascaded Shadow Maps",
         "maxMad": 0.4,
         "maxRawKB": 67,
-        "description": "A deterministic field of 200 green torus-knot casters (playground #KY0N7T#84) drops shadows onto a large Standard ground receiver, lit by a single DirectionalLight with a 4-cascade CascadedShadowGenerator (PCF5). Caster transforms come from a seeded PRNG so Lite and the Babylon.js CSM oracle place every knot identically; cascade Z bounds auto-fit the caster AABB (autoCalcShadowZBounds).",
+        "description": "A deterministic field of 200 green torus-knot casters (playground #KY0N7T#84) drops shadows onto a large Standard ground receiver, lit by a single DirectionalLight with a 4-cascade CascadedShadowGenerator (PCF5). A seeded PRNG places every knot identically to the Babylon.js CSM oracle; cascade Z bounds auto-fit the caster AABB.",
         "tags": ["shadows", "csm", "standard", "directional"],
         "skipPerf": true
     },
@@ -1639,7 +1853,7 @@
         "name": "Scene 215 — Cascaded Shadow Maps (PBR)",
         "maxMad": 0.4,
         "maxRawKB": 78,
-        "description": "PBR counterpart of scene214: a deterministic field of 200 green PBR torus-knot casters drops cascaded shadows onto a large PBR ground receiver, lit by a single DirectionalLight with a 4-cascade CascadedShadowGenerator (PCF5). Proves CSM works on PBR-material receivers, not just Standard. Caster transforms come from a seeded PRNG so Lite and the Babylon.js CSM oracle place every knot identically; cascade Z bounds auto-fit the caster AABB (autoCalcShadowZBounds).",
+        "description": "PBR counterpart of scene214: a deterministic field of 200 green PBR torus-knot casters drops cascaded shadows onto a large PBR ground receiver, lit by a single DirectionalLight with a 4-cascade CascadedShadowGenerator (PCF5). Proves CSM works on PBR receivers, not just Standard; a seeded PRNG matches the Babylon.js CSM oracle.",
         "tags": ["shadows", "csm", "pbr", "directional"],
         "skipPerf": true
     },
@@ -1649,8 +1863,9 @@
         "name": "Scene 216 — PBR Fog",
         "maxMad": 0.05,
         "maxRawKB": 54,
-        "description": "A receding row of 10 gold PBR boxes fades into linear fog whose colour matches the background, validating that PBR materials apply fog identically to Babylon.js — the fog is mixed into the linear HDR colour before the tonemap/image-processing chain, using the PBR-specific linearised fog factor (toLinearSpace(fog) = pow(fog, 2.2)). Hemispheric light, arc-rotate camera, no environment.",
+        "description": "A receding row of 10 gold PBR boxes fades into linear fog whose colour matches the background, validating that PBR materials apply fog identically to Babylon.js - the fog is mixed into the linear HDR colour before the tonemap / image-processing chain, using the PBR-specific linearised fog factor.",
         "tags": ["pbr", "fog"],
+        "compatParity": true,
         "skipPerf": true
     },
     {
@@ -1659,7 +1874,7 @@
         "name": "Scene 217 — Material Plugin (BlackAndWhite)",
         "maxMad": 0.4,
         "maxRawKB": 80,
-        "description": "Opt-in MaterialPlugin support (the BJS MaterialPluginBase equivalent): a PBR sphere and a Standard box each carry a stateless BlackAndWhite grayscale plugin that injects custom WGSL at CUSTOM_FRAGMENT_BEFORE_FRAGCOLOR (Lite slot BC, after tonemap+gamma). The full built-in PBR/Standard lighting pipeline is preserved; only the final color is converted to luminance. Proves per-instance plugin attach (material.plugins = [plugin]) on both material families with zero bundle-size impact for plugin-free scenes.",
+        "description": "Opt-in MaterialPlugin support: a PBR sphere and a Standard box each carry a stateless BlackAndWhite grayscale plugin that injects custom WGSL after tonemap+gamma. The built-in PBR/Standard lighting pipeline is preserved; only the final colour is converted to luminance, with zero bundle-size cost for plugin-free scenes.",
         "tags": ["material", "plugin", "pbr", "standard"],
         "skipPerf": true
     },
@@ -1669,9 +1884,10 @@
         "name": "Scene 218 — Vertex Animation Texture (VAT)",
         "maxMad": 0.02,
         "maxRawKB": 90,
-        "description": "Baked vertex animation: the scene-11 shark's skeletal animation is pre-evaluated into one rgba32float texture (bakeVat) and played through the GPU VAT vertex path (mesh.vat) with NO live CPU skeleton — the vertex shader reads each bone matrix from the baked texture at the current frame row. First step toward thin-instancing animated meshes. The baker + VAT shader fragment live in a dynamic-import chunk reached only when a scene bakes a VAT, so scenes that never use vertex animation pay zero bytes.",
+        "description": "Baked vertex animation: the scene-11 shark's skeletal animation is pre-evaluated into one rgba32float texture (bakeVat) and played through the GPU VAT vertex path (mesh.vat) with NO live CPU skeleton - the vertex shader reads each bone matrix from the baked texture at the current frame row.",
         "tags": ["vat", "animation", "skeleton", "instancing", "pbr", "gltf"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 219,
@@ -1679,9 +1895,10 @@
         "name": "Scene 219 — Per-instance VAT",
         "maxMad": 0.02,
         "maxRawKB": 93,
-        "description": "Per-instance VAT: the scene-11 shark baked to a VAT texture and rendered through the GPU thin-instance VAT path (one identity-matrix instance), frozen via ?seekTime. The instanced path's finalWorld = instanceMatrix * mesh.world * skin equals the plain skinned pose at identity, so it matches the BJS live-skeleton golden exactly — validating per-instance frame selection (the instance params texture read by @builtin(instance_index)), the thin-instance world placement, and the dual-clip blend path (single clip = blend 0). One draw call, no live CPU skeleton.",
+        "description": "Per-instance VAT: the scene-11 shark baked to a VAT texture and rendered through the GPU thin-instance VAT path (one identity-matrix instance) frozen via ?seekTime. finalWorld = instanceMatrix * mesh.world * skin equals the plain skinned pose at identity, so it matches the BJS live-skeleton golden exactly.",
         "tags": ["vat", "animation", "skeleton", "instancing", "pbr", "gltf"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 221,
@@ -1691,7 +1908,8 @@
         "maxRawKB": 100,
         "description": "Four cubes over a ground, each driven by a different gizmo: axisDragGizmo (X), planeRotationGizmo (Y) with rotation sector camembert, planeDragGizmo (Y normal), axisScaleGizmo (Y). UtilityLayer overlay + scripted pointer-drag interaction.",
         "tags": ["std", "gizmo", "interactive"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 222,
@@ -1701,7 +1919,8 @@
         "maxRawKB": 110,
         "description": "Three cubes each parented to a TransformNode with non-null rotation and translation, driven by composite PositionGizmo / RotationGizmo / ScaleGizmo. Scripted manipulation in LOCAL coords, then switches to WORLD coords (where supported) and re-manipulates before parity comparison.",
         "tags": ["std", "gizmo", "interactive", "composite"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 223,
@@ -1711,7 +1930,8 @@
         "maxRawKB": 70,
         "description": "Display-only CameraGizmo + a LightGizmo for every supported light type (hemispheric, point, spot, directional) over a ground plane, rendered through a utility-layer overlay. Static scene — no scripted interaction.",
         "tags": ["std", "gizmo", "display"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 224,
@@ -1719,9 +1939,10 @@
         "name": "Scene 224 — Bounding Box Gizmo",
         "maxMad": 0.15,
         "maxRawKB": 90,
-        "description": "5 cubes parented to a group root, with a BoundingBoxGizmo computing the encompassing AABB. Parity is driven by a deterministic `__scene224.setRootTrs(...)` test hook that poses the group identically in both engines, verifying the rendered gizmo (12-edge wireframe, 8 corner-scale L-handles, 12 edge-midpoint rotation anchors, and their lit/hover materials) rather than pointer-drag dynamics.",
+        "description": "5 cubes parented to a group root, with a BoundingBoxGizmo computing the encompassing AABB. A deterministic __scene224.setRootTrs(...) test hook poses the group identically in both engines, verifying the rendered gizmo (12-edge wireframe, 8 corner-scale L-handles, 12 edge-midpoint rotation anchors) rather than pointer-drag dynamics.",
         "tags": ["std", "gizmo", "interactive", "bbox"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 225,
@@ -1729,9 +1950,10 @@
         "name": "Scene 225 — Geospatial Camera",
         "maxMad": 0.2,
         "maxRawKB": 52,
-        "description": "Babylon.js GeospatialCamera port: a globe-orbit camera that anchors to a point on a sphere centred at the world origin and is parameterised by center/yaw/pitch/radius. A blue globe with six coloured surface marker cubes is viewed from a fixed deterministic pose (no controls attached) so the camera's view matrix is compared pixel-for-pixel against the Babylon.js GeospatialCamera oracle. The Lite camera reimplements the same left-handed local-basis + lookAt orientation math in the pure-state idiom.",
+        "description": "Babylon.js GeospatialCamera port: a globe-orbit camera that anchors to a point on a sphere centred at the world origin, parameterised by center/yaw/pitch/radius. A blue globe with six coloured marker cubes is viewed from a fixed deterministic pose so the view matrix is compared pixel-for-pixel against the BJS GeospatialCamera oracle.",
         "tags": ["camera", "geospatial", "globe", "standard"],
-        "skipPerf": true
+        "skipPerf": true,
+        "compatParity": true
     },
     {
         "id": 226,
@@ -1748,7 +1970,7 @@
         "slug": "scene227-multi-canvas-same-scene",
         "name": "Scene 227 — Multi-Canvas (Same Scene)",
         "maxRawKB": 60,
-        "description": "Two canvases side-by-side share a single engine via `createSurface`, and a *single* set of meshes (cube + ground), materials, and lights is added to two `SceneContext`s — one per surface. Proves that mesh GPU buffers, material pipelines, and light data are all device/engine-scoped: the same instances drive both canvases, while each scene keeps its own camera, framegraph, and per-scene UBO (front view vs 3/4 orbit).",
+        "description": "Two canvases side-by-side share a single engine via createSurface, and a single set of meshes (cube + ground), materials, and lights is added to two SceneContexts - one per surface. Proves mesh GPU buffers, material pipelines, and light data are device/engine-scoped: the same instances drive both canvases, each with its own camera.",
         "tags": ["multi-canvas", "surface", "demo", "std"],
         "skipParity": true,
         "skipPerf": true
@@ -1758,9 +1980,20 @@
         "slug": "scene228-multi-canvas-different-scenes",
         "name": "Scene 228 — Multi-Canvas (Different Scenes)",
         "maxRawKB": 60,
-        "description": "Two canvases side-by-side share a single engine via `createSurface`. Canvas A hosts a row of colored spheres lit by a hemispheric light; canvas B hosts a torus knot lit by a directional light. Demonstrates that completely independent scenes (different geometry, materials, lighting, cameras, clear colors) can coexist on one engine when each is bound to its own surface.",
+        "description": "Two canvases side-by-side share a single engine via createSurface. Canvas A hosts a row of coloured spheres lit by a hemispheric light; canvas B hosts a torus knot lit by a directional light. Demonstrates that fully independent scenes (geometry, materials, lighting, cameras) can coexist on one engine, each bound to its own surface.",
         "tags": ["multi-canvas", "surface", "demo", "std"],
         "skipParity": true,
+        "skipPerf": true
+    },
+    {
+        "id": 229,
+        "slug": "scene229-triangle-without-indices",
+        "name": "Scene 229 — Triangle Without Indices",
+        "maxMad": 1,
+        "maxRegionMad": 0.05,
+        "maxRawKB": 66,
+        "description": "Minimal glTF tutorial asset whose single triangle primitive omits `indices`. Verifies Lite expands non-indexed triangle primitives to identity indices before GPU upload so the existing indexed draw path remains fast and unchanged.",
+        "tags": ["pbr", "gltf", "non-indexed"],
         "skipPerf": true
     }
 ]

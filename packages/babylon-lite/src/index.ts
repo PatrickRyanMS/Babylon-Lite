@@ -15,6 +15,8 @@ export {
     VERSION,
 } from "./engine/engine.js";
 export type { EngineContext, EngineOptions, RenderCanvas } from "./engine/engine.js";
+export { setRenderTaskGpuTimingEnabled, isRenderTaskGpuTimingSupported, getRenderTaskGpuTimings } from "./engine/gpu-task-timing.js";
+export type { RenderTaskGpuTiming, RenderTaskGpuTimings, RenderTaskGpuTimingStatus } from "./engine/gpu-task-timing.js";
 export { createSurface, disposeSurface, resizeSurface, setSurfaceSize } from "./engine/surface.js";
 export type { SurfaceContext, SurfaceOptions } from "./engine/surface.js";
 export { captureScreenshot } from "./engine/screenshot.js";
@@ -148,6 +150,7 @@ export {
     createGround,
     createGroundFromHeightMap,
     createCylinder,
+    createCapsule,
     createPlane,
     createDisc,
     createPolyhedron,
@@ -167,7 +170,9 @@ export {
 export { createSphereData } from "./mesh/create-sphere.js";
 export type { SphereMeshData } from "./mesh/create-sphere.js";
 export { createCylinderData } from "./mesh/create-cylinder.js";
+export { createCapsuleData } from "./mesh/create-capsule.js";
 export type { CylinderData } from "./mesh/create-cylinder.js";
+export type { CapsuleData } from "./mesh/create-capsule.js";
 export { createTorusKnotData } from "./mesh/create-torus-knot.js";
 export type { TorusKnotData, TorusKnotOptions } from "./mesh/create-torus-knot.js";
 export { createCsgFromMesh, csgSubtract, csgIntersect, csgUnion, createMeshFromCsg } from "./mesh/csg.js";
@@ -187,7 +192,15 @@ export { setKtx2DecoderUrl } from "./texture/ktx2-loader.js";
 export { createStandardMaterial } from "./material/standard/create-standard-material.js";
 export { createStandardNoColorMaterialView } from "./material/standard/no-color-view.js";
 export { createPbrMaterial } from "./material/pbr/pbr-material.js";
-export { createShaderMaterial, setShaderUniform, setShaderTexture, setShaderFloat, setShaderVector3, setShaderMatrix } from "./material/shader/shader-material.js";
+export {
+    createShaderMaterial,
+    setShaderUniform,
+    setShaderTexture,
+    setShaderStorageBuffer,
+    setShaderFloat,
+    setShaderVector3,
+    setShaderMatrix,
+} from "./material/shader/shader-material.js";
 export { createShaderNoColorMaterialView } from "./material/shader/no-color-view.js";
 export { createShaderNormalMaterialView } from "./material/shader/normal-view.js";
 export type { ShaderNormalViewConfig } from "./material/shader/normal-view.js";
@@ -208,6 +221,7 @@ export { enableMaterialTracking } from "./material/observable-material.js";
 // ─── Loaders ─────────────────────────────────────────────────────────
 export { loadGltf } from "./loader-gltf/load-gltf.js";
 export type { AssetContainer } from "./asset-container.js";
+export { getContainerMeshes } from "./asset-container.js";
 export { selectVariant, getVariantNames, resetVariant } from "./loader-gltf/material-variants.js";
 export type { MaterialVariantData } from "./loader-gltf/material-variants.js";
 // ─── Hierarchy ───────────────────────────────────────────────────────
@@ -219,6 +233,7 @@ export type { SceneNode } from "./scene/scene-node.js";
 export { loadBabylon } from "./loader-babylon/load-babylon.js";
 export { loadFbx } from "./loader-fbx/load-fbx.js";
 export { loadEnvironment } from "./loader-env/load-env.js";
+export { loadDdsEnvironment } from "./loader-env/load-dds-env.js";
 export { loadHdrEnvironment } from "./loader-hdr/load-hdr.js";
 export { loadTexture2D, cloneTexture2D } from "./texture/texture-2d.js";
 export { loadSkybox } from "./loader-skybox/load-skybox.js";
@@ -273,12 +288,30 @@ export type { VatBakeResult, VatClip, VatHandle } from "./vat/vat-baker.js";
 
 // ─── Math ────────────────────────────────────────────────────────────
 export { normalizeVec3 } from "./math/normalize-vec3.js";
+export { normalizeVec3 as normalizeVec3Object } from "./math/normalize-vec3-object.js";
+export { vec3 } from "./math/vec3-ctor.js";
+export { Vec3Up } from "./math/vec3-up.js";
+export { addVec3 } from "./math/add-vec3.js";
+export { subVec3 } from "./math/sub-vec3.js";
+export { scaleVec3 } from "./math/scale-vec3.js";
+export { dotVec3 } from "./math/dot-vec3.js";
+export { crossVec3 } from "./math/cross-vec3.js";
+export { lengthVec3 } from "./math/length-vec3.js";
+export { negateVec3 } from "./math/negate-vec3.js";
+export { lerpVec3 } from "./math/lerp-vec3.js";
+export { writeVec3 } from "./math/write-vec3.js";
 export { mat4Translation } from "./math/mat4-translation.js";
 export { mat4Identity } from "./math/mat4-identity.js";
 export { mat4Scale } from "./math/mat4-scale.js";
 export { mat4Compose } from "./math/mat4-compose.js";
 export { mat4Invert } from "./math/mat4-invert.js";
-export type { Vec3, Vec3Tuple, Mat4 } from "./math/types.js";
+export { mat4Multiply } from "./math/mat4-multiply.js";
+export { mat4LookAtLH } from "./math/mat4-look-at-lh.js";
+export { mat4PerspectiveLH } from "./math/mat4-perspective-lh.js";
+export { mat4FromQuat } from "./math/mat4-from-quat.js";
+export type { Vec3, Vec3Tuple, Vec4, Color3, Color4, Mat4, Quat } from "./math/types.js";
+export type { Aabb } from "./math/aabb.js";
+export { computeAabb } from "./math/aabb.js";
 
 // ─── Color ───────────────────────────────────────────────────────────
 export { linearToSrgbByte, srgbByteToLinear, packedSrgbToLinearRgba } from "./math/color.js";
@@ -295,6 +328,14 @@ export {
     setThinInstanceColor,
     enableThinInstanceGpuCulling,
 } from "./mesh/thin-instance.js";
+export {
+    addHierarchyInstance,
+    createHierarchyInstancePool,
+    removeHierarchyInstance,
+    setHierarchyInstanceCount,
+    setHierarchyInstanceMatrix,
+} from "./mesh/hierarchy-instance-pool.js";
+export type { HierarchyInstancePool } from "./mesh/hierarchy-instance-pool.js";
 export type { ThinInstanceData } from "./mesh/thin-instance.js";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -330,6 +371,8 @@ export type {
     PbrMaterialProps,
     ClearCoatProps,
     AnisotropyProps,
+    SheenProps,
+    IridescenceProps,
     SubSurfaceProps,
     TranslucencyProps,
     ThicknessProps,
@@ -363,6 +406,7 @@ export type { SphereOptions } from "./mesh/create-sphere.js";
 export type { TorusOptions } from "./mesh/create-torus.js";
 export type { GroundOptions } from "./mesh/create-ground.js";
 export type { CylinderOptions } from "./mesh/create-cylinder.js";
+export type { CapsuleOptions } from "./mesh/create-capsule.js";
 export type { PlaneOptions } from "./mesh/create-plane.js";
 export type { DiscOptions } from "./mesh/create-disc.js";
 export type { PolyhedronOptions } from "./mesh/create-polyhedron.js";
@@ -373,7 +417,7 @@ export { CAP_NONE, CAP_START, CAP_END, CAP_ALL } from "./mesh/create-tube.js";
 
 // ─── Picking ─────────────────────────────────────────────────────────
 export { createGpuPicker, pickAsync, disposePicker } from "./picking/gpu-picker.js";
-export type { GpuPicker, PickOptions } from "./picking/gpu-picker.js";
+export type { GpuPicker, PickDiscardRule, PickOptions } from "./picking/gpu-picker.js";
 export type { PickingInfo } from "./picking/picking-info.js";
 export { enableDetailedPicking } from "./picking/detailed-picking.js";
 export { getPickedNormal, getPickedUV } from "./picking/picking-helpers.js";
@@ -542,10 +586,12 @@ export {
     getPhysicsGravity,
     setPhysicsTimestep,
     getPhysicsTimestep,
+    onPhysicsAfterStep,
     setPhysicsVelocityLimits,
     getPhysicsVelocityLimits,
     setPhysicsBodyShape,
     setPhysicsBodyPreStep,
+    setPhysicsBodyPrestepType,
     applyPhysicsBodyImpulse,
     applyPhysicsBodyForce,
     addPhysicsShapeChild,
@@ -566,6 +612,7 @@ export {
     disposePhysics,
     PhysicsShapeType,
     PhysicsMotionType,
+    PhysicsPrestepType,
     PhysicsConstraintType,
     PhysicsConstraintAxis,
 } from "./physics/havok.js";
@@ -582,8 +629,18 @@ export type {
     PhysicsConstraintOptions,
     PhysicsConstraintLimit,
 } from "./physics/havok.js";
+export { createHeightFieldShape } from "./physics/havok-heightfield.js";
+export type { HeightFieldShapeOptions } from "./physics/havok-heightfield.js";
+export { shapeProximity, shapeCast, physicsRaycast } from "./physics/havok-queries.js";
+export type { ShapeProximityQuery, ShapeCastQuery, ShapeProximityResult, ShapeCastResult, RaycastQuery, RaycastResult } from "./physics/havok-queries.js";
+export { setPhysicsBodyCollisionEventsEnabled, onPhysicsCollision } from "./physics/havok-collision.js";
+export type { PhysicsCollisionInfo } from "./physics/havok-collision.js";
+export { setPhysicsShapeIsTrigger, onPhysicsTrigger } from "./physics/havok-trigger.js";
+export type { PhysicsTriggerInfo } from "./physics/havok-trigger.js";
 export { createPhysicsViewer, showPhysicsBody, showPhysicsConstraint, hidePhysicsBody, disposePhysicsViewer } from "./physics/physics-viewer.js";
 export type { PhysicsViewer, PhysicsViewerOptions, PhysicsConstraintDebug } from "./physics/physics-viewer.js";
+export { createPhysicsCharacterController, PhysicsCharacterController, CharacterSupportedState, CharacterCollisionObservable } from "./physics/character-controller.js";
+export type { PhysicsCharacterControllerOptions, CharacterSurfaceInfo, CharacterCollisionEvent } from "./physics/character-controller.js";
 
 // ─── Navigation (Recast V2) ──────────────────────────────────────────
 export {

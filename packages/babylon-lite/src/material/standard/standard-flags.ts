@@ -26,20 +26,24 @@ export const NO_COLOR_OUTPUT = 1 << 18;
 export const HAS_DEPTH_EMISSIVE_TEXTURE = 1 << 19;
 export const ESM_SHADOW_OUTPUT = 1 << 20;
 export const GEOMETRY_OUTPUT = 1 << 21;
+/** Lightmap is used as a baked shadowmap: multiplies the final color instead of adding. */
+export const LIGHTMAP_SHADOWMAP = 1 << 15;
+/** Lightmap UVs are V-flipped (BJS Texture.uAng === π → uv'=(u, 1-v)). */
+export const LIGHTMAP_FLIP_V = 1 << 22;
 /** Mesh has per-vertex RGB colors. Driven off the mesh's color buffer (not a material
  *  property), OR'd into the local feature bitmask for non-shadow colored meshes so the
  *  shared StdExt loop composes the vertex-color fragment and keys the pipeline correctly. */
-export const HAS_VERTEX_COLOR = 1 << 22;
+export const HAS_VERTEX_COLOR = 1 << 23;
 /** Mesh has morph targets. Driven off the mesh (not a material property), OR'd into the
  *  local feature bitmask for non-shadow morphed meshes so the shared StdExt loop composes
  *  the vertex-stage morph fragment and keys the pipeline correctly. */
-export const HAS_MORPH_TARGETS = 1 << 23;
+export const HAS_MORPH_TARGETS = 1 << 24;
 /** Scene has fog. Driven off `scene.fog` (not a material property), OR'd into the local
  *  feature bitmask for non-shadow color meshes so the template emits the fog varying, helper,
  *  and blend block — and keys the pipeline cache so fog/non-fog variants stay distinct. The
  *  fog WGSL is dynamic-imported from `std-fog-wgsl.ts` only when the scene has fog, so non-fog
  *  Standard scenes bundle zero fog bytes (mirrors the PBR fog gate). */
-export const SCENE_HAS_FOG = 1 << 24;
+export const SCENE_HAS_FOG = 1 << 25;
 
 // ─── Standard Material Extension Registry ───────────────────────────
 

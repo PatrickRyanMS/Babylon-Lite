@@ -35,6 +35,9 @@
         "test:perf-cloud": "tsx scripts/run-browserstack.ts playwright test --config config/playwright.perf-cloud.config.ts tests/lite/perf/perf-regression.spec.ts",
         "validate:release-markers": "tsx scripts/validate-pr-release-markers.ts",
         "report:api-changes": "tsx scripts/report-api-changes.ts",
+        "gen:feature-doc": "tsx scripts/gen-feature-comparison.ts",
+        "gen:feature-doc:check": "tsx scripts/gen-feature-comparison.ts --check",
+        "sync:feature-doc": "tsx scripts/open-feature-doc-sync-pr.ts",
         "build:perf-baseline": "tsx scripts/build-perf-baseline.ts",
         "lint": "eslint . && tsc -p packages/babylon-lite/tsconfig.json --noEmit && tsc -p lab/tsconfig.typecheck.json --noEmit && tsc -p tests/lite/tsconfig.json --noEmit",
         "lint:fix": "eslint . --fix",
@@ -69,7 +72,7 @@
         "typedoc": "^0.28.19",
         "typescript": "^5.7.0",
         "typescript-eslint": "^8.57.2",
-        "vite": "^6.0.0",
+        "vite": "^6.4.3",
         "vitest": "^4.1.0"
     },
     "dependencies": {
