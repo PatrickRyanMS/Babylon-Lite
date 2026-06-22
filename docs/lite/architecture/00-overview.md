@@ -59,6 +59,7 @@ Pages are ordered by how commonly Babylon Lite users reach for them — start wi
 | [37-resource-pool.md](37-resource-pool.md)                               | Resource Pool                   | GPU buffer/texture pooling                                                                     |
 | [38-bundle-size-tooling.md](38-bundle-size-tooling.md)                   | Bundle Size Tooling             | Per-scene bundle analysis, ceilings, treemaps                                                  |
 | [39-animation-parity-testing.md](39-animation-parity-testing.md)         | Animation Parity                | Animated scene test methodology                                                                |
+| [40-material-stencil.md](40-material-stencil.md)                         | Material Stencil                | Opt-in `enableMaterialStencil` per-material stencil mask/test on Standard/PBR/Shader, zero-impact hook |
 
 ---
 
@@ -288,6 +289,10 @@ babylon-lite/
 All exports from `packages/babylon-lite/src/index.ts`. The API must feel like Babylon.js
 but is composed of pure functions and plain data types.
 
+> This section is a **curated, signature-level walkthrough** of the most common entry points. For the
+> **complete, always-up-to-date API reference** of every export (functions, types, and signatures),
+> see the generated TypeDoc site: **<https://doc.babylonjs.com/lite/typedoc>**.
+
 ### Functions
 
 ```typescript
@@ -306,7 +311,7 @@ createFreeCamera(position: Vec3, target: Vec3): FreeCamera
 attachFreeControl(camera: FreeCamera, canvas: HTMLCanvasElement, scene?: SceneContext): () => void
 
 // Loaders — note: loadGltf and loadBabylon take Engine, not SceneContext
-loadGltf(engine: Engine, url: string): Promise<AssetContainer>
+loadGltf(engine: Engine, source: string | ArrayBuffer | Blob): Promise<AssetContainer>
 loadEnvironment(scene: SceneContext, url: string, options: {
     brdfUrl: string;
     groundTextureUrl?: string;
@@ -378,6 +383,7 @@ setShadowTaskCasterMeshes(shadowGenerator: ShadowGenerator, casterMeshes: readon
 // Animation
 createAnimationController(skeleton, scene): AnimationController
 createAnimationGroups(gltfData, meshes, scene): AnimationGroup[]
+goToFrame(group: AnimationGroup, frame: number, engine?: EngineContext): void
 
 // Hierarchy
 setParent(child: IParentable, parent: IWorldMatrixProvider | null, scene: SceneContext): void
@@ -734,8 +740,19 @@ interface AnimationController {
 }
 interface AnimationGroup {
     name: string;
-    play(loop?: boolean): void;
-    stop(): void;
+    duration: number; // seconds
+    currentTime: number; // seconds
+    targetedAnimations: readonly TargetedAnimation[];
+    isPlaying: boolean;
+    speedRatio: number;
+    loopAnimation: boolean;
+    weight: number;
+}
+interface TargetedAnimation {
+    target?: object;
+    targetName?: string;
+    nodeIndex?: number;
+    path: string;
 }
 interface AnimationClip {
     /* keyframe data */

@@ -4,6 +4,7 @@ import type { AnimationGroup } from "./animation/animation-group.js";
 import type { MaterialVariantData } from "./loader-gltf/material-variants.js";
 import type { FbxSkeletonBinding } from "./loader-fbx/fbx-skeleton-build.js";
 import type { Mesh } from "./mesh/mesh.js";
+import type { Skeleton } from "./skeleton/bone-control.js";
 
 /**
  * Result returned by loadGltf / loadBabylon.
@@ -30,6 +31,10 @@ export interface AssetContainer {
      *  consumed by the FBX animation builder (Phase 7b) to drive bones per frame.
      *  Not part of the public API — trimmed from the published type surface. */
     _fbxSkeletonBindings?: readonly FbxSkeletonBinding[];
+    /** Bone-control handles, one per glTF skin. Present only when
+     *  `enableBoneControl()` was called before loading; otherwise `undefined`.
+     *  Drive bones via `getBoneByName()` + the `setBone*` functions. */
+    skeletons?: Skeleton[];
 }
 
 /**
