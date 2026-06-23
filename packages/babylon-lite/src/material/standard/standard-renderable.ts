@@ -32,6 +32,7 @@ import {
     type StdExt,
 } from "./standard-flags.js";
 import type { ShaderFragment } from "../../shader/fragment-types.js";
+import { _stdExtBits } from "./std-feature-hooks.js";
 import type { ShadowGenerator } from "../../shadow/shadow-generator.js";
 import { writeMeshLightSelection } from "../../render/lights-ubo.js";
 import type { Material, MaterialRenderFeatures } from "../material.js";
@@ -51,17 +52,6 @@ import { packMat4IntoF32 } from "../../math/pack-mat4-into-f32.js";
 /** Scratch buffer for material UBO writes (24 floats = 96 bytes). Reused across
  *  every Standard renderable since binding updates are single-threaded per frame. */
 const _stdMatScratch = new F32(24);
-
-/** Deform/vertex StdExt feature bits that have been wired into THIS bundle. Each dynamic feature
- *  chunk (std-vertex-color/morph/skeleton/normal-tangent-fragment) ORs its `HAS_*` bit in via
- *  `_installStdExtFeature` on import. A scene that loads none keeps this `0`, so the per-mesh
- *  feature-OR + the draw-time vertex-buffer binder loop below fold away — the resolver-hook fold the
- *  stencil path uses, keeping non-deform Standard scenes byte-identical to upstream. */
-let _stdExtBits = 0;
-/** @internal OR a deform/vertex feature bit into the active set (called by feature chunks on load). */
-export function _installStdExtFeature(bit: number): void {
-    _stdExtBits |= bit;
-}
 
 /** Thin instance GPU sync callback type — loaded dynamically only when needed. */
 type ThinInstanceSync = (

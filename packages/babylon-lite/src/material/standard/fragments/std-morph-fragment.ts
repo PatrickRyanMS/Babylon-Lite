@@ -10,7 +10,7 @@ import type { Mesh } from "../../../mesh/mesh.js";
 import type { StandardMaterialProps } from "../standard-material.js";
 import type { StdExt } from "../standard-flags.js";
 import { HAS_MORPH_TARGETS } from "../standard-flags.js";
-import { _installStdExtFeature } from "../standard-renderable.js";
+import { _installStdExtFeature } from "../std-feature-hooks.js";
 
 /** Registry extension gated on `HAS_MORPH_TARGETS`. The morph texture + weights UBO are
  *  vertex-only mesh-driven resources, so `_bind` pulls them off the mesh (not the material)

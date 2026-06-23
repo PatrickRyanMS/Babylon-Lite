@@ -6,7 +6,7 @@
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import type { StdExt } from "../standard-flags.js";
 import { HAS_VERTEX_COLOR } from "../standard-flags.js";
-import { _installStdExtFeature } from "../standard-renderable.js";
+import { _installStdExtFeature } from "../std-feature-hooks.js";
 
 export function createStdVertexColorFragment(): ShaderFragment {
     return {

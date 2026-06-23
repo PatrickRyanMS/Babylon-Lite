@@ -13,8 +13,8 @@
 
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import { HAS_MORPH_TARGETS, HAS_NORMAL_TANGENT } from "../standard-flags.js";
-import { BUMP_BINDINGS, _installNormalTangentFrag } from "./normal-map-fragment.js";
-import { _installStdExtFeature } from "../standard-renderable.js";
+import { BUMP_BINDINGS } from "./normal-map-fragment.js";
+import { _installStdExtFeature, _installNormalTangentFrag } from "../std-feature-hooks.js";
 
 /**
  * Create the explicit-tangent TBN bump fragment. Declares the `tangent` vec4 vertex attribute and

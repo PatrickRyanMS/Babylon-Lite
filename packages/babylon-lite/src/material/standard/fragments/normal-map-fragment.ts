@@ -17,6 +17,7 @@ import type { Mesh } from "../../../mesh/mesh.js";
 import type { StdExt } from "../standard-flags.js";
 import { HAS_BUMP_TEXTURE, HAS_NORMAL_TANGENT } from "../standard-flags.js";
 import { WGSL_PERTURB_NORMAL } from "../../../shader/wgsl-helpers.js";
+import { _tangentFrag } from "../std-feature-hooks.js";
 
 const STAGE_FRAGMENT = 0x2;
 
@@ -44,14 +45,10 @@ export function createNormalMapFragment(): ShaderFragment {
     };
 }
 
-// Explicit-tangent TBN factory, injected by std-normal-tangent-fragment.ts (its own chunk).
-// Stays null on non-tangent bump scenes, so `_frag` only ever calls the cotangent path there.
-let _tangentFrag: ((features: number) => ShaderFragment) | null = null;
-/** @internal Install the explicit-tangent normal-map fragment factory. Called on import of
- *  std-normal-tangent-fragment.ts (loaded only when an FBX-tangent bump mesh is present). */
-export function _installNormalTangentFrag(frag: (features: number) => ShaderFragment): void {
-    _tangentFrag = frag;
-}
+// The explicit-tangent TBN factory + its install hook live in std-feature-hooks.ts (a named-imported
+// internal module) — NOT here — because this chunk is namespace-imported (`mod.bumpStdExt`), so any
+// export here would be retained and `_tangentFrag` could never be proven null. Keeping the state +
+// setter out of this chunk lets non-tangent bump scenes fold the tangent path away entirely.
 
 export const bumpStdExt: StdExt = {
     _id: "normal-map",
@@ -67,12 +64,15 @@ export const bumpStdExt: StdExt = {
         return b;
     },
     // The explicit-tangent variant adds a `tangent` vertex attribute; bind its buffer here in the
-    // canonical sorted order (matches the composer's vertex layout). Skipped when the mesh has no
-    // tangent buffer (the cotangent variant declares no tangent attribute).
+    // canonical sorted order (matches the composer's vertex layout). Gated on `_tangentFrag` so the
+    // body folds out of non-tangent bump scenes (where the tangent chunk never loaded); skipped at
+    // runtime when the mesh has no tangent buffer (the cotangent variant declares no tangent attr).
     _bindVertexBuffers(mesh: Mesh, pass: GPURenderPassEncoder | GPURenderBundleEncoder, slot: number): number {
-        const g = mesh._gpu;
-        if (g.tangentBuffer) {
-            pass.setVertexBuffer(slot++, g.tangentBuffer, g._vbLayout?._t?._offset);
+        if (_tangentFrag) {
+            const g = mesh._gpu;
+            if (g.tangentBuffer) {
+                pass.setVertexBuffer(slot++, g.tangentBuffer, g._vbLayout?._t?._offset);
+            }
         }
         return slot;
     },
