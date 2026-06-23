@@ -190,6 +190,16 @@ export { setKtx2DecoderUrl, loadKtx2Texture2D } from "./texture/ktx2-loader.js";
 
 // ─── Materials ───────────────────────────────────────────────────────
 export { createStandardMaterial } from "./material/standard/create-standard-material.js";
+// Opt-in enablers for the Standard material's deform/vertex features (net-neutral when unused).
+// Loaders/scenes call these when they build meshes that use the feature (e.g. a glTF asset rendered
+// with Standard materials — see scene231; the FBX loader calls them internally).
+export {
+    enableStandardVertexColor,
+    enableStandardMorph,
+    enableStandardSkeleton,
+    enableStandardNormalTangent,
+    enableStandardUvOffset,
+} from "./material/standard/enable-standard-mesh-features.js";
 export { createStandardNoColorMaterialView } from "./material/standard/no-color-view.js";
 export { createPbrMaterial } from "./material/pbr/pbr-material.js";
 export {
