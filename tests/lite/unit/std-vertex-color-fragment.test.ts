@@ -4,27 +4,27 @@ import { createStdVertexColorFragment, stdVertexColorExt } from "../../../packag
 import type { Mesh } from "../../../packages/babylon-lite/src/mesh/mesh.js";
 
 describe("std-vertex-color-fragment", () => {
-    it("declares the tight RGB vertex-color attribute, varying, and slots", () => {
+    it("declares the float32x4 RGBA vertex-color attribute, varying, and slots", () => {
         const frag = createStdVertexColorFragment();
 
         expect(frag._id).toBe("std-vcolor");
 
-        // Single tight float32x3 `color` vertex attribute (stride 12).
+        // Single float32x4 `color` vertex attribute (stride 16) — the engine-wide RGBA layout.
         expect(frag._vertexAttributes).toHaveLength(1);
         const attr = frag._vertexAttributes![0]!;
         expect(attr._name).toBe("color");
-        expect(attr._type).toBe("vec3<f32>");
-        expect(attr._gpuFormat).toBe("float32x3");
-        expect(attr._arrayStride).toBe(12);
+        expect(attr._type).toBe("vec4<f32>");
+        expect(attr._gpuFormat).toBe("float32x4");
+        expect(attr._arrayStride).toBe(16);
 
-        // `vColor` vec3 varying.
+        // `vColor` vec3 varying (rgb; vertex alpha is forced to 1.0).
         expect(frag._varyings).toHaveLength(1);
         const varying = frag._varyings![0]!;
         expect(varying._name).toBe("vColor");
         expect(varying._type).toBe("vec3<f32>");
 
-        // VB vertex slot passes the attribute through to the varying.
-        expect(frag._vertexSlots?.VB).toContain("out.vColor = color;");
+        // VB vertex slot passes the attribute's rgb through to the varying.
+        expect(frag._vertexSlots?.VB).toContain("out.vColor = color.rgb;");
 
         // AT fragment slot multiplies baseColor by the per-vertex color (pre-lighting).
         const at = frag._fragmentSlots?.AT;

@@ -1,5 +1,7 @@
-/** Standard Vertex-Color Fragment — multiplies baseColor by the per-vertex RGB
- *  color (tight float32x3, stride 12) before lighting, matching BJS StandardMaterial. */
+/** Standard Vertex-Color Fragment — multiplies baseColor by the per-vertex color before lighting,
+ *  matching BJS StandardMaterial. The `color` attribute is float32x4 RGBA (stride 16) — the
+ *  engine-wide vertex-color layout (glTF/PBR, procedural meshes, node materials, and the FBX loader
+ *  all emit RGBA) — and the rgb is used to modulate base color (vertex alpha is forced to 1.0). */
 
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import type { StdExt } from "../standard-flags.js";
@@ -9,9 +11,9 @@ import { _installStdExtFeature } from "../standard-renderable.js";
 export function createStdVertexColorFragment(): ShaderFragment {
     return {
         _id: "std-vcolor",
-        _vertexAttributes: [{ _name: "color", _type: "vec3<f32>", _gpuFormat: "float32x3", _arrayStride: 12 }],
+        _vertexAttributes: [{ _name: "color", _type: "vec4<f32>", _gpuFormat: "float32x4", _arrayStride: 16 }],
         _varyings: [{ _name: "vColor", _type: "vec3<f32>" }],
-        _vertexSlots: { VB: `out.vColor = color;` },
+        _vertexSlots: { VB: `out.vColor = color.rgb;` },
         // Backtick (not double-quote) so the bundle's WGSL identifier mangler rewrites
         // `baseColor` here to match the mangled declaration in the standard template.
         _fragmentSlots: { AT: `\nbaseColor = baseColor * input.vColor;` },
