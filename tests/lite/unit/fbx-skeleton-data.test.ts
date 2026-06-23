@@ -58,6 +58,7 @@ function makeBone(opts: {
     name?: string;
     isCluster?: boolean;
     inheritType?: number;
+    translation?: [number, number, number];
     transformLink?: Float64Array | null;
     bindPose?: Float64Array | null;
 }): FBXBoneData {
@@ -67,7 +68,7 @@ function makeBone(opts: {
         index: opts.index,
         parentIndex: opts.parentIndex,
         isCluster: opts.isCluster ?? true,
-        translation: [0, 0, 0],
+        translation: opts.translation ?? [0, 0, 0],
         rotation: [0, 0, 0],
         preRotation: [0, 0, 0],
         postRotation: [0, 0, 0],
@@ -218,8 +219,10 @@ describe("fbx-skeleton-data — buildFbxSkinningBuffers per-vertex expansion", (
 
 // ─── Rest bone-texture data ─────────────────────────────────────────────────
 
-describe("fbx-skeleton-data — computeFbxBoneTextureData rest formula", () => {
-    it("yields identity per bone when meshWorld = identity and IBM = inverse(jointWorld)", () => {
+describe("fbx-skeleton-data — computeFbxBoneTextureData (inv(meshWorld)·absolute·IBM)", () => {
+    it("yields identity per bone when the absolute is the bind (meshWorld = identity, IBM = inverse(jointWorld))", () => {
+        // Feeding the BIND absolute (jointWorld) makes jointWorld·IBM cancel to identity
+        // — this is the glTF / FBX-bind-pose case (mesh stays at its bind-posed vertices).
         const jointWorld = [translation(0, 1, 0) as unknown as Mat4, translation(3, -2, 5) as unknown as Mat4];
         const ibm = new Float32Array(jointWorld.length * 16);
         for (let i = 0; i < jointWorld.length; i++) {
@@ -232,13 +235,13 @@ describe("fbx-skeleton-data — computeFbxBoneTextureData rest formula", () => {
         expect(identityDeviation(boneData, 1)).toBeLessThan(1e-5);
     });
 
-    it("computes inverse(meshWorld)·jointWorld·IBM for a non-identity meshWorld", () => {
-        // meshWorld = T(1,0,0), jointWorld = T(0,2,0), IBM = identity.
+    it("computes inverse(meshWorld)·absolute·IBM for a non-identity meshWorld", () => {
+        // meshWorld = T(1,0,0), absolute = T(0,2,0), IBM = identity.
         // boneData = T(-1,0,0)·T(0,2,0) = T(-1,2,0).
-        const jointWorld = [translation(0, 2, 0) as unknown as Mat4];
+        const absolute = [translation(0, 2, 0) as unknown as Mat4];
         const ibm = new Float32Array(16);
         writeMat(ibm, 0, mat4Identity() as unknown as Float32Array);
-        const boneData = computeFbxBoneTextureData(jointWorld, ibm, translation(1, 0, 0) as unknown as Mat4);
+        const boneData = computeFbxBoneTextureData(absolute, ibm, translation(1, 0, 0) as unknown as Mat4);
 
         // Column-major translation lives in elements 12,13,14.
         expect(boneData[12]!).toBeCloseTo(-1, 5);
@@ -248,18 +251,22 @@ describe("fbx-skeleton-data — computeFbxBoneTextureData rest formula", () => {
 });
 
 describe("fbx-skeleton-data — computeFbxRestSkeletonData", () => {
-    it("produces identity-per-bone boneData and the Phase 7b topology for a cluster rig", () => {
-        // Two cluster bones; bone0 carries the mesh bind global (cluster Transform).
+    it("yields identity-per-bone boneData when the authored rest equals the cluster bind (no deformation — mirrors glTF)", () => {
+        // Authored Lcl rest (per-bone translations) is propagated to absolutes
+        // bone0 = T(0,1,0), bone1 = T(0,1,0)·T(0,1,0) = T(0,2,0). The cluster bind
+        // (TransformLink) is set EQUAL to those absolutes, so authoredAbsolute == jointWorld
+        // and the rest deformation D[i] = authoredAbsolute·inverse(jointWorld) is identity —
+        // exactly the glTF / non-deforming FBX case where the mesh stays at its bind pose.
         const meshWorld = translation(1, 2, 3);
-        const bone0 = makeBone({ index: 0, parentIndex: -1, transformLink: translation(0, 1, 0), bindPose: meshWorld });
-        const bone1 = makeBone({ index: 1, parentIndex: 0, transformLink: translation(0, 2, 0), bindPose: meshWorld });
+        const bone0 = makeBone({ index: 0, parentIndex: -1, translation: [0, 1, 0], transformLink: translation(0, 1, 0), bindPose: meshWorld });
+        const bone1 = makeBone({ index: 1, parentIndex: 0, translation: [0, 1, 0], transformLink: translation(0, 2, 0), bindPose: meshWorld });
         const bones = [bone0, bone1];
         const skin = makeSkin({ boneIndices: [], boneWeights: [], bones });
 
         const rest = computeFbxRestSkeletonData(bones, skin);
 
         expect(rest.boneCount).toBe(2);
-        // Rest bone matrices are identity per bone regardless of jointWorld/meshWorld.
+        // Authored rest == cluster bind ⇒ rest matrices collapse to identity per bone.
         expect(identityDeviation(rest.boneData, 0)).toBeLessThan(1e-5);
         expect(identityDeviation(rest.boneData, 1)).toBeLessThan(1e-5);
         // Topology handed to Phase 7b.
@@ -271,6 +278,37 @@ describe("fbx-skeleton-data — computeFbxRestSkeletonData", () => {
         expect(rest.boneRestLocals.length).toBe(2 * 16);
         // No unmodeled-bind diagnostics for this straightforward rig.
         expect(rest.diagnostics).toEqual([]);
+    });
+
+    it("poses the rest mesh into the authored absolute when the cluster bind differs (FBX bind ≠ rest)", () => {
+        // This is the m09_skinning case: the FBX mesh control points are NOT pre-posed,
+        // and the authored Lcl rest (bone0 = T(0,1,0), bone1 = T(0,2,0)) differs from the
+        // cluster bind (TransformLink = identity, so the bones bind at the origin). With
+        // meshWorld = identity and jointWorld = identity ⇒ IBM = identity, the rest
+        // boneData = inv(meshWorld)·authoredAbsolute·IBM = authoredAbsolute: the rest pose
+        // applies the authored bone transforms (NOT identity — the old buggy behavior that
+        // rendered the mesh at its raw control points).
+        const identityM = translation(0, 0, 0);
+        const bone0 = makeBone({ index: 0, parentIndex: -1, translation: [0, 1, 0], transformLink: identityM, bindPose: identityM });
+        const bone1 = makeBone({ index: 1, parentIndex: 0, translation: [0, 1, 0], transformLink: identityM, bindPose: identityM });
+        const bones = [bone0, bone1];
+        const skin = makeSkin({ boneIndices: [], boneWeights: [], bones });
+
+        const rest = computeFbxRestSkeletonData(bones, skin);
+
+        // boneData[i] == authoredAbsolute[i] (column-major translation at 12,13,14).
+        expect(rest.boneData[0 * 16 + 12]!).toBeCloseTo(0, 5);
+        expect(rest.boneData[0 * 16 + 13]!).toBeCloseTo(1, 5);
+        expect(rest.boneData[0 * 16 + 14]!).toBeCloseTo(0, 5);
+        expect(rest.boneData[1 * 16 + 12]!).toBeCloseTo(0, 5);
+        expect(rest.boneData[1 * 16 + 13]!).toBeCloseTo(2, 5);
+        expect(rest.boneData[1 * 16 + 14]!).toBeCloseTo(0, 5);
+        // Explicitly NOT identity — the authored rest deformation is applied.
+        expect(identityDeviation(rest.boneData, 0)).toBeGreaterThan(0.5);
+        expect(identityDeviation(rest.boneData, 1)).toBeGreaterThan(0.5);
+        // jointRestWorld / IBM still come from the cluster bind (Phase 7b handoff intact):
+        // jointRestWorld[0] is the bind absolute (identity here), not the authored rest.
+        expect(identityDeviation(rest.jointRestWorld, 0)).toBeLessThan(1e-5);
     });
 
     it("emits a diagnostic for inheritType=2 bones (scale-compensated)", () => {

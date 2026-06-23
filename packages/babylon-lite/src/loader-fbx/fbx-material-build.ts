@@ -31,6 +31,7 @@ import type { EngineContext } from "../engine/engine.js";
 import type { StandardMaterialProps } from "../material/standard/standard-material.js";
 
 import { createStandardMaterial } from "../material/standard/create-standard-material.js";
+import { enableStandardUvOffset } from "../material/standard/enable-standard-mesh-features.js";
 
 import type { FBXMaterialData } from "./interpreter/materials.js";
 import { resolveFbxTexture } from "./fbx-texture.js";
@@ -177,12 +178,16 @@ export async function buildFbxMaterials(
             if (texRef.uvScaling && (texRef.uvScaling[0] !== 1 || texRef.uvScaling[1] !== 1)) {
                 std.uvScale = [texRef.uvScaling[0], texRef.uvScaling[1]];
             }
-            // Standard materials have no uOffset/uAng — report instead of silently dropping.
+            // uvTranslation → material.uvOffset (BJS Texture.uOffset/vOffset; last writer wins).
             if (texRef.uvTranslation && (texRef.uvTranslation[0] !== 0 || texRef.uvTranslation[1] !== 0)) {
-                addDiag(`FBX UV translation [${texRef.uvTranslation[0]}, ${texRef.uvTranslation[1]}] on material '${fbxMat.name}' is not supported (only uvScale is applied).`);
+                std.uvOffset = [texRef.uvTranslation[0], texRef.uvTranslation[1]];
+                // Opt the Standard pipeline into UV offset so its reads stop folding to 0 (net-neutral
+                // for scenes — like every non-FBX Standard scene — that never set a UV offset).
+                enableStandardUvOffset();
             }
+            // Rotation is not yet applied (Standard UV transform is scale + offset only).
             if (texRef.uvRotation) {
-                addDiag(`FBX UV rotation ${texRef.uvRotation}° on material '${fbxMat.name}' is not supported (only uvScale is applied).`);
+                addDiag(`FBX UV rotation ${texRef.uvRotation}° on material '${fbxMat.name}' is not supported (only uvScale + uvOffset are applied).`);
             }
             // Texture on a secondary UV set → use UV2 for slots that support it.
             if (slot.coordIndex && texRef.uvSetIndex !== undefined && texRef.uvSetIndex > 0) {

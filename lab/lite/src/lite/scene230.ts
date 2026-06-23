@@ -1,18 +1,22 @@
-/** Scene 226 — FBX Loader (visual-parity render).
+/** Scene 230 — FBX Loader.
  *
- *  Reproduces the Babylon.js FBX visualization rig (babylon-fbx render.mjs +
- *  viewConfig.mjs) so a Lite render can be MAD-diffed against the committed
- *  Babylon.js reference PNGs (`reference/lite/scene226-fbx-loader/<model>/`).
- *  Rendered by `tests/lite/parity/scenes/scene226-fbx-loader.spec.ts`.
+ *  Dual-purpose, single gallery scene (no separate test page):
  *
- *  Deterministic, fixed 600×400, exact light rig + per-model orbit/seek. NO inspector
- *  or UI chrome (that lives in the interactive fbx-test page).
+ *  • Default (interactive): fills the window with a mouse-driven ArcRotate camera
+ *    (orbit / zoom / pan) and free-running animation, plus a model selector. This is
+ *    the human-facing gallery view.
+ *  • Capture (`?capture=1`, used by the parity spec): locks the canvas to 600×400 and
+ *    renders a deterministic per-model fixed camera with the animation seeked to a fixed
+ *    fraction, reproducing the Babylon.js FBX visualization rig (babylon-fbx render.mjs +
+ *    viewConfig.mjs) so the render MAD-diffs against the committed Babylon.js reference
+ *    PNGs (`reference/lite/scene230-fbx-loader/<model>/`). Rendered by
+ *    `tests/lite/parity/scenes/scene230-fbx-loader.spec.ts`.
  *
  *  Query: `?model=<name>` (default `m01_cube_phong`). Sets `canvas.dataset.ready='true'`
  *  on success/failure so the parity harness can always observe the outcome.
  */
 
-import { createEngine, createSceneContext, addToScene, createDefaultCamera, createHemisphericLight, createDirectionalLight, registerScene, startEngine, goToFrame, loadFbx } from "babylon-lite";
+import { createEngine, createSceneContext, addToScene, createDefaultCamera, createHemisphericLight, createDirectionalLight, registerScene, startEngine, goToFrame, loadFbx, attachControl, resizeEngine } from "babylon-lite";
 
 const PI = Math.PI;
 
@@ -47,6 +51,35 @@ const VIEW_CONFIG: Record<string, View> = {
 
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
 const win = window as unknown as { __parityError?: string };
+
+const params = new URLSearchParams(window.location.search);
+const model = params.get("model") ?? "m01_cube_phong";
+
+// The parity spec renders with ?capture=1: lock the canvas to the 600×400 golden
+// resolution BEFORE engine creation so the deterministic capture matches the committed
+// Babylon FBX reference renders. Interactive (default) leaves the canvas full-window.
+const captureMode = params.has("capture");
+if (captureMode) {
+    canvas.width = 600;
+    canvas.height = 400;
+    canvas.style.width = "600px";
+    canvas.style.height = "400px";
+}
+
+// Model selector — reload with the chosen model. Hidden during deterministic capture.
+const picker = document.getElementById("modelPicker") as HTMLSelectElement | null;
+if (picker) {
+    if (captureMode) {
+        picker.style.display = "none";
+    } else {
+        picker.value = model;
+        picker.addEventListener("change", () => {
+            const q = new URLSearchParams(window.location.search);
+            q.set("model", picker.value);
+            window.location.search = q.toString();
+        });
+    }
+}
 
 interface FrameMesh {
     _cpuPositions?: Float32Array;
@@ -115,7 +148,6 @@ function frameLive(scene: { meshes: FrameMesh[] }, cam: { alpha: number; beta: n
 }
 
 async function run(): Promise<void> {
-    const model = new URLSearchParams(window.location.search).get("model") ?? "m01_cube_phong";
     const view: View = VIEW_CONFIG[model] ?? { alpha: -PI / 4, beta: PI / 3 };
     try {
         const engine = await createEngine(canvas);
@@ -136,21 +168,31 @@ async function run(): Promise<void> {
             addToScene(scene, createDirectionalLight([-0.6, -1.0, -0.8], 0.9));
         }
 
-        const useFbxCam = !!(view.useFbxCamera && container.camera);
-        const cam = useFbxCam ? null : (createDefaultCamera(scene) as unknown as { alpha: number; beta: number; radius: number; target: { set(x: number, y: number, z: number): void } });
+        const useFbxCam = captureMode && !!(view.useFbxCamera && container.camera);
 
-        // Pin animations to a deterministic fraction of the clip (BJS default 0.5),
-        // BEFORE framing — so the camera frames the posed pose (render.mjs order).
-        const seek = view.seek ?? 0.5;
-        for (const g of scene.animationGroups) {
-            goToFrame(g, seek * (g.duration ?? 0) * (g.frameRate ?? 60), engine);
-        }
-
-        await registerScene(scene);
-
-        // Frame the posed content from live world bounds (skip for the FBX camera).
-        if (cam) {
+        if (captureMode) {
+            // ── Capture camera (parity): deterministic per-model fixed angle @ 600×400 with
+            //    the animation seeked to a fixed fraction (BJS default 0.5), framed AFTER the
+            //    seek from live posed bounds — reproducing babylon-fbx render.mjs. This is what
+            //    the spec MAD-diffs against the committed goldens, so it must stay byte-stable. ──
+            const cam = useFbxCam ? null : (createDefaultCamera(scene) as unknown as { alpha: number; beta: number; radius: number; target: { set(x: number, y: number, z: number): void } });
+            const seek = view.seek ?? 0.5;
+            for (const g of scene.animationGroups) {
+                goToFrame(g, seek * (g.duration ?? 0) * (g.frameRate ?? 60), engine);
+            }
+            await registerScene(scene);
+            if (cam) {
+                frameLive(scene as unknown as { meshes: FrameMesh[] }, cam, view);
+            }
+        } else {
+            // ── Interaction camera (default gallery view): full-window ArcRotate with mouse
+            //    orbit/zoom/pan and free-running animation (auto-ticked by the scene). Starts
+            //    at the per-model framing, then the mouse takes over. ──
+            const cam = createDefaultCamera(scene) as unknown as { alpha: number; beta: number; radius: number; target: { set(x: number, y: number, z: number): void } };
+            await registerScene(scene);
             frameLive(scene as unknown as { meshes: FrameMesh[] }, cam, view);
+            attachControl(cam as never, canvas, scene);
+            window.addEventListener("resize", () => resizeEngine(engine));
         }
 
         await startEngine(engine);

@@ -13,12 +13,25 @@
  *     8-bone JOINTS_1/WEIGHTS_1 buffers), and normalize.
  *
  *  2. Rest bone-texture data ({@link computeFbxBoneTextureData} /
- *     {@link computeFbxRestSkeletonData}) — mirrors the glTF `computeBoneTextureData`
- *     formula `boneData[i] = inverse(meshWorld) · jointWorld[i] · IBM[i]`. Using
- *     the FBX cluster convention (`Transform` = mesh bind global, `TransformLink`
- *     = bone bind global) with `jointWorld[i] = TransformLink[i]`,
- *     `meshWorld = Transform`, and `IBM[i] = inverse(TransformLink[i]) · Transform`,
- *     the rest matrix is identity per bone, so the mesh renders at its bind pose.
+ *     {@link computeFbxRestSkeletonData}) — shares the glTF `computeBoneTextureData`
+ *     shape `boneData[i] = inverse(meshWorld) · A[i] · IBM[i]`, but FBX feeds a
+ *     DIFFERENT absolute `A[i]`. glTF bakes its mesh vertices into the bind pose, so
+ *     `A[i] = jointWorld[i]` and `jointWorld[i] · IBM[i]` cancels to identity — the
+ *     mesh renders at its (already bind-posed) vertices. FBX control points are NOT
+ *     pre-posed: the authored bone transforms must be applied at rest. So FBX uses
+ *     `A[i] = authoredAbsolute[i]` (the rest absolute built from each bone's Lcl
+ *     transform), giving the rest deformation
+ *     `D[i] = authoredAbsolute[i] · inverse(jointWorld[i])` conjugated into mesh-local
+ *     space: `boneData[i] = inverse(meshWorld) · authoredAbsolute[i] · IBM[i]`, with the
+ *     FBX cluster convention `IBM[i] = inverse(TransformLink[i]) · Transform`,
+ *     `meshWorld = Transform`, `jointWorld[i] = TransformLink[i]`. When the authored
+ *     rest equals the cluster bind (`authoredAbsolute[i] == jointWorld[i]`) this
+ *     collapses back to identity, matching glTF and the non-deforming FBX models. The
+ *     conjugation by `meshWorld` also re-expresses the (raw-FBX-space) deformation in
+ *     the mesh's local geometry frame, so the renderer's
+ *     `finalWorld = mesh.world · boneData[i]` lands the vertex in Lite world space even
+ *     though `mesh.world` (the model-node world, identity-baked geometry) is NOT the
+ *     FBX bind global.
  *
  * Matrix note: the cluster matrices are `Float64Array(16)` in BJS row-major flat
  * order, which is byte-identical to Lite column-major flat order for the same
@@ -153,19 +166,22 @@ export function buildFbxSkinningBuffers(controlPointIndices: Uint32Array, vertex
 }
 
 /**
- * Rest bone-texture data: `boneData[i] = inverse(meshWorld) · jointWorld[i] · IBM[i]`.
- * Mirrors the glTF `computeBoneTextureData`; identity per bone at bind pose.
+ * Bone-texture data from a set of absolute bone matrices:
+ * `boneData[i] = inverse(meshWorld) · boneAbsolute[i] · IBM[i]`. Same shape as the
+ * glTF `computeBoneTextureData`; the caller chooses which absolute to feed:
+ *   • glTF / FBX bind pose → `jointWorld[i]` (cancels with IBM to identity);
+ *   • FBX rest pose → `authoredAbsolute[i]` (applies the authored rest deformation).
  *
- * @param jointWorldMatrices - Bone world matrices at rest (one `Mat4` per bone).
+ * @param boneAbsoluteMatrices - Absolute bone matrices to pose into (one `Mat4` per bone).
  * @param inverseBindMatrices - Flat IBM buffer (16 floats per bone).
  * @param meshWorld - Mesh bind-global matrix (FBX cluster `Transform`).
  */
-export function computeFbxBoneTextureData(jointWorldMatrices: readonly Mat4[], inverseBindMatrices: Float32Array, meshWorld: Mat4): Float32Array {
-    const numBones = jointWorldMatrices.length;
+export function computeFbxBoneTextureData(boneAbsoluteMatrices: readonly Mat4[], inverseBindMatrices: Float32Array, meshWorld: Mat4): Float32Array {
+    const numBones = boneAbsoluteMatrices.length;
     const data = new Float32Array(numBones * 16);
     const invMeshWorld = mat4Invert(meshWorld) ?? mat4Identity();
     for (let i = 0; i < numBones; i++) {
-        const tmp = mat4Multiply(invMeshWorld, jointWorldMatrices[i]!);
+        const tmp = mat4Multiply(invMeshWorld, boneAbsoluteMatrices[i]!);
         const ibm = inverseBindMatrices.subarray(i * 16, i * 16 + 16) as unknown as Mat4;
         const bone = mat4Multiply(tmp, ibm);
         data.set(bone as unknown as Float32Array, i * 16);
@@ -178,7 +194,9 @@ export function computeFbxBoneTextureData(jointWorldMatrices: readonly Mat4[], i
 export interface FbxRestSkeletonData {
     /** Number of bones in the rig. */
     boneCount: number;
-    /** Bone-texture matrices (identity per bone at rest). */
+    /** Rest bone-texture matrices: pose the (un-posed) FBX mesh into its authored
+     *  bind/rest pose (`inv(meshWorld)·authoredAbsolute[i]·IBM[i]`; identity per bone
+     *  when the authored rest equals the cluster bind). */
     boneData: Float32Array;
     /** Inverse-bind matrices: mesh-local → bone-local at bind. */
     inverseBindMatrices: Float32Array;
@@ -204,9 +222,10 @@ export interface FbxRestSkeletonData {
 
 /**
  * Resolve the rest skeleton data for one skinned mesh from its rig bones + skin.
- * Produces identity-per-bone `boneData` at the bind pose, the IBMs and rest
- * locals Phase 7b needs, and diagnostics for the cases Phase 5 does not yet
- * model (inherit-type 2 scale compensation, severe bind-vs-rest scale mismatch).
+ * Produces the rest `boneData` that poses the (un-posed) FBX mesh into its authored
+ * bind/rest pose, the IBMs and rest locals Phase 7b needs, and diagnostics for the
+ * cases Phase 5 does not yet model (inherit-type 2 scale compensation, severe
+ * bind-vs-rest scale mismatch).
  *
  * @param rigBones - The merged rig bones (parents before children).
  * @param skin - The skin bound to this mesh (source of the mesh bind global).
@@ -242,7 +261,15 @@ export function computeFbxRestSkeletonData(rigBones: readonly FBXRigBoneData[], 
         inverseBindMatrices.set(ibm as unknown as Float32Array, i * 16);
     }
 
-    const boneData = computeFbxBoneTextureData(jointWorld, inverseBindMatrices, meshWorld);
+    // Rest bone-texture data: pose the (un-posed) FBX mesh into its AUTHORED bind/rest
+    // pose. Unlike glTF — whose mesh vertices are pre-baked into bind pose, so feeding
+    // jointWorld makes jointWorld·IBM cancel to identity — the FBX control points are
+    // NOT pre-posed, so the rest matrix must carry the actual rest deformation
+    // D[i] = authoredAbsolute[i] · inverse(jointWorld[i]) conjugated into mesh-local
+    // space: boneData[i] = inv(meshWorld) · authoredAbsolute[i] · IBM[i]. (IBM and
+    // jointRestWorld below still use jointWorld, so the Phase 7b animation handoff is
+    // unchanged — the animation overwrites the bone texture each frame anyway.)
+    const boneData = computeFbxBoneTextureData(authoredAbsolute, inverseBindMatrices, meshWorld);
 
     // Flatten joint world + rest local matrices for the Phase 7b handoff.
     const jointRestWorld = packMat4Array(jointWorld);

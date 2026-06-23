@@ -23,6 +23,7 @@ import type { FBXModelData } from "./interpreter/fbx-interpreter.js";
 import type { FBXBlendShapeData } from "./interpreter/blend-shapes.js";
 import { computeFBXGeometricDeltaMatrix, computeFBXGeometricNormalMatrix } from "./interpreter/transform.js";
 import { buildFbxMorphTargets, FBX_MAX_MORPH_TARGETS } from "./fbx-morph-data.js";
+import { enableStandardMorph } from "../material/standard/enable-standard-mesh-features.js";
 
 /** A geometry's built meshes plus the source data needed to expand its blend shape. */
 export interface FbxMorphRecord {
@@ -93,6 +94,9 @@ export async function applyFbxMorphTargets(engine: EngineContext, objectMap: FBX
     }
 
     const { createMorphTargets } = await import("../morph/create-morph-targets.js");
+    // This geometry has blend shapes → opt the Standard material into morph deformation (installs
+    // the dispatch + folds the feature in; net-neutral for scenes that never load morphs).
+    enableStandardMorph();
 
     // Last blend shape wins per geometry (FBX attaches at most one in practice).
     const blendShapeByGeometry = new Map<number, FBXBlendShapeData>();

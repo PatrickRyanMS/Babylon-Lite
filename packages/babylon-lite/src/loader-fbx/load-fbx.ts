@@ -34,6 +34,7 @@ import { createSceneNode, createSceneNodeFromMatrix } from "../scene/scene-node.
 import { createTransformNode } from "../scene/transform-node.js";
 import { uploadMeshToGPU, initMeshTransform } from "../mesh/mesh.js";
 import { createStandardMaterial } from "../material/standard/create-standard-material.js";
+import { enableStandardVertexColor, enableStandardNormalTangent } from "../material/standard/enable-standard-mesh-features.js";
 import { mat4Multiply } from "../math/mat4-multiply.js";
 import { mat4Identity } from "../math/mat4-identity.js";
 import { computeAabb } from "../math/compute-aabb.js";
@@ -84,6 +85,15 @@ function isBinaryFbx(bytes: Uint8Array): boolean {
 function buildFbxMeshes(engine: EngineContext, model: FBXModelData, nodeWorld: Mat4, materialMap: Map<number, StandardMaterialProps>): Mesh[] {
     const geom = model.geometry!;
     const data = buildFbxMeshData(geom, model.geometricTranslation, model.geometricRotation, model.geometricScaling);
+    // Opt the Standard material into the vertex-color / explicit-tangent normal-map features this
+    // geometry needs. These enablers install the dispatch + fold the feature in (net-neutral when no
+    // FBX scene uses them); idempotent, so calling per-model is fine.
+    if (data.colors) {
+        enableStandardVertexColor();
+    }
+    if (data.tangents) {
+        enableStandardNormalTangent();
+    }
     const grouped = groupTrianglesByMaterial(data.indices, geom.materialIndices);
     const [boundMin, boundMax] = computeAabb(data.positions, nodeWorld);
     const baseName = geom.name || model.name || `fbx_mesh_${model.id}`;
@@ -92,11 +102,12 @@ function buildFbxMeshes(engine: EngineContext, model: FBXModelData, nodeWorld: M
     const meshes: Mesh[] = [];
     for (const range of grouped.ranges) {
         const subIndices = grouped.reordered.slice(range.start, range.start + range.count);
-        // Pass tight-RGB vertex colors through to the GPU (8th arg). The Standard
-        // pipeline renders them via the tree-shaken vertex-color fragment; they are
-        // equally available if the caller swaps the material to PBR. uvs2/tangents
-        // are unused here.
-        const gpu = uploadMeshToGPU(engine, data.positions, data.normals, subIndices, data.uvs ?? undefined, undefined, undefined, data.colors ?? undefined);
+        // Pass tight-RGB vertex colors (8th arg) and per-vertex tangents (7th arg) through
+        // to the GPU. The Standard pipeline renders vertex colors via the tree-shaken
+        // vertex-color fragment and normal maps via the tree-shaken explicit-tangent path
+        // when tangents are present (Babylon parity), falling back to the cotangent frame
+        // otherwise. uvs2 is unused here.
+        const gpu = uploadMeshToGPU(engine, data.positions, data.normals, subIndices, data.uvs ?? undefined, undefined, data.tangents ?? undefined, data.colors ?? undefined);
         const fbxMat = model.materials[range.materialIndex] ?? model.materials[0];
         const material = (fbxMat ? materialMap.get(fbxMat.id) : undefined) ?? createStandardMaterial();
 

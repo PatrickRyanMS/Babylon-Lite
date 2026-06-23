@@ -10,6 +10,7 @@ import type { Mesh } from "../../../mesh/mesh.js";
 import type { StandardMaterialProps } from "../standard-material.js";
 import type { StdExt } from "../standard-flags.js";
 import { HAS_MORPH_TARGETS } from "../standard-flags.js";
+import { _installStdExtFeature } from "../standard-renderable.js";
 
 /** Registry extension gated on `HAS_MORPH_TARGETS`. The morph texture + weights UBO are
  *  vertex-only mesh-driven resources, so `_bind` pulls them off the mesh (not the material)
@@ -26,3 +27,7 @@ export const stdMorphExt: StdExt = {
         return b;
     },
 };
+
+// Loading this chunk wires the morph feature bit into the bundle (folds the renderable's feature-OR
+// branch in scenes that never enable morph targets). See standard-renderable._stdExtBits.
+_installStdExtFeature(HAS_MORPH_TARGETS);

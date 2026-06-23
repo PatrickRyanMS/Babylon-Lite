@@ -20,6 +20,7 @@ import { F32 } from "../engine/typed-arrays.js";
 import { computeFBXGeometricMatrix, computeFBXGeometricNormalMatrix } from "./interpreter/transform.js";
 import type { FBXVector3 } from "./interpreter/transform.js";
 import type { FBXGeometryData } from "./interpreter/geometry.js";
+import { generateFbxTangents } from "./fbx-tangents.js";
 
 /** Tight, GPU-ready vertex/index arrays for a single FBX mesh. */
 export interface FbxMeshGpuData {
@@ -33,6 +34,10 @@ export interface FbxMeshGpuData {
     /** Per-vertex colors `[r,g,b, …]` (tight RGB; alpha dropped to match the
      *  engine's float32x3 vertex-color convention), or null when absent. */
     colors: Float32Array | null;
+    /** Per-vertex tangents `[x,y,z,w, …]` (w = handedness), or null when the
+     *  geometry has neither authored tangents nor (source normals + UVs) to
+     *  generate them from. Used for explicit-tangent normal mapping (Babylon parity). */
+    tangents: Float32Array | null;
     /** Triangle indices into the vertex arrays. */
     indices: Uint32Array;
 }
@@ -200,5 +205,56 @@ export function buildFbxMeshData(geom: FBXGeometryData, geomT: FBXVector3, geomR
     // Indices are already Uint32 triangle indices.
     const indices = geom.indices.slice();
 
-    return { positions, normals, uvs, colors, indices };
+    // Tangents (vec4 [x,y,z,handedness]) — faithful to Babylon's FBX loader
+    // (fbxFileLoader.ts:784-809): use the authored LayerElementTangent when present,
+    // transformed by the geometric-normal matrix like the normals; otherwise GENERATE
+    // them from source normals + UVs (Babylon only generates when SOURCE normals existed,
+    // not derived). The y-up default handedness scale is +1. Tangents stay in the same
+    // RH space as positions/normals — the `__root__` node applies the RH→LH flip, and
+    // the explicit-tangent material path computes the bitangent in object space then
+    // transforms it, so the mirror is handled consistently.
+    let tangents: Float32Array | null = null;
+    const geomBaked = !isIdentityGeometric(geomT, geomR, geomS);
+    if (geom.tangents) {
+        const src4 = geom.tangents;
+        tangents = new F32(src4.length);
+        if (geomBaked) {
+            const nm = computeFBXGeometricNormalMatrix(geomR, geomS);
+            const n0 = nm[0]!,
+                n1 = nm[1]!,
+                n2 = nm[2]!,
+                n4 = nm[4]!,
+                n5 = nm[5]!,
+                n6 = nm[6]!,
+                n8 = nm[8]!,
+                n9 = nm[9]!,
+                n10 = nm[10]!;
+            for (let i = 0; i < src4.length; i += 4) {
+                const x = src4[i]!,
+                    y = src4[i + 1]!,
+                    z = src4[i + 2]!;
+                let tx = n0 * x + n4 * y + n8 * z;
+                let ty = n1 * x + n5 * y + n9 * z;
+                let tz = n2 * x + n6 * y + n10 * z;
+                const len = Math.hypot(tx, ty, tz);
+                if (len > 1e-8) {
+                    const inv = 1 / len;
+                    tx *= inv;
+                    ty *= inv;
+                    tz *= inv;
+                }
+                tangents[i] = tx;
+                tangents[i + 1] = ty;
+                tangents[i + 2] = tz;
+                tangents[i + 3] = src4[i + 3]!; // handedness unchanged
+            }
+        } else {
+            tangents.set(src4); // F64 → F32
+        }
+    } else if (geom.normals && uvs) {
+        // Generate from the geometric-baked positions/normals + UVs (handedness scale +1, y-up default).
+        tangents = generateFbxTangents(positions, normals, uvs, indices, 1, geom.controlPointIndices, geom.materialIndices);
+    }
+
+    return { positions, normals, uvs, colors, tangents, indices };
 }

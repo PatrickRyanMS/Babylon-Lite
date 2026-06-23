@@ -1,5 +1,5 @@
 {
-    "$comment": "Provenance for the scene226 FBX parity goldens. Each babylon-ref-golden.png is an EXACT copy of Babylon.js's committed FBX visualization reference image. Refresh with `pnpm sync:fbx-goldens`; detect upstream drift with `pnpm check:fbx-goldens`. Do not hand-edit.",
+    "$comment": "Provenance for the scene230 FBX parity goldens. Each babylon-ref-golden.png is an EXACT copy of Babylon.js's committed FBX visualization reference image. Refresh with `pnpm sync:fbx-goldens`; detect upstream drift with `pnpm check:fbx-goldens`. Do not hand-edit.",
     "babylonRepo": "BabylonJS/Babylon.js",
     "babylonSourceDir": "packages/tools/tests/test/visualization/ReferenceImages",
     "rawUrlBase": "https://raw.githubusercontent.com",

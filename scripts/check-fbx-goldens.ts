@@ -1,7 +1,7 @@
 /**
- * Drift gate for the scene226 FBX parity goldens.
+ * Drift gate for the scene230 FBX parity goldens.
  *
- * Re-diffs our pinned goldens (reference/lite/scene226-fbx-loader/<model>/
+ * Re-diffs our pinned goldens (reference/lite/scene230-fbx-loader/<model>/
  * babylon-ref-golden.png) against Babylon.js's current committed FBX visualization
  * reference images, so we are explicitly told when Babylon's golden-path renders
  * change upstream (otherwise a one-time copy could silently go stale and Lite could

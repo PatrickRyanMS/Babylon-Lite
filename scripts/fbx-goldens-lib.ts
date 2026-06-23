@@ -1,7 +1,7 @@
 /**
  * Shared helpers for the FBX parity-golden provenance + drift tooling.
  *
- * The scene226 FBX parity goldens (reference/lite/scene226-fbx-loader/<model>/
+ * The scene230 FBX parity goldens (reference/lite/scene230-fbx-loader/<model>/
  * babylon-ref-golden.png) are EXACT copies of Babylon.js's own committed FBX
  * visualization reference images
  * (packages/tools/tests/test/visualization/ReferenceImages/fbx-*.png).
@@ -27,7 +27,7 @@ const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = resolve(SCRIPTS_DIR, "..");
 
 /** Lite golden directory (one subdir per model, each holding babylon-ref-golden.png). */
-export const LITE_GOLDEN_DIR = join(REPO_ROOT, "reference", "lite", "scene226-fbx-loader");
+export const LITE_GOLDEN_DIR = join(REPO_ROOT, "reference", "lite", "scene230-fbx-loader");
 /** Committed provenance manifest. */
 export const MANIFEST_PATH = join(LITE_GOLDEN_DIR, "golden-sources.json");
 

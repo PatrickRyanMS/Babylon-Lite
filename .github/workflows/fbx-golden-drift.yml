@@ -1,4 +1,4 @@
-# Weekly freshness check for the scene226 FBX parity goldens.
+# Weekly freshness check for the scene230 FBX parity goldens.
 #
 # Those goldens are pinned copies of Babylon.js's committed FBX visualization
 # reference images. This job re-diffs the pinned goldens against Babylon's CURRENT

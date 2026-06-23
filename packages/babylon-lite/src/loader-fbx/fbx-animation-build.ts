@@ -132,6 +132,10 @@ export function buildFbxAnimationData(
     // Live scene nodes are structurally compatible with AnimatedNodeTarget.
     const nodeTargets: (AnimatedNodeTarget | undefined)[] = modelNodes.map((mn) => mn.node);
 
+    // Node names indexed by node index — lets AnimationGroupMask resolve include/exclude
+    // target names to the node indices its channels animate.
+    const nodeNames: (string | undefined)[] = modelNodes.map((mn) => mn.node.name);
+
     // Skeletal bindings: remap each FBX rig's bone indices to model-node indices
     // (FBX bones are Model nodes, so the controller drives them through the same
     // node hierarchy). Skinned-mesh nodes + ancestors and the bone nodes are
@@ -203,6 +207,13 @@ export function buildFbxAnimationData(
         morphBindings: animMorphBindings,
         nodeTargets,
         excludedNodeIndices,
+        nodeNames,
+        // FBX bone-texture data is built in raw-FBX space (conjugated by the mesh bind-global),
+        // with the FBX→Lite axis/unit conversion carried by each mesh's world matrix. Use an
+        // identity skin root so the controller does NOT re-apply RH→LH (which would double-convert
+        // and reflect the bones — corrupting skinned normals, m12). See skeleton-updater.
+        // prettier-ignore
+        boneRootTransform: new Float32Array([1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1]),
     };
 }
 

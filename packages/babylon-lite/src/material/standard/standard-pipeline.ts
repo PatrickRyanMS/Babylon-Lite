@@ -49,6 +49,22 @@ export function _installStandardStencilResolver(resolve: (stencil: StencilState)
     _stencilResolver = resolve;
 }
 
+/** UV-offset opt-in flag, set only by `enableStandardUvOffset` (which the FBX loader calls when a
+ *  material has a non-zero `uvTranslation`). Module-local with a single exported setter: when the
+ *  enabler is absent from the bundle the setter tree-shakes, the bundler proves this stays `false`,
+ *  and every `material.uvOffset` read below folds to a constant 0 — so scenes without UV offset
+ *  (the common case) stay byte-identical to upstream. */
+let _uvOffsetEnabled = false;
+/** @internal Install (enable) Standard UV-offset support (called by `enableStandardUvOffset`). */
+export function _installStandardUvOffset(): void {
+    _uvOffsetEnabled = true;
+}
+/** @internal Whether Standard UV offset is enabled in this bundle. Read by the geometry pass
+ *  (standard-geometry-renderable) so its offset reads fold the same way the color pass's do. */
+export function _isStandardUvOffsetEnabled(): boolean {
+    return _uvOffsetEnabled;
+}
+
 // ─── Composer Path (Phase 1) ────────────────────────────────────────
 // Converts feature bitmask → StandardTemplateConfig → ComposedShader.
 // This produces identical WGSL to the old string-builder path but via
@@ -304,16 +320,17 @@ export function createStandardMeshBindGroup(
         const uvData = new F32(4);
         const scaleX = material.uvScale[0];
         let scaleY = material.uvScale[1];
-        let offsetY = 0;
+        // UV offset folds to 0 unless a loader opted in via enableStandardUvOffset (FBX uvTranslation).
+        let offsetY = _uvOffsetEnabled ? material.uvOffset![1] : 0;
         // Flip V for y-down source data (e.g. basis/compressed textures).
         // uv * (sx, sy) + (ox, oy) with vFlip becomes uv.xy * (sx, -sy) + (ox, sy+oy).
         if (material.diffuseTexture?.invertY) {
-            offsetY = scaleY;
+            offsetY += scaleY;
             scaleY = -scaleY;
         }
         uvData[0] = scaleX;
         uvData[1] = scaleY;
-        uvData[2] = 0;
+        uvData[2] = _uvOffsetEnabled ? material.uvOffset![0] : 0;
         uvData[3] = offsetY;
         entries.push({ binding: nextBinding++, resource: { buffer: createUniformBuffer(engine, uvData) } });
     }

@@ -27,7 +27,13 @@ export function _installAnimationMaskResolver(resolver: AnimationMaskResolver): 
     _maskResolver = resolver;
 }
 
-// RH→LH root transform (same as load-gltf.ts): diag(-1, 1, 1, 1)
+// Default skin root transform: RH→LH (same as load-gltf.ts) diag(-1, 1, 1, 1).
+// glTF skin matrices live in RH glTF space and are converted to Lite's LH space by
+// this root pre-multiply. FBX overrides this with identity (see createAnimationController):
+// FBX bone-texture data is built in raw-FBX space and conjugated by the mesh bind-global,
+// with the FBX→Lite axis/unit conversion carried by each mesh's `world` (finalWorld =
+// mesh.world · influence) — so applying RH→LH here would double-convert and reflect the
+// FBX bones (corrupting skinned normals → over-bright lighting).
 // prettier-ignore
 const RH_TO_LH = new F32([-1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1]);
 
@@ -85,8 +91,12 @@ export interface AnimationController {
 }
 
 /**
- * Create a skeleton animation controller from parsed glTF animation data.
+ * Create a skeleton animation controller from parsed glTF (or FBX) animation data.
  * Returns a tick function that advances the animation and uploads bone matrices.
+ *
+ * @param boneRootTransform - Root pre-multiply applied when composing node world matrices
+ *   for the bone path. Defaults to RH→LH (glTF). FBX passes identity because its bone-texture
+ *   data is built in raw-FBX space with the axis/unit conversion carried by `mesh.world`.
  */
 export function createAnimationController(
     clip: AnimationClip,
@@ -122,6 +132,19 @@ export function createAnimationController(
     boneOverrides: ReadonlyMap<number, unknown> | undefined,
     nodeNames?: readonly (string | undefined)[]
 ): AnimationController;
+// Further overload adding the optional FBX skin-root transform (RH→LH for glTF, identity for
+// FBX). Separate overload to keep the prior overloads' API-report lines byte-identical.
+export function createAnimationController(
+    clip: AnimationClip,
+    nodes: readonly NodeRest[],
+    skeletons: readonly SkeletonBinding[],
+    morphBindings: readonly MorphBinding[],
+    nodeTargets: readonly (AnimatedNodeTarget | undefined)[] | undefined,
+    excludedNodeIndices: ReadonlySet<number> | undefined,
+    boneOverrides: ReadonlyMap<number, unknown> | undefined,
+    nodeNames: readonly (string | undefined)[] | undefined,
+    boneRootTransform?: Float32Array
+): AnimationController;
 export function createAnimationController(
     clip: AnimationClip,
     nodes: readonly NodeRest[],
@@ -130,8 +153,10 @@ export function createAnimationController(
     nodeTargets?: readonly (AnimatedNodeTarget | undefined)[],
     excludedNodeIndices?: ReadonlySet<number>,
     boneOverrides?: ReadonlyMap<number, unknown>,
-    nodeNames?: readonly (string | undefined)[]
+    nodeNames?: readonly (string | undefined)[],
+    boneRootTransform?: Float32Array
 ): AnimationController {
+    const rootTransform = boneRootTransform ?? RH_TO_LH;
     const requiresEngine = skeletons.length > 0 || morphBindings.length > 0;
     const numNodes = nodes.length;
 
@@ -382,8 +407,9 @@ export function createAnimationController(
                           if (parentIdx >= 0) {
                               mat4MultiplyInto(worldMat, nodeIdx * 16, worldMat, parentIdx * 16, localMat, nodeIdx * 16);
                           } else {
-                              // Root node: pre-multiply RH→LH
-                              mat4MultiplyInto(worldMat, nodeIdx * 16, RH_TO_LH, 0, localMat, nodeIdx * 16);
+                              // Root node: pre-multiply the skin root transform (RH→LH for
+                              // glTF, identity for FBX — see boneRootTransform).
+                              mat4MultiplyInto(worldMat, nodeIdx * 16, rootTransform, 0, localMat, nodeIdx * 16);
                           }
                       }
 

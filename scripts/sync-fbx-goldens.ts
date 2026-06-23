@@ -1,5 +1,5 @@
 /**
- * Refresh the scene226 FBX parity goldens from Babylon.js's committed FBX
+ * Refresh the scene230 FBX parity goldens from Babylon.js's committed FBX
  * visualization reference images, and update the provenance manifest.
  *
  *   pnpm sync:fbx-goldens                 # from the sibling ../Babylon.js checkout
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
 
     const manifest: GoldenManifest = {
         $comment:
-            "Provenance for the scene226 FBX parity goldens. Each babylon-ref-golden.png is an EXACT copy of Babylon.js's committed FBX visualization reference image. " +
+            "Provenance for the scene230 FBX parity goldens. Each babylon-ref-golden.png is an EXACT copy of Babylon.js's committed FBX visualization reference image. " +
             "Refresh with `pnpm sync:fbx-goldens`; detect upstream drift with `pnpm check:fbx-goldens`. Do not hand-edit.",
         babylonRepo: BJS_REPO,
         babylonSourceDir: BJS_SOURCE_DIR,

@@ -1,7 +1,23 @@
 import type { EngineContext } from "../../engine/engine.js";
 import type { MeshGroupBuilder } from "../../render/renderable.js";
 import { _registerStdExt } from "./standard-flags.js";
+import type { StdExt } from "./standard-flags.js";
 import type { StandardMaterialProps } from "./standard-material.js";
+import type { Mesh } from "../../mesh/mesh.js";
+
+// Mesh-feature → StdExt dispatch registry (resolver-hook fold). Each deform/vertex feature
+// (morph, skeleton, vertex color, normal-map tangent) is installed here ONLY by its
+// `enableStandard*()` opt-in (enable-standard-mesh-features.ts), which the FBX loader calls when it
+// creates such a mesh. A scene that never enables one keeps this `null`, so the dispatch loop below
+// folds entirely out of the bundle — the same module-local-proven-null fold the stencil path uses —
+// and non-deform Standard scenes (fog/skybox, Sponza, …) stay byte-identical to upstream.
+export type StdMeshExtDispatch = readonly [(m: Mesh) => boolean, () => Promise<unknown>, string | null];
+let _stdMeshExtDispatch: StdMeshExtDispatch[] | null = null;
+/** @internal Install a mesh-feature StdExt dispatcher (called only by `enableStandard*` opt-ins).
+ *  `key` names the StdExt export to register, or is `null` for chunks that self-install (tangent). */
+export function _registerStdMeshExtDispatch(d: StdMeshExtDispatch): void {
+    (_stdMeshExtDispatch ??= []).push(d);
+}
 
 /** Lazy-imports the standard renderable builder and builds the pipeline. */
 // Material-property → fragment-module dispatch table. Each entry is a plain
@@ -69,18 +85,22 @@ export const standardGroupBuilder: MeshGroupBuilder = async (scene, meshes) => {
             })
         );
     }
-    // Morph targets — wired as a plain StdExt (gated on HAS_MORPH_TARGETS) so it reuses the
-    // shared ext-composition + ext-bind loops in standard-renderable/standard-pipeline, just
-    // like vertex color. Dynamic-imported only when a mesh in this group actually has morph
-    // targets, so non-morph standard scenes never fetch it.
-    if (meshes.some((m) => !!m.morphTargets)) {
-        imports.push(import("./fragments/std-morph-fragment.js").then((m) => _registerStdExt(m.stdMorphExt)));
-    }
-    if (meshes.some((m) => !!m._gpu?.colorBuffer)) {
-        // Per-vertex color is wired as a plain StdExt (gated on HAS_VERTEX_COLOR) so it
-        // reuses the shared ext-composition loop in standard-renderable — no bespoke
-        // factory plumbing in the always-loaded path.
-        imports.push(import("./fragments/std-vertex-color-fragment.js").then((mod) => _registerStdExt(mod.stdVertexColorExt)));
+    // Deform/vertex mesh-feature StdExts (morph, skeleton, vertex color, normal-map tangent) are
+    // dispatched from the module-local `_stdMeshExtDispatch` registry, populated only by the
+    // `enableStandard*()` opt-ins the FBX loader calls. When no feature was enabled the registry is
+    // `null` and this whole block folds away, so non-deform Standard scenes stay byte-identical.
+    if (_stdMeshExtDispatch) {
+        for (const [pred, load, key] of _stdMeshExtDispatch) {
+            if (meshes.some(pred)) {
+                imports.push(
+                    load().then((mod) => {
+                        if (key) {
+                            _registerStdExt((mod as Record<string, StdExt>)[key]!);
+                        }
+                    })
+                );
+            }
+        }
     }
     for (const [prop, load, key] of _STD_MAT_EXTS) {
         if (meshes.some((m) => !!(m.material as any)[prop])) {

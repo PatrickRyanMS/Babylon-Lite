@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Babylon Lite — Scene 230: FBX Loader</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #14141c;
+            }
+            /* Fills the window for interactive viewing (default). The parity spec passes
+               ?capture=1, which locks the canvas to 600×400 to match the committed Babylon
+               FBX reference renders for the MAD diff. */
+            #renderCanvas {
+                width: 100vw;
+                height: 100vh;
+                display: block;
+            }
+            #modelPicker {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                z-index: 10;
+                font: 13px sans-serif;
+                padding: 4px 6px;
+                background: #1e1e2e;
+                color: #eee;
+                border: 1px solid #555;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="renderCanvas" width="600" height="400"></canvas>
+        <select id="modelPicker" aria-label="FBX model">
+            <optgroup label="Geometry / Materials / Textures">
+                <option value="m01_cube_phong">m01 — cube (phong)</option>
+                <option value="m02_geo_ngons">m02 — n-gons</option>
+                <option value="m03_normals">m03 — normals (flat/smooth)</option>
+                <option value="m04_material_properties">m04 — material properties</option>
+                <option value="m05_textures">m05 — textures (embedded+external)</option>
+                <option value="m06_uv_transform">m06 — uv transform</option>
+                <option value="m07_multimaterial">m07 — multi-material</option>
+                <option value="m08_transforms">m08 — transforms</option>
+            </optgroup>
+            <optgroup label="Deformation / Animation">
+                <option value="m09_skinning">m09 — skinning</option>
+                <option value="m10_morph">m10 — morph</option>
+                <option value="m11_node_anim">m11 — node animation</option>
+                <option value="m12_skeletal_anim">m12 — skeletal animation</option>
+                <option value="m13_morph_anim">m13 — morph animation</option>
+                <option value="m14_multiclip">m14 — multi-clip</option>
+            </optgroup>
+            <optgroup label="Cameras / Lights / Axis">
+                <option value="m15_camera_lights">m15 — cameras + lights</option>
+                <option value="m16_axis_yup">m16 — axis Y-up</option>
+                <option value="m16_axis_zup">m16 — axis Z-up</option>
+                <option value="m16_units_254">m16 — units (2.54)</option>
+            </optgroup>
+        </select>
+        <script type="module" src="/lite/src/lite/scene230.ts"></script>
+    </body>
+</html>

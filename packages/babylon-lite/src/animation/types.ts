@@ -134,6 +134,10 @@ export interface GltfAnimationData {
      *  default path. Typed as `unknown` value to keep the internal `BoneOverride`
      *  shape out of the public API surface. */
     readonly boneOverrides?: ReadonlyMap<number, unknown>;
+    /** Optional root pre-multiply for the bone path (RH→LH by default). FBX sets this to
+     *  identity because its bone-texture data is built in raw-FBX space with the FBX→Lite
+     *  conversion carried by each mesh's world matrix; glTF leaves it undefined (RH→LH). */
+    readonly boneRootTransform?: Float32Array;
 }
 
 // ─── GPU-side data objects attached to Mesh ─────────────────────────────────

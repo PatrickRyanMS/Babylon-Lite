@@ -11,7 +11,7 @@
  * For each skinned geometry it:
  *   1. expands the skin's per-control-point weights to per-output-vertex
  *      joints/weights (rig-relative bone indices), via `fbx-skeleton-data.ts`;
- *   2. computes the rest bone-texture data (identity per bone at the bind pose);
+ *   2. computes the rest bone-texture data (poses the mesh into its authored bind/rest pose);
  *   3. uploads them with `createSkeleton` and assigns `mesh.skeleton` to every
  *      Mesh built from that geometry (multi-material splits share vertex order);
  *   4. returns an {@link FbxSkeletonBinding} per skinned mesh — a superset of the
@@ -33,6 +33,7 @@ import type { FBXModelData } from "./interpreter/fbx-interpreter.js";
 import type { FBXSkinData } from "./interpreter/skeleton.js";
 import type { FBXRigData, FBXSkinBindingData } from "./interpreter/rig.js";
 import { buildFbxSkinningBuffers, computeFbxRestSkeletonData, FBX_MAX_BONE_INFLUENCES } from "./fbx-skeleton-data.js";
+import { enableStandardSkeleton } from "../material/standard/enable-standard-mesh-features.js";
 
 /** A geometry's built meshes plus the source data the skeleton pass needs.
  *  Structurally identical to `load-fbx.ts`'s `FbxMorphRecord`, so the loader can
@@ -101,6 +102,9 @@ export async function applyFbxSkeletons(engine: EngineContext, objectMap: FBXObj
     const rigs = resolveRigs(objectMap, skins);
 
     const { createSkeleton } = await import("../skeleton/create-skeleton.js");
+    // Skinned meshes present → opt the Standard material into skeletal skinning (installs the
+    // dispatch + folds the feature in; net-neutral for scenes that never load skinned meshes).
+    enableStandardSkeleton();
 
     // Map each skin to its resolved rig + per-skin binding, and each geometry to
     // its skin (skins attach to geometries by geometry ID).
@@ -136,7 +140,7 @@ export async function applyFbxSkeletons(engine: EngineContext, objectMap: FBXObj
         }
         const { rig, binding } = resolved;
 
-        // Rest skeleton data (identity-per-bone boneData) + Phase 7b topology.
+        // Rest skeleton data (authored bind/rest-pose boneData) + Phase 7b topology.
         const rest = computeFbxRestSkeletonData(rig.bones, skin);
         for (const message of rest.diagnostics) {
             emit(diagnostics, message);

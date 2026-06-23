@@ -4,6 +4,7 @@
 import type { ShaderFragment } from "../../../shader/fragment-types.js";
 import type { StdExt } from "../standard-flags.js";
 import { HAS_VERTEX_COLOR } from "../standard-flags.js";
+import { _installStdExtFeature } from "../standard-renderable.js";
 
 export function createStdVertexColorFragment(): ShaderFragment {
     return {
@@ -17,12 +18,25 @@ export function createStdVertexColorFragment(): ShaderFragment {
     };
 }
 
-/** Registry extension gated on `HAS_VERTEX_COLOR`. Vertex color is an attribute, not a
- *  UBO/texture, so there is no group-1 binding — the `_bind`/`_textures` hooks are omitted
- *  and the shared StdExt bind/texture loops skip it. */
+/** Registry extension gated on `HAS_VERTEX_COLOR`. Vertex color is a vertex attribute (not a
+ *  UBO/texture), so there is no group-1 binding — the `_bind`/`_textures` hooks are omitted and
+ *  the shared StdExt bind/texture loops skip it. It DOES contribute a draw-time vertex buffer,
+ *  bound generically via `_bindVertexBuffers` (mirrors the layout the composer emits for the
+ *  `color` attribute). */
 export const stdVertexColorExt: StdExt = {
     _id: "std-vcolor",
     _phase: "mesh",
     _feature: HAS_VERTEX_COLOR,
     _frag: () => createStdVertexColorFragment(),
+    _bindVertexBuffers(mesh, pass, slot) {
+        const g = mesh._gpu;
+        if (g.colorBuffer) {
+            pass.setVertexBuffer(slot++, g.colorBuffer, g._vbLayout?._c?._offset);
+        }
+        return slot;
+    },
 };
+
+// Loading this chunk wires the vertex-color feature bit into the bundle (folds the renderable's
+// feature-OR branch in scenes that never enable vertex color). See standard-renderable._stdExtBits.
+_installStdExtFeature(HAS_VERTEX_COLOR);
