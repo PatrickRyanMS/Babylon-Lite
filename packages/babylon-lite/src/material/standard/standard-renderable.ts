@@ -15,17 +15,53 @@ import { _computeStandardMaterialFeatures, _standardShaderVariantKey } from "./s
 import { acquireTexture, releaseTexture, clearSamplerCache } from "../../resource/gpu-pool.js";
 import { createUniformBuffer } from "../../resource/gpu-buffers.js";
 import { getOrCreateStandardBindings, getOrCreateStandardPipeline, createStandardMeshBindGroup, clearStandardPipelineCache, writeStdMaterialData } from "./standard-pipeline.js";
-import { ESM_SHADOW_OUTPUT, NO_COLOR_OUTPUT, NEEDS_UV, NEEDS_UV2, HAS_OPACITY_TEXTURE, _getStdExts } from "./standard-flags.js";
+import {
+    ESM_SHADOW_OUTPUT,
+    NO_COLOR_OUTPUT,
+    NEEDS_UV,
+    NEEDS_UV2,
+    HAS_OPACITY_TEXTURE,
+    HAS_VERTEX_COLOR,
+    HAS_MORPH_TARGETS,
+    HAS_SKELETON,
+    HAS_SKELETON_8,
+    HAS_BUMP_TEXTURE,
+    HAS_NORMAL_TANGENT,
+    SCENE_HAS_FOG,
+    _getStdExtsSorted,
+    type StdExt,
+} from "./standard-flags.js";
 import type { ShaderFragment } from "../../shader/fragment-types.js";
 import type { ShadowGenerator } from "../../shadow/shadow-generator.js";
 import { writeMeshLightSelection } from "../../render/lights-ubo.js";
 import type { Material, MaterialRenderFeatures } from "../material.js";
-import { _computeMeshFeatures, MSH_HAS_INSTANCE_COLOR, MSH_HAS_THIN_INSTANCES, MSH_RECEIVE_SHADOWS } from "../mesh-features.js";
+import {
+    _computeMeshFeatures,
+    MSH_HAS_INSTANCE_COLOR,
+    MSH_HAS_MORPH_TARGETS,
+    MSH_HAS_SKELETON,
+    MSH_HAS_SKELETON_8,
+    MSH_HAS_TANGENTS,
+    MSH_HAS_VERTEX_COLOR,
+    MSH_HAS_THIN_INSTANCES,
+    MSH_RECEIVE_SHADOWS,
+} from "../mesh-features.js";
 import { packMat4IntoF32 } from "../../math/pack-mat4-into-f32.js";
 
 /** Scratch buffer for material UBO writes (24 floats = 96 bytes). Reused across
  *  every Standard renderable since binding updates are single-threaded per frame. */
 const _stdMatScratch = new F32(24);
+
+/** Deform/vertex StdExt feature bits that have been wired into THIS bundle. Each dynamic feature
+ *  chunk (std-vertex-color/morph/skeleton/normal-tangent-fragment) ORs its `HAS_*` bit in via
+ *  `_installStdExtFeature` on import. A scene that loads none keeps this `0`, so the per-mesh
+ *  feature-OR + the draw-time vertex-buffer binder loop below fold away — the resolver-hook fold the
+ *  stencil path uses, keeping non-deform Standard scenes byte-identical to upstream. */
+let _stdExtBits = 0;
+/** @internal OR a deform/vertex feature bit into the active set (called by feature chunks on load). */
+export function _installStdExtFeature(bit: number): void {
+    _stdExtBits |= bit;
+}
 
 /** Thin instance GPU sync callback type — loaded dynamically only when needed. */
 type ThinInstanceSync = (
@@ -44,6 +80,10 @@ export interface StdFragmentFactories {
     shadowFragment?: (shadowLights: import("./fragments/std-shadow-fragment.js").ShadowLightSlot[]) => ShaderFragment;
     /** Present only when the scene has at least one culling-enabled thin-instance mesh. */
     cull?: typeof import("../../mesh/thin-instance-cull-binding.js");
+    /** `calcFogFactor` helper WGSL — non-empty only when `scene.fog` (dynamic-imported from std-fog-wgsl). */
+    fogHelper?: string;
+    /** Fog blend block WGSL — non-empty only when `scene.fog`. */
+    fogBlock?: string;
 }
 
 /** Build Renderable(s) + a SceneUniformUpdater for a set of standard meshes.
@@ -53,6 +93,12 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
     const engine = scene.surface.engine;
     const device = engine._device;
     const { tiSync, tiFragment, shadowFragment, cull } = factories;
+    // Fog WGSL strings (empty unless the scene has fog). Threaded into the compose call on a
+    // cache miss; `hasFog` ORs SCENE_HAS_FOG into the per-mesh feature mask so the template
+    // emits the fog varying/helper/block and the pipeline cache key stays fog-distinct.
+    const fogHelper = factories.fogHelper ?? "";
+    const fogBlock = factories.fogBlock ?? "";
+    const hasFog = !!scene.fog;
 
     // Collect per-light shadow info.
     const shadowLights: { lightIndex: number; shadowType: "esm" | "pcf" | "csm"; gen: ShadowGenerator }[] = [];
@@ -73,17 +119,66 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
         const mat = (materialOverride ?? mesh.material) as StandardMaterialProps;
         const renderFeatures = (mat._renderFeatures ??= { features: _computeStandardMaterialFeatures(mat) }) as MaterialRenderFeatures;
         const isOverride = materialOverride != null;
-        const features = renderFeatures.features;
-        const shadowOutput = (features & (NO_COLOR_OUTPUT | ESM_SHADOW_OUTPUT)) !== 0;
+        const shadowOutput = (renderFeatures.features & (NO_COLOR_OUTPUT | ESM_SHADOW_OUTPUT)) !== 0;
         const receiveShadows = !shadowOutput && mesh.receiveShadows && hasSomeShadows;
         const meshFeatures = _computeMeshFeatures(mesh, receiveShadows);
-        // Build per-feature fragment list (deduped via pipeline cache).
+        // Per-vertex color, morph, skeleton (mesh-driven) and fog (scene-driven) are OR'd into a
+        // *local* copy of the cached material features (never mutate `renderFeatures.features`).
+        // Each bit is both the pipeline cache key and the StdExt loop gate below, so the composed
+        // shader and the key stay consistent with no masking. All are suppressed on shadow/depth
+        // passes (no color; shadow-pass deform isn't wired — m09/m10/m12/m13 don't cast shadows).
+        // Skeleton + thin-instance both reassign `finalWorld` in the VW slot, so that combo is
+        // skipped this round (m09/m12 aren't thin-instanced, so it never triggers).
+        let features = renderFeatures.features;
+        if (!shadowOutput) {
+            // Deform/vertex feature bits are OR'd in only when the matching dynamic StdExt chunk has
+            // been loaded (each installs its bit via `_installStdExtFeature`). When none is loaded
+            // `_stdExtBits` is provably 0 and this whole block folds away (non-deform scenes stay
+            // byte-identical). The `_stdExtBits & HAS_*` guard is always satisfied once the matching
+            // chunk is present, so behaviour is identical to a direct `meshFeatures & MSH_*` test.
+            if (_stdExtBits) {
+                if (_stdExtBits & HAS_VERTEX_COLOR && meshFeatures & MSH_HAS_VERTEX_COLOR) {
+                    features |= HAS_VERTEX_COLOR;
+                }
+                if (_stdExtBits & HAS_MORPH_TARGETS && meshFeatures & MSH_HAS_MORPH_TARGETS) {
+                    features |= HAS_MORPH_TARGETS;
+                }
+                if (_stdExtBits & HAS_SKELETON && meshFeatures & MSH_HAS_SKELETON && !(meshFeatures & MSH_HAS_THIN_INSTANCES)) {
+                    features |= HAS_SKELETON | (meshFeatures & MSH_HAS_SKELETON_8 ? HAS_SKELETON_8 : 0);
+                }
+                // Normal-mapped meshes that carry a tangent buffer render the bump through the
+                // explicit-tangent TBN (Babylon FBX parity) instead of the cotangent frame.
+                if (_stdExtBits & HAS_NORMAL_TANGENT && meshFeatures & MSH_HAS_TANGENTS && features & HAS_BUMP_TEXTURE) {
+                    features |= HAS_NORMAL_TANGENT;
+                }
+            }
+            if (hasFog) {
+                features |= SCENE_HAS_FOG;
+            }
+        }
+        // Build per-feature fragment list (deduped via pipeline cache). The morph ext (gated on
+        // HAS_MORPH_TARGETS) composes its vertex-stage fragment here; `composeStandardShader`
+        // derives `_hasMorph` from fragment presence, keeping geometry/depth paths safe.
+        // Iterate the registry in CANONICAL sorted order (same order the composer topo-sorts
+        // fragments into vertex-attribute layout, and the same order the group-1 ext-bind and
+        // draw-time vertex-buffer loops use) so layout/bind orders stay mutually consistent.
+        // Compose the active feature fragments AND collect their draw-time vertex-buffer binders
+        // in ONE pass over the registry in CANONICAL sorted order (same order the composer topo-
+        // sorts fragments into vertex-attribute layout, and the group-1 ext-bind + draw-time
+        // vertex-buffer loops use), so layout/bind orders stay mutually consistent. Collecting both
+        // in a single iteration avoids a second sorted-registry walk per rebuild.
         const frags: ShaderFragment[] = [];
-        for (const ext of _getStdExts().values()) {
+        const vbBinders: NonNullable<StdExt["_bindVertexBuffers"]>[] = [];
+        for (const ext of _getStdExtsSorted()) {
             if (features & ext._feature) {
                 const f = ext._frag(features);
                 if (f) {
                     frags.push(f);
+                }
+                // Draw-time vertex-buffer binders come only from deform/vertex exts; gate their
+                // collection on `_stdExtBits` so it folds away in non-deform bundles.
+                if (_stdExtBits && ext._bindVertexBuffers) {
+                    vbBinders.push(ext._bindVertexBuffers);
                 }
             }
         }
@@ -110,7 +205,17 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
             }
         }
         const esmShadowDepthCode = (features & ESM_SHADOW_OUTPUT) !== 0 ? (mat as StandardMaterialProps & { readonly _esmShadowDepthCode: string })._esmShadowDepthCode : "";
-        const bindings = getOrCreateStandardBindings(engine, features, meshFeatures, frags, shaderKey, esmShadowDepthCode, (mat as StandardMaterialProps).stencil ?? null);
+        const bindings = getOrCreateStandardBindings(
+            engine,
+            features,
+            meshFeatures,
+            frags,
+            shaderKey,
+            esmShadowDepthCode,
+            fogHelper,
+            fogBlock,
+            (mat as StandardMaterialProps).stencil ?? null
+        );
 
         const meshShadowGens = receiveShadows ? shadowLights.map((sl) => sl.gen) : [];
 
@@ -123,7 +228,7 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
         const matData = new F32(24);
         writeStdMaterialData(matData, mat, textureLevel);
         const materialUBO = createUniformBuffer(engine, matData);
-        const meshBindGroup = createStandardMeshBindGroup(engine, bindings, meshUBO, materialUBO, mat);
+        const meshBindGroup = createStandardMeshBindGroup(engine, bindings, meshUBO, materialUBO, mat, mesh);
 
         // Shadow bind group (group 2) — shared across receiving meshes via shadowBGCache.
         let shadowBindGroup: GPUBindGroup | null = null;
@@ -210,6 +315,15 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
             }
             if (needsUV2 && g.uv2Buffer) {
                 pass.setVertexBuffer(slot++, g.uv2Buffer, vb?._u2?._offset);
+            }
+            // Generic ext-contributed draw-time vertex buffers (e.g. vertex color, skeleton
+            // joints/weights, normal-map tangent). Bound in canonical sorted order — matching the
+            // composer's fragment vertex-attribute layout — after base attrs/uv/uv2 and before thin
+            // instances. Gated on `_stdExtBits` so the loop folds out of non-deform bundles.
+            if (_stdExtBits) {
+                for (const bind of vbBinders) {
+                    slot = bind(mesh, pass, slot);
+                }
             }
 
             const ti = hasThinInstances ? mesh.thinInstances : null;
