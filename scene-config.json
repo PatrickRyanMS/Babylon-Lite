@@ -1977,6 +1977,16 @@
         "compatParity": true
     },
     {
+        "id": 230,
+        "slug": "scene230-fbx-loader",
+        "name": "Scene 230 — FBX Loader",
+        "maxMad": 3,
+        "description": "FBX loader port visual parity: each of the Babylon.js FBX loader's reference models (m01–m16: geometry, n-gons, normals, materials, embedded/external textures, UV transform, multi-material, transforms, skinning, morph, node/skeletal/morph animation, multi-clip, cameras+lights, axis/unit conversion) is rendered in Lite with the exact Babylon.js FBX visualization rig and MAD-diffed against the committed Babylon.js reference renders. Spec iterates all 18 models; the base maxMad applies, with a documented per-model override for the uvTranslation engine gap (m06). The deformation models (m09/m10/m12/m13) render with full Standard-pipeline skinning + morph deformation.",
+        "tags": ["fbx", "loader", "standard"],
+        "note": "Multi-model loader-parity scene. m06 carries a uvTranslation gap; m09/m10/m12/m13 deform via the Standard skinning/morph path. No bundle-size ceiling (parity render only).",
+        "skipPerf": true
+    },
+    {
         "id": 227,
         "slug": "scene227-multi-canvas-same-scene",
         "name": "Scene 227 — Multi-Canvas (Same Scene)",

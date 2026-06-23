@@ -20,6 +20,8 @@
         "fetch:freeciv": "tsx scripts/fetch-freeciv.ts",
         "fetch:platformer": "tsx scripts/fetch-platformer.ts",
         "fetch:littlest-tokyo": "tsx scripts/fetch-littlest-tokyo.ts",
+        "check:fbx-goldens": "tsx scripts/check-fbx-goldens.ts",
+        "sync:fbx-goldens": "tsx scripts/sync-fbx-goldens.ts",
         "test": "pnpm build:bundle-scenes && pnpm test:parity",
         "test:watch": "vitest --project unit",
         "test:unit": "vitest run --project unit",

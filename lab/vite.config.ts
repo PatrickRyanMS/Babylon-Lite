@@ -165,8 +165,44 @@ function serveReferenceImages(): Plugin {
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
                 const url = (req.url ?? "").split("?")[0]; // strip query string
+                // FBX loader test models are owned by the Babylon **Assets** repo / CDN and are
+                // NOT vendored here. Serve /fbx/<path> from a local Assets checkout if present
+                // (FBX_ASSETS_DIR env, else the sibling ../Assets), else proxy the Babylon CDN
+                // (same-origin proxy → no CORS). Mirror of tests/lite/fbx-assets.ts.
+                if (url.startsWith("/fbx/")) {
+                    const rel = decodeURIComponent(url.slice("/fbx/".length));
+                    const mime = rel.endsWith(".png") ? "image/png" : rel.endsWith(".jpg") || rel.endsWith(".jpeg") ? "image/jpeg" : "application/octet-stream";
+                    const assetsRoot = process.env.FBX_ASSETS_DIR ? resolve(process.env.FBX_ASSETS_DIR) : resolve(__dirname, "../../Assets/meshes/fbx");
+                    for (const cand of [resolve(assetsRoot, "loaderTests", rel), resolve(assetsRoot, rel)]) {
+                        if (cand.startsWith(assetsRoot) && existsSync(cand) && statSync(cand).isFile()) {
+                            res.setHeader("Content-Type", mime);
+                            res.setHeader("Cache-Control", "no-cache");
+                            createReadStream(cand).pipe(res);
+                            return;
+                        }
+                    }
+                    void (async () => {
+                        const base = "https://assets.babylonjs.com/meshes/fbx";
+                        for (const cdnRel of [`loaderTests/${rel}`, rel]) {
+                            try {
+                                const r = await fetch(`${base}/${cdnRel}`);
+                                if (r.ok) {
+                                    res.setHeader("Content-Type", mime);
+                                    res.setHeader("Cache-Control", "no-cache");
+                                    res.end(Buffer.from(await r.arrayBuffer()));
+                                    return;
+                                }
+                            } catch {
+                                /* try next candidate */
+                            }
+                        }
+                        res.statusCode = 404;
+                        res.end("fbx asset not found locally or on Babylon CDN");
+                    })();
+                    return;
+                }
                 const liteHtmlCompat = url.match(
-                    /^\/((?:scene|bundle-scene|bundle-bjs-scene|babylon-ref-scene|bundle-baseline-scene)\d+|demo-[^/]+|dispose-test|leak-test|material-swap-test|picking-test)\.html$/
+                    /^\/((?:scene|bundle-scene|bundle-bjs-scene|babylon-ref-scene|bundle-baseline-scene)\d+|demo-[^/]+|dispose-test|leak-test|material-swap-test|picking-test|fbx-test)\.html$/
                 );
                 if (liteHtmlCompat) {
                     const name = liteHtmlCompat[1];

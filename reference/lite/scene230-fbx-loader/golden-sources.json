@@ -1,0 +1,102 @@
+{
+    "$comment": "Provenance for the scene230 FBX parity goldens. Each babylon-ref-golden.png is an EXACT copy of Babylon.js's committed FBX visualization reference image. Refresh with `pnpm sync:fbx-goldens`; detect upstream drift with `pnpm check:fbx-goldens`. Do not hand-edit.",
+    "babylonRepo": "BabylonJS/Babylon.js",
+    "babylonSourceDir": "packages/tools/tests/test/visualization/ReferenceImages",
+    "rawUrlBase": "https://raw.githubusercontent.com",
+    "syncedFromRef": "9.12.0-8-g73999058f5",
+    "syncedFromCommit": "73999058f5defdca261c2f1e010bb15f6b197e68",
+    "syncedAt": "2026-06-15T23:11:48.945Z",
+    "driftThresholdMad": 1,
+    "goldens": [
+        {
+            "model": "m01_cube_phong",
+            "source": "fbx-m01-cube-phong.png",
+            "sha256": "0d84b46d5c6f16d3b594dbccc3fc060fb65b04e39ec1696282d0c35202bc2a56"
+        },
+        {
+            "model": "m02_geo_ngons",
+            "source": "fbx-m02-ngons.png",
+            "sha256": "53f585dc489ee13250a0d617a78a72367a0aa9be614090ab8ae6e24c3427e5ad"
+        },
+        {
+            "model": "m03_normals",
+            "source": "fbx-m03-normals.png",
+            "sha256": "b7cdd8c02c9e54b27b0762430c7cf89cbcc839a99b5db48f3eae6b968b12b5ae"
+        },
+        {
+            "model": "m04_material_properties",
+            "source": "fbx-m04-materials.png",
+            "sha256": "20a2d873169283d89f99c36c0332218b21486ad6d71cb519c72421e151c010fa"
+        },
+        {
+            "model": "m05_textures",
+            "source": "fbx-m05-textures.png",
+            "sha256": "e7d5a4fb321159fa652a9fb2f769f5051d7086906a8c52a79583c85e643b7c36"
+        },
+        {
+            "model": "m06_uv_transform",
+            "source": "fbx-m06-uv-transform.png",
+            "sha256": "68c23690f9081cca9ce66e8d04242742eed377d511ff54e0e52e0ffee8999f18"
+        },
+        {
+            "model": "m07_multimaterial",
+            "source": "fbx-m07-multimaterial.png",
+            "sha256": "b2d607aa36765e5c8e9b2199f599ff1b87af9b23d81e13c4de56d87cc419b2eb"
+        },
+        {
+            "model": "m08_transforms",
+            "source": "fbx-m08-transforms.png",
+            "sha256": "90c1496074540bc82ceb2aff828651c35fe22792a7b754d6ac7616ff1c51aee6"
+        },
+        {
+            "model": "m09_skinning",
+            "source": "fbx-m09-skinning.png",
+            "sha256": "d5b266f9b015d5feaadba8882375cb9388e36116c00e125a83ad2b27df9adbdd"
+        },
+        {
+            "model": "m10_morph",
+            "source": "fbx-m10-morph.png",
+            "sha256": "9ba56f4fd01001862073a2e5dc6ba8a208bfc33b786cf576fc13b2f3e1aa5b80"
+        },
+        {
+            "model": "m11_node_anim",
+            "source": "fbx-m11-node-anim.png",
+            "sha256": "2debc2dcf9db02173d8af256a3a94da0add67239336a90b14acdbdca49e91077"
+        },
+        {
+            "model": "m12_skeletal_anim",
+            "source": "fbx-m12-skeletal-anim.png",
+            "sha256": "6e1d491938343417b453bd06962c1885cd6dd5f2b47011936775fc827ed31f59"
+        },
+        {
+            "model": "m13_morph_anim",
+            "source": "fbx-m13-morph-anim.png",
+            "sha256": "9da2c2fdd4190027ddcca55ca18136002e7940de3f216cbe7745830cfbaa561e"
+        },
+        {
+            "model": "m14_multiclip",
+            "source": "fbx-m14-multiclip.png",
+            "sha256": "97df331246326acf0899a870b96f895ef77935205f849a02276efcf4b7835f5f"
+        },
+        {
+            "model": "m15_camera_lights",
+            "source": "fbx-m15-camera-lights.png",
+            "sha256": "692973d021caa035a3b58378e1371d8394ca652dfb67e9609ee3dcd1c70ee55b"
+        },
+        {
+            "model": "m16_axis_yup",
+            "source": "fbx-m16-axis-yup.png",
+            "sha256": "799c57020cb20b313d0501967a67c0a09e68156d5755650c111690bb4d4b3867"
+        },
+        {
+            "model": "m16_axis_zup",
+            "source": "fbx-m16-axis-zup.png",
+            "sha256": "799c57020cb20b313d0501967a67c0a09e68156d5755650c111690bb4d4b3867"
+        },
+        {
+            "model": "m16_units_254",
+            "source": "fbx-m16-units.png",
+            "sha256": "799c57020cb20b313d0501967a67c0a09e68156d5755650c111690bb4d4b3867"
+        }
+    ]
+}
