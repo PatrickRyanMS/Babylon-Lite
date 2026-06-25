@@ -2116,5 +2116,15 @@
         "description": "Xbot 'walk' clip with an AnimationGroupMask (Exclude mode) listing the lower-body bones (legs + feet/toes). Everything animates except those, so the hips, spine, and arms walk while the legs hold their bind pose. Validates AnimationGroupMask include/exclude semantics against Babylon.js. Frozen at a deterministic frame.",
         "tags": ["gltf", "skeleton", "animation", "animation-mask"],
         "skipPerf": true
+    },
+    {
+        "id": 231,
+        "slug": "scene231-standard-features",
+        "name": "Scene 231 — Standard Material Features (skeleton / morph / vertex color / UV offset)",
+        "maxMad": 1.0,
+        "description": "Lite-native Standard-material feature scene: a generated glb whose single tube mesh carries skinning (posed bone bend), a morph target (default weight 1.0 bulge), float32x4 RGBA vertex colors, and UVs is rendered with Lite Standard materials (diffuse grid texture + non-zero uvOffset), exercising the net-neutral Standard feature dispatch (enableStandardSkeleton/Morph/VertexColor/UvOffset). There is no Babylon.js reference — the scene self-generates its own ground-truth golden and the parity test diffs future renders against it to catch regressions.",
+        "tags": ["gltf", "standard", "skeleton", "morph", "vertex-color", "uv-offset"],
+        "note": "Lite-native parity scene (self-generated golden). Exercises Branch A's Standard deform/vertex feature dispatch. No bundle-size ceiling (parity render only).",
+        "skipPerf": true
     }
 ]
