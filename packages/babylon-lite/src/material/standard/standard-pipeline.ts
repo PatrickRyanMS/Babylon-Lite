@@ -68,7 +68,14 @@ export function _isStandardUvOffsetEnabled(): boolean {
 
 /** Compose Standard shader via the generic ShaderComposer.
  *  @param fragments - Optional extra fragments (e.g. thin-instance). */
-export function composeStandardShader(features: number, _meshFeatures = 0, fragments: ShaderFragment[] = [], esmShadowDepthCode = ""): ComposedShader {
+export function composeStandardShader(
+    features: number,
+    _meshFeatures = 0,
+    fragments: ShaderFragment[] = [],
+    esmShadowDepthCode = "",
+    fogHelper = "",
+    fogBlock = ""
+): ComposedShader {
     const has = (bit: number) => (features & bit) !== 0;
     const pc = fragments[0]?._pc;
     const template = createStandardTemplate(
@@ -81,6 +88,8 @@ export function composeStandardShader(features: number, _meshFeatures = 0, fragm
             _noColorOutput: has(NO_COLOR_OUTPUT),
             _esmShadowOutput: has(ESM_SHADOW_OUTPUT),
             _hasMorph: !!pc,
+            _fogHelper: fogHelper,
+            _fogBlock: fogBlock,
         },
         esmShadowDepthCode
     );
@@ -154,6 +163,8 @@ export function getOrCreateStandardBindings(
     fragments: ShaderFragment[] = [],
     shaderKey = "",
     esmShadowDepthCode = "",
+    fogHelper = "",
+    fogBlock = "",
     stencil: StencilState | null = null
 ): StandardShaderBindings {
     ensureDevice(engine);
@@ -170,7 +181,7 @@ export function getOrCreateStandardBindings(
     const cc = getComposedCache();
     let composed = cc.get(key);
     if (!composed) {
-        composed = composeStandardShader(features, meshFeatures, fragments, esmShadowDepthCode);
+        composed = composeStandardShader(features, meshFeatures, fragments, esmShadowDepthCode, fogHelper, fogBlock);
         cc.set(key, composed);
     }
 

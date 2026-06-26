@@ -67,6 +67,11 @@ export interface StdFragmentFactories {
     morphFragment?: () => ShaderFragment;
     /** Present only when the scene has at least one culling-enabled thin-instance mesh. */
     cull?: typeof import("../../mesh/thin-instance-cull-binding.js");
+    /** `calcFogFactor` helper WGSL — present (non-empty) only when the scene has fog; threaded
+     *  from the dynamic `std-fog-wgsl` import so non-fog scenes bundle zero fog bytes. */
+    fogHelper?: string;
+    /** Fog blend block WGSL — present alongside `fogHelper`. */
+    fogBlock?: string;
 }
 
 /** Build Renderable(s) + a SceneUniformUpdater for a set of standard meshes.
@@ -75,7 +80,7 @@ export interface StdFragmentFactories {
 export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[], factories: StdFragmentFactories): MeshGroupBuildResult {
     const engine = scene.surface.engine;
     const device = engine._device;
-    const { tiSync, tiFragment, shadowFragment, cull, morphFragment } = factories;
+    const { tiSync, tiFragment, shadowFragment, cull, morphFragment, fogHelper = "", fogBlock = "" } = factories;
 
     // Collect per-light shadow info.
     const shadowLights: { lightIndex: number; shadowType: "esm" | "pcf" | "csm"; gen: ShadowGenerator }[] = [];
@@ -158,7 +163,17 @@ export function buildStandardMeshRenderables(scene: SceneContext, meshes: Mesh[]
             }
         }
         const esmShadowDepthCode = (features & ESM_SHADOW_OUTPUT) !== 0 ? (mat as StandardMaterialProps & { readonly _esmShadowDepthCode: string })._esmShadowDepthCode : "";
-        const bindings = getOrCreateStandardBindings(engine, features, meshFeatures, frags, shaderKey, esmShadowDepthCode, (mat as StandardMaterialProps).stencil ?? null);
+        const bindings = getOrCreateStandardBindings(
+            engine,
+            features,
+            meshFeatures,
+            frags,
+            shaderKey,
+            esmShadowDepthCode,
+            fogHelper,
+            fogBlock,
+            (mat as StandardMaterialProps).stencil ?? null
+        );
 
         const meshShadowGens = receiveShadows ? shadowLights.map((sl) => sl.gen) : [];
 
