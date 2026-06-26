@@ -55,6 +55,10 @@ export function getStandardGroupBuilder(): MeshGroupBuilder {
         let shadowFragment: any;
         let morphFragment: any;
         let cull: typeof import("../../mesh/thin-instance-cull-binding.js") | undefined;
+        // Fog WGSL is dynamic-imported only when the scene has fog, so non-fog Standard scenes
+        // bundle zero fog bytes (a static import would defeat tree-shaking — see std-fog-wgsl.ts).
+        let fogHelper = "";
+        let fogBlock = "";
 
         const imports: Promise<any>[] = [];
         if (hasTI) {
@@ -90,6 +94,14 @@ export function getStandardGroupBuilder(): MeshGroupBuilder {
                 })
             );
         }
+        if (scene.fog) {
+            imports.push(
+                import("./std-fog-wgsl.js").then((m) => {
+                    fogHelper = m.STD_FOG_HELPER;
+                    fogBlock = m.STD_FOG_BLOCK;
+                })
+            );
+        }
         // Deform/vertex mesh-feature StdExts (skeleton, vertex color) are dispatched from the
         // module-local `_stdMeshExtDispatch` registry, populated only by the `enableStandard*()`
         // opt-ins loaders/scenes call. When no feature was enabled the registry is `null` and this
@@ -117,7 +129,7 @@ export function getStandardGroupBuilder(): MeshGroupBuilder {
         }
 
         const renderableMod = await import("./standard-renderable.js");
-        const result = renderableMod.buildStandardMeshRenderables(scene, meshes, { tiSync, tiFragment, shadowFragment, morphFragment, cull });
+        const result = renderableMod.buildStandardMeshRenderables(scene, meshes, { tiSync, tiFragment, shadowFragment, morphFragment, cull, fogHelper, fogBlock });
         // Wire the per-mesh rebuild closure used by material swap + per-pass override.
         builder._rebuildSingle = result.rebuildSingle;
         return result;

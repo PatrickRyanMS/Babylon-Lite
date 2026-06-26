@@ -27,7 +27,7 @@
         "slug": "scene3-fog",
         "name": "Scene 3 — Fog + Skybox",
         "maxMad": 0.01,
-        "maxRawKB": 54,
+        "maxRawKB": 54.5,
         "description": "Exponential² fog, multiple colored boxes, skybox, ground plane.",
         "tags": ["fog", "procedural", "std"],
         "skipPerf": true
